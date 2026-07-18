@@ -37,6 +37,7 @@ import { createCodingExecutionProvider, validateExecutionRequest } from "./codin
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
+import { codingInterviewPrompts, reviewCodingInterview } from "./coding-interviews";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -146,6 +147,14 @@ describe("Engineer Zero track engine", () => {
     expect(codingTutorResponse(challenge, challenge.starter, 0).stage).toBe("predict");
     expect(codingTutorResponse(challenge, challenge.starter, 5).stage).toBe("full");
     expect(codingTutorResponse(challenge, challenge.starter, 5).message).toContain("rebuild");
+  });
+
+  it("does not let keyword stuffing pass coding interview evidence review", () => {
+    const prompt = codingInterviewPrompts.find((item) => item.id === "interview-triage-api")!;
+    const stuffed = "user validation service test limitation ".repeat(30);
+    expect(reviewCodingInterview(prompt, stuffed).complete).toBe(false);
+    const evidenceRich = "The operations team needs a bounded way to replace manual reading of fictional sensor reports, so I would scope the prototype to triage only. The POST request uses a typed input schema and validation before returning a structured response. The route delegates deterministic threshold policy to a pure service function, keeping the business boundary easy to test. I would assert the exact 90-degree boundary and one invalid reading so a rule change has regression evidence. This is a prototype limitation: it has no identity or production monitoring, so my next decision would be a controlled pilot with those owners involved. I would document that decision, retain the test output, and ask the operations owner whether the proposed workflow actually reduces manual review time.";
+    expect(reviewCodingInterview(prompt, evidenceRich).complete).toBe(true);
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {
