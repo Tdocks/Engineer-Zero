@@ -1,3 +1,5 @@
+import "server-only";
+
 import { aioLabs, aioMissions, aioModules } from "./aio-content";
 import type {
   ArtifactSchema,

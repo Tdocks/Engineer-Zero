@@ -57,6 +57,7 @@ import { codingContextBudget, codingContextChunks, selectedContextTokens } from 
 import { reviewCodingContextWindow } from "./coding-context-window-review";
 import { reviewCodingContinuation } from "./coding-continuation-rubric";
 import { codingSourceHealthRecords } from "./coding-source-health";
+import { productReleaseScorecard } from "./release-scorecard";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -323,6 +324,15 @@ describe("Engineer Zero track engine", () => {
     expect(overdue.publishable).toBe(false);
     expect(overdue.stale.length).toBeGreaterThan(0);
     expect(codingCatalogPublicationStatus().awaitingTechnicalReview.length).toBeGreaterThan(0);
+  });
+
+  it("uses a conservative whole-product release scorecard instead of promoting local completion to commercial readiness", () => {
+    const scorecard = productReleaseScorecard(new Date("2026-07-18T12:00:00.000Z"), {});
+    expect(scorecard.disposition).toBe("internal-draft");
+    expect(scorecard.programs).toHaveLength(3);
+    expect(scorecard.programs.find((program) => program.id === "it-support-technician")?.signals.find((item) => item.category === "instructional-quality")?.status).toBe("blocked");
+    expect(scorecard.programs.find((program) => program.id === "applied-ai-operations")?.signals.find((item) => item.category === "assessment-integrity")?.status).toBe("strong");
+    expect(scorecard.shared.some((item) => item.status === "blocked")).toBe(true);
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {
