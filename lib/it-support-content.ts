@@ -5,6 +5,7 @@ import {
   type AssessmentItem,
   type CourseModule,
   type EvidenceFieldKey,
+  type LabDefinition,
 } from "./course-types";
 import { itSupportBaselineSources } from "./it-support-baseline";
 import type { CompetencyKey } from "./types";
@@ -398,4 +399,117 @@ const modules: CourseModule[] = [
 ];
 
 export const itSupportSprintModules = modules;
+
+const labArtifact = (required: string[]) => ({
+  type: "incident-report" as const,
+  required,
+  minimumWords: 100,
+  requiredFields,
+  requireEvidenceReference: true,
+});
+
+/** The first authored simulation set. Every asset is fictional and crafted to
+ * exercise a different support decision rather than another free-text prompt. */
+export const itSupportLabs: LabDefinition[] = [
+  {
+    id: "it-lab-01-windows-boot-evidence",
+    title: "Read a Windows boot failure before changing it",
+    phaseId: "fast-track",
+    mode: "Solo",
+    capabilityLevel: "practice",
+    competencies: { foundations: 1, production: 0.8, security: 0.4 },
+    scenario: "Fictional training endpoint NX-184 reaches BitLocker recovery after a firmware update. A calibration analyst needs an approved workstation within 35 minutes. The original machine may contain diagnostics useful to the follow-up.",
+    assets: [
+      { name: "support-ticket.txt", kind: "document", content: "Endpoint: NX-184\nObserved: firmware update completed 08:41; recovery screen appears after restart\nUser impact: calibration analyst cannot open the approved analysis tool\nKnown-good spare: NX-219, asset tag verified; enrollment status pending confirmation\nConstraint: do not paste recovery material into tickets or chat" },
+      { name: "boot-events.txt", kind: "log", content: "08:41:12 FirmwareUpdate: completed successfully\n08:42:03 TPM: platform configuration changed\n08:42:31 BitLocker: recovery required after measured boot change\n08:44:10 User report: recovery screen shown; no operating-system desktop reached" },
+      { name: "recovery-options.md", kind: "document", content: "Approved training options:\n1. Verify user identity and use authorized recovery workflow.\n2. Confirm spare device ownership, enrollment, and required application path before use.\n3. Preserve original endpoint state and assign post-recovery investigation.\nNot approved: disabling encryption, copying keys into a ticket, or reimaging before recovery/evidence needs are reviewed." },
+    ],
+    task: "Produce a recovery recommendation that separates immediate operational continuity from original-device follow-up. Link the evidence that changes your decision.",
+    evidence: labArtifact(["State the observed boot facts", "Choose approved recovery or replacement path", "Protect recovery and data boundary", "Verify the analyst can complete the required workflow", "Assign endpoint follow-up owner"]),
+    rules: [
+      { id: "recovery-process", label: "Use approved recovery or managed known-good replacement", requiredTerms: ["approved", "recovery", "known-good", "enrollment"], minimumMatches: 2 },
+      { id: "sensitive-key", label: "Protect BitLocker recovery information", requiredTerms: ["bitlocker", "identity", "key", "ticket"], minimumMatches: 2 },
+      { id: "workflow-verify", label: "Verify the affected work, not only boot", requiredTerms: ["calibration", "analysis", "workflow", "verify"], minimumMatches: 2 },
+    ],
+    debrief: "The recovery screen is evidence about a protected boot measurement, not permission to weaken encryption. A strong answer restores the analyst through an approved path, protects recovery material, and preserves a follow-up path for NX-184.",
+    revisionPrompt: "Name the specific observed change, the approval boundary, and the user-visible test that proves the analyst can resume work.",
+    sources: source("bitLocker", "windowsTroubleshooting"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-02-dns-vlan-escalation",
+    title: "Build a useful DNS and VLAN escalation packet",
+    phaseId: "fast-track",
+    mode: "Pair Programming",
+    capabilityLevel: "practice",
+    competencies: { foundations: 0.8, architecture: 1, communication: 0.7 },
+    scenario: "Fictional metrology station M-27 was moved to a new bay. It obtains an address and reaches its gateway, but it cannot resolve the approved internal data-service hostname. The network team asks for endpoint-side evidence before reviewing port segmentation.",
+    assets: [
+      { name: "ipconfig.txt", kind: "log", content: "Ethernet adapter:\nIPv4 Address: 10.42.18.73\nSubnet Mask: 255.255.255.0\nDefault Gateway: 10.42.18.1\nDNS Servers: 10.42.1.10, 10.42.1.11\nLink state: connected" },
+      { name: "network-tests.txt", kind: "log", content: "ping 10.42.18.1 -> 4 replies\nping 10.42.9.44 -> 4 replies\nnslookup data-service.training.example -> timeout to 10.42.1.10\nNearby station M-26 in same bay resolves hostname successfully\nExpected network: METROLOGY-RESTRICTED\nMove time: 13:18 local" },
+      { name: "handoff-template.md", kind: "document", content: "Escalation packet should include: device identity; physical location and port if available; expected network; address/gateway/DNS observations; timestamps; affected workflow; safe tests performed; requested accountable decision. Do not assign a static address or change VLAN without the approved owner." },
+    ],
+    task: "Use the supplied evidence to write an escalation-ready request. Decide what endpoint testing is appropriate and what must remain with network ownership.",
+    evidence: labArtifact(["Distinguish address, gateway, and DNS evidence", "State safe next endpoint test", "Name segmentation ownership boundary", "Request the specific network-owner decision", "Define recovery verification"]),
+    rules: [
+      { id: "dns-layer", label: "Separate DNS from basic IP reachability", requiredTerms: ["dns", "hostname", "gateway", "ip"], minimumMatches: 3 },
+      { id: "expected-network", label: "Name the expected restricted network", requiredTerms: ["metrology", "restricted", "segmentation", "vlan"], minimumMatches: 1 },
+      { id: "handoff-evidence", label: "Include location, time, impact, and requested owner decision", requiredTerms: ["bay", "13:18", "workflow", "network"], minimumMatches: 3 },
+    ],
+    debrief: "The evidence points to a name-resolution or network-policy investigation, not an arbitrary static-address workaround. A support technician makes the next owner faster by supplying a complete packet and protecting segmentation ownership.",
+    revisionPrompt: "Replace any vague request to ‘check the network’ with the exact hostname behavior, expected network, move context, affected work, and accountable decision needed.",
+    sources: source("windowsTroubleshooting", "vlan"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-03-ai-builder-asset-recovery",
+    title: "Review an AI-generated asset recovery script",
+    phaseId: "fast-track",
+    mode: "AI Builder",
+    capabilityLevel: "practice",
+    competencies: { aiCollaboration: 1, security: 0.8, leadership: 0.5 },
+    scenario: "A fictional AI assistant drafted a PowerShell inventory script to ‘speed up’ recovery of devices marked as returned. The requestor wants it used before the next asset audit. Your task is review, not execution.",
+    assets: [
+      { name: "ai-script.ps1", kind: "code", content: "$devices = Import-Csv returned-devices.csv\nforeach ($device in $devices) {\n  Remove-Item -Path \"PROFILE-PATH/$($device.User)\" -Recurse -Force\n  Set-LocalUser -Name $device.User -PasswordNeverExpires $true\n  Write-Host \"Recovered $($device.AssetTag)\"\n}\n# no dry run, logging, authorization, or error handling" },
+      { name: "asset-policy.md", kind: "document", content: "Training policy: asset recovery requires verified asset tag and custody record, approved data-retention disposition, accountable asset owner, least-privileged execution, audit logging, and a reversible or reviewed workflow. A returned device is not proof that a user profile may be deleted." },
+      { name: "returned-devices.csv", kind: "dataset", content: "AssetTag,User,CustodyRecord\nEZ-443,alex.chen,missing\nEZ-444,mira.singh,RC-8891" },
+    ],
+    task: "Identify the unsafe assumptions in the proposed automation, recommend a bounded revision, and state when a specialist or accountable owner must approve the work.",
+    evidence: labArtifact(["Cite a specific script or data defect", "Choose bounded non-destructive revision", "State authorization and retention boundary", "Define dry-run or verification method", "Name asset or security owner"]),
+    rules: [
+      { id: "destructive", label: "Identify destructive or privileged behavior", requiredTerms: ["delete", "remove", "profile", "password"], minimumMatches: 2 },
+      { id: "custody", label: "Require asset custody and retention approval", requiredTerms: ["custody", "retention", "asset", "owner"], minimumMatches: 2 },
+      { id: "safe-automation", label: "Specify a bounded dry run, logging, and error path", requiredTerms: ["dry run", "log", "error", "least privilege"], minimumMatches: 2 },
+    ],
+    debrief: "AI can draft a starting point, but the proposed script has destructive behavior, weak identity handling, missing custody evidence, and no reliable execution boundary. The correct first outcome may be no automation until approval and a non-destructive review path exist.",
+    revisionPrompt: "Identify the exact destructive line or missing record, then replace broad execution with a reviewed dry-run and accountable approval path.",
+    sources: source("entra", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-04-production-incident-printing",
+    title: "Recover a label-printing incident without a copilot",
+    phaseId: "fast-track",
+    mode: "Production Incident",
+    capabilityLevel: "prove",
+    competencies: { production: 1, communication: 0.7, foundations: 0.7 },
+    scenario: "Fictional shipping line 4 cannot produce compliant labels. The queue is growing and an operator reports that a recent media change produced blank labels. Kyra is deliberately unavailable for this incident exercise.",
+    assets: [
+      { name: "queue-status.txt", kind: "log", content: "Queue: LINE4-ZT411\nStatus: online\nPending jobs: 86\nLast successful label: 06:54\nFirst blank output: 07:12\nDriver: Zebra ZDesigner 8.1\nPort: TCP 10.77.4.41" },
+      { name: "operator-note.txt", kind: "document", content: "07:10: media roll changed from 4x6 thermal transfer to 4x6 direct thermal. Ribbon remains installed. Line 4 stops if labels cannot be scanned. Backup printer LINE3-ZT410 is available but uses a different approved template." },
+      { name: "incident-checklist.md", kind: "document", content: "Contain: avoid uncontrolled reprints. Gather: scope, queue, device, media, template, timestamps. Recover: use approved fallback only after validating its template. Verify: scan a controlled label and confirm required workflow. Communicate: impact, action, checkpoint. Prevent: record calibration/media/template follow-up owner." },
+    ],
+    task: "Contain the printing impact, choose a safe recovery sequence, communicate a checkpoint, and document what must be verified before closing. Do not use Kyra or invent an infrastructure change.",
+    evidence: labArtifact(["State queue/media facts and immediate containment", "Choose approved recovery or fallback", "Define controlled scan verification", "Write a user-facing checkpoint", "Assign prevention follow-up"]),
+    rules: [
+      { id: "media-scope", label: "Identify media, ribbon, calibration, or template context", requiredTerms: ["media", "ribbon", "calibrat", "template"], minimumMatches: 2 },
+      { id: "containment", label: "Contain uncontrolled reprints and use approved fallback carefully", requiredTerms: ["contain", "reprint", "fallback", "approved"], minimumMatches: 2 },
+      { id: "scan-verify", label: "Verify with a controlled scan and workflow result", requiredTerms: ["scan", "verify", "label", "workflow"], minimumMatches: 2 },
+    ],
+    debrief: "A printer that is online can still fail at media, calibration, template, queue, driver, port, or device. The best recovery avoids uncontrolled reprints, protects the required label format, verifies the scan path, and leaves a prevention owner.",
+    revisionPrompt: "Make the recovery specific to the known media change and line impact. Add the approved fallback constraint, an observable scan test, and a named follow-up owner.",
+    sources: source("printing", "incidentResponse"),
+    review: draftReview,
+  },
+];
 export const itSupportContentVersion = "it-support-v1-interview-sprint-draft";

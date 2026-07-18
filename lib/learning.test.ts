@@ -14,7 +14,7 @@ import { gradeCourseAttempt } from "./aio-grade";
 import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
-import { itSupportSprintModules } from "./it-support-content";
+import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
 import { itSupportPublicCatalog } from "./it-support-public-catalog";
 import { gradeItSupportCourseAttempt } from "./it-support-grade";
 import { aioPublicCatalog } from "./aio-public-catalog";
@@ -428,6 +428,7 @@ describe("Engineer Zero track engine", () => {
     const module = itSupportSprintModules[0];
     const answers = Object.fromEntries(module.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]));
     const shallow = gradeItSupportCourseAttempt({
+      kind: "module",
       itemId: module.id,
       answers,
       evidence: {
@@ -442,6 +443,14 @@ describe("Engineer Zero track engine", () => {
     });
     expect(shallow?.complete).toBe(false);
     expect(shallow?.rubric.checks.some((check) => !check.passed)).toBe(true);
+  });
+
+  it("ships distinct IT Support evidence simulations across all four learning modes", () => {
+    expect(itSupportLabs).toHaveLength(4);
+    expect(new Set(itSupportLabs.map((lab) => lab.mode))).toEqual(
+      new Set(["Solo", "Pair Programming", "AI Builder", "Production Incident"]),
+    );
+    expect(itSupportLabs.every((lab) => lab.assets.length >= 3 && lab.evidence.requireEvidenceReference && lab.rules.length >= 3 && Boolean(lab.debrief && lab.revisionPrompt))).toBe(true);
   });
 
   it("does not expose AIO baseline answer keys or a fixed answer position", () => {

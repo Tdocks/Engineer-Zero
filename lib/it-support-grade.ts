@@ -1,6 +1,6 @@
 import "server-only";
 
-import { itSupportSprintModules } from "./it-support-content";
+import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
 import type { ArtifactSchema, EvidenceFieldKey, StructuredEvidence } from "./course-types";
 
 const evidenceKeys: EvidenceFieldKey[] = ["scenarioFact", "decision", "boundary", "verification", "owner", "escalation"];
@@ -59,17 +59,45 @@ function gradeEvidence(evidence: StructuredEvidence, schema: ArtifactSchema) {
   };
 }
 
+function gradeRules(
+  evidence: StructuredEvidence,
+  rules: Array<{ id: string; label: string; requiredTerms?: string[]; minimumMatches?: number }>,
+) {
+  const text = normalize(artifactText(evidence));
+  return rules.map((rule) => {
+    const matched = (rule.requiredTerms ?? []).filter((term) => text.includes(normalize(term)));
+    const required = rule.minimumMatches ?? rule.requiredTerms?.length ?? 0;
+    const passed = matched.length >= required;
+    return {
+      id: `rule-${rule.id}`,
+      label: rule.label,
+      passed,
+      detail: passed
+        ? "Activity-specific requirement is present."
+        : `Add specific reasoning that addresses: ${(rule.requiredTerms ?? []).join(", ")}.`,
+    };
+  });
+}
+
 /** Scores only authored IT Support Sprint modules. Unsupported activity kinds
  * deliberately receive no completion result until their own simulations exist. */
 export function gradeItSupportCourseAttempt(input: {
+  kind: "module" | "lab";
   itemId: string;
   answers: Record<string, string>;
   evidence: StructuredEvidence;
 }) {
-  const item = itSupportSprintModules.find((candidate) => candidate.id === input.itemId);
+  const module = input.kind === "module"
+    ? itSupportSprintModules.find((candidate) => candidate.id === input.itemId)
+    : undefined;
+  const lab = input.kind === "lab"
+    ? itSupportLabs.find((candidate) => candidate.id === input.itemId)
+    : undefined;
+  const item = module ?? lab;
   if (!item) return null;
+  const questions = module?.knowledgeChecks ?? [];
   let correct = 0;
-  const checks = item.knowledgeChecks.map((question) => {
+  const checks = questions.map((question) => {
     const isCorrect = input.answers[question.id] === question.correctChoiceId;
     if (isCorrect) correct += 1;
     return {
@@ -78,11 +106,16 @@ export function gradeItSupportCourseAttempt(input: {
       explanation: isCorrect ? question.explanation : `Revisit this misconception: ${question.misconception}. ${question.explanation}`,
     };
   });
-  const rubric = gradeEvidence(input.evidence, item.artifact);
-  const checkScore = (correct / item.knowledgeChecks.length) * 40;
+  const schema = module ? module.artifact : lab!.evidence;
+  const baseRubric = gradeEvidence(input.evidence, schema);
+  const rubric = {
+    ...baseRubric,
+    checks: [...baseRubric.checks, ...gradeRules(input.evidence, item.rules)],
+  };
+  const checkScore = questions.length ? (correct / questions.length) * 40 : 40;
   const evidenceScore = (rubric.checks.filter((check) => check.passed).length / rubric.checks.length) * 60;
   const score = Math.round(checkScore + evidenceScore);
-  const complete = correct === item.knowledgeChecks.length && rubric.checks.every((check) => check.passed) && score >= 75;
+  const complete = correct === questions.length && rubric.checks.every((check) => check.passed) && score >= 75;
   return {
     itemId: item.id,
     score,

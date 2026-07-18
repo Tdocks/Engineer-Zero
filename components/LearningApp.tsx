@@ -1141,7 +1141,10 @@ function Activities({
   mark: (activity: Activity, score: number, feedback: string) => void;
 }) {
   const [open, setOpen] = useState<Activity | null>(null);
-  if (trackId === "applied-ai-operations" || (trackId === "it-support-technician" && type === "lesson"))
+  if (
+    trackId === "applied-ai-operations" ||
+    (trackId === "it-support-technician" && (type === "lesson" || type === "lab"))
+  )
     return (
             <AioCourseSurface
               kind={type === "lesson" ? "module" : type}

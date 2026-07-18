@@ -1,6 +1,6 @@
 import "server-only";
 
-import { itSupportContentVersion, itSupportSprintModules } from "./it-support-content";
+import { itSupportContentVersion, itSupportLabs, itSupportSprintModules } from "./it-support-content";
 
 function shuffle<T>(items: T[], seed: string) {
   const result = [...items];
@@ -30,7 +30,7 @@ export function itSupportPublicCatalog(seed: string) {
         }),
       ),
     })),
-    labs: [],
+    labs: itSupportLabs.map(({ rules: _rules, review: _review, ...lab }) => lab),
     missions: [],
   };
 }

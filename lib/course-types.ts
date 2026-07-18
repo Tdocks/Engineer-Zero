@@ -118,6 +118,7 @@ export type LabDefinition = {
   title: string;
   phaseId: PhaseId;
   mode: LearningMode;
+  capabilityLevel?: CapabilityLevel;
   competencies: Partial<Record<CompetencyKey, number>>;
   scenario: string;
   assets: Array<{

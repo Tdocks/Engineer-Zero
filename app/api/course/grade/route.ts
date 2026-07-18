@@ -49,14 +49,14 @@ export async function POST(request: Request) {
   ].includes(track)) {
     return NextResponse.json({ error: "Unknown course track." }, { status: 404 });
   }
-  if (track === "it-support-technician" && body.kind !== "module") {
+  if (track === "it-support-technician" && !["module", "lab"].includes(body.kind)) {
     return NextResponse.json(
       { error: "This IT Support activity is not yet an authored simulation." },
       { status: 409 },
     );
   }
   const result = track === "it-support-technician"
-    ? gradeItSupportCourseAttempt({ itemId: body.itemId, answers: body.answers ?? {}, evidence: body.evidence })
+    ? gradeItSupportCourseAttempt({ kind: body.kind as "module" | "lab", itemId: body.itemId, answers: body.answers ?? {}, evidence: body.evidence })
     : gradeCourseAttempt({
         kind: body.kind,
         itemId: body.itemId,
