@@ -30,7 +30,7 @@ The runtime scorecard in `lib/release-scorecard.ts` is intentionally conservativ
 ## Current release truth
 
 - **Applied AI Operations:** structurally advanced and assessment-hardened, but still needs full content review, authenticated evidence, source-health automation, and learner-pilot validation.
-- **IT Support:** Reality Check is protected and source-backed; the rest of the catalog must be replaced with independently authored instruction and evidence-led simulations.
+- **IT Support:** Reality Check, the eight-block 48-hour Sprint, four evidence-led labs, and two stateful missions are protected, source-backed, and structurally validated. The remaining Fast/Master catalog and interview bank are still generated scaffolding and cannot be marketed as complete course content.
 - **Coding Developer:** the strongest local pilot; it still needs configured isolated execution, authenticated evidence, GitHub App verification, reviewer operations, and independent approvals before credential claims.
 
 ## Commercial release gate
