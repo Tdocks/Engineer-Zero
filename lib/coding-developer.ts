@@ -22,6 +22,7 @@ export type CodingSource = {
   locator: string;
   lastVerified: string;
   revalidateBy?: string;
+  sourceType?: "official_documentation" | "government_guidance" | "peer_reviewed_research";
   supportedClaim: string;
 };
 
@@ -35,6 +36,19 @@ export type CodingConcept = {
   role: "know" | "practice" | "prove";
   sourceIds: string[];
   escalation: string;
+};
+
+export type CodingConceptRecord = {
+  conceptId: string;
+  title: string;
+  definition: string;
+  whyItMatters: string;
+  officialSources: Array<Pick<CodingSource, "publisher" | "url" | "version" | "lastVerified" | "sourceType">>;
+  interviewApplication: string;
+  prototypeApplication: string;
+  knownLimitations: string;
+  assessmentIds: string[];
+  capability: CodingConcept["role"];
 };
 
 export type CodingLesson = {
@@ -82,6 +96,13 @@ export type CodingProgramProgress = {
   activeDay: 1 | 2 | 3 | 4;
   completedLessonIds: string[];
   completedContinuationIds: string[];
+  bossBattleAttempts: Record<string, {
+    score: number;
+    response: string;
+    hintCount: number;
+    status: "needs-retry" | "reviewed";
+    updatedAt: string;
+  }>;
   assessmentAttempts: Array<{
     id: string;
     score: number;
@@ -249,7 +270,14 @@ export const codingSources: Record<string, CodingSource> = {
   },
 };
 
-for (const source of Object.values(codingSources)) source.revalidateBy ??= revalidate;
+for (const [key, source] of Object.entries(codingSources)) {
+  source.revalidateBy ??= revalidate;
+  source.sourceType ??= key === "nistSsdf" || key === "nistAiRmf" || key === "nasaSoftwareHandbook"
+    ? "government_guidance"
+    : key === "dunloskyPractice" || key === "freemanActiveLearning"
+      ? "peer_reviewed_research"
+      : "official_documentation";
+}
 
 /**
  * Role literacy is kept honest: a learner can be asked to recognize a concept
@@ -271,6 +299,62 @@ export const codingConcepts: CodingConcept[] = [
   { id: "concept-discovery", label: "Problem framing and acceptance criteria", competency: "decomposition", role: "prove", sourceIds: ["nasaSoftwareHandbook"], escalation: "Escalate unresolved scope, user safety, and business-priority conflicts to the responsible product lead." },
   { id: "concept-defense", label: "Evidence-based technical defense", competency: "defense", role: "prove", sourceIds: ["githubPr", "nistSsdf"], escalation: "State uncertainty rather than inventing ownership or evidence; bring in the specialist who owns the decision." },
 ];
+
+/** Versioned source-of-truth records used by the learner-facing concept library. */
+export const codingConceptRecords: CodingConceptRecord[] = codingConcepts.map((concept) => {
+  const competency = codingCompetenciesForRecord(concept.competency);
+  return {
+    conceptId: concept.id,
+    title: concept.label,
+    definition: `${concept.label} is a bounded engineering concept in this course; learners should connect it to an observable system behavior rather than memorize a tool name.`,
+    whyItMatters: competency.description,
+    officialSources: concept.sourceIds.map((id) => {
+      const source = codingSources[id];
+      return { publisher: source.publisher, url: source.url, version: source.version, lastVerified: source.lastVerified, sourceType: source.sourceType };
+    }),
+    interviewApplication: `Explain ${concept.label.toLowerCase()} in terms of its boundary, evidence, and the accountable owner—not as a claim of unlimited implementation authority.`,
+    prototypeApplication: `Use ${concept.label.toLowerCase()} in a fictional, bounded prototype and preserve a visible test, artifact, or decision record.`,
+    knownLimitations: concept.escalation,
+    assessmentIds: [],
+    capability: concept.role,
+  };
+});
+
+const codingConceptAssessmentIds: Record<string, string[]> = {
+  "concept-terminal": ["coding-baseline-01", "coding-baseline-09"],
+  "concept-python": ["coding-baseline-02", "coding-baseline-10"],
+  "concept-http": ["coding-baseline-15"],
+  "concept-api": ["coding-baseline-04", "coding-baseline-17"],
+  "concept-tests": ["coding-baseline-05", "coding-baseline-11"],
+  "concept-git": ["coding-baseline-08", "coding-baseline-24"],
+  "concept-sqlite": ["coding-baseline-21"],
+  "concept-model-boundary": ["coding-baseline-07", "coding-baseline-16"],
+  "concept-prompt-injection": ["coding-baseline-14"],
+  "concept-evaluation": ["coding-baseline-23"],
+  "concept-secrets": ["coding-baseline-06", "coding-baseline-19"],
+  "concept-architecture": ["coding-baseline-13"],
+  "concept-discovery": ["coding-baseline-12", "coding-baseline-20"],
+  "concept-defense": ["coding-baseline-18"],
+};
+
+for (const record of codingConceptRecords) record.assessmentIds = codingConceptAssessmentIds[record.conceptId] ?? [];
+
+function codingCompetenciesForRecord(key: CodingCompetencyKey) {
+  const definitions: Record<CodingCompetencyKey, { description: string }> = {
+    terminal: { description: "It makes repeatable local project work and error recovery visible." },
+    python: { description: "It turns rules into named, testable behavior." },
+    decomposition: { description: "It turns an ambiguous request into a bounded build." },
+    architecture: { description: "It makes responsibilities, constraints, and failure behavior explainable." },
+    dataInterfaces: { description: "It makes inputs, outputs, and persistence contracts inspectable." },
+    api: { description: "It keeps transport validation separate from business behavior." },
+    aiApplications: { description: "It limits a model to a useful but non-authoritative task." },
+    testingDebugging: { description: "It replaces hopeful demos with repeatable behavioral evidence." },
+    git: { description: "It makes a change reviewable and reproducible." },
+    securityReliability: { description: "It preserves authorization, safe degradation, and accountable escalation." },
+    defense: { description: "It shows what the learner can explain, verify, and honestly limit." },
+  };
+  return definitions[key];
+}
 
 /** These sources justify the course method, not a learner's job competency. */
 export const codingInstructionalSourceIds = ["dunloskyPractice", "freemanActiveLearning"] as const;
@@ -352,7 +436,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [] };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [] };
 }
 
 export function codingMastery(progress: CodingProgramProgress) {
@@ -443,10 +527,16 @@ export function validateCodingProgram() {
   }
   for (const source of Object.values(codingSources)) {
     if (!source.revalidateBy) issues.push(`Source lacks a revalidation date: ${source.id}`);
+    if (!source.sourceType) issues.push(`Source lacks a hierarchy type: ${source.id}`);
   }
   for (const concept of codingConcepts) {
     if (!concept.label || !concept.sourceIds.length || !concept.escalation) issues.push(`Concept lacks role-literacy guidance: ${concept.id}`);
     if (concept.sourceIds.some((id) => !codingSources[id])) issues.push(`Concept lacks valid source mapping: ${concept.id}`);
+  }
+  for (const record of codingConceptRecords) {
+    if (!record.definition || !record.whyItMatters || !record.officialSources.length || !record.interviewApplication || !record.prototypeApplication || !record.knownLimitations || !record.assessmentIds.length) {
+      issues.push(`Concept record lacks source-of-truth fields: ${record.conceptId}`);
+    }
   }
   for (const imported of codingDeveloperProgram.prerequisiteFor) {
     if (imported.lessonIds.some((id) => !seenLessons.has(id))) {

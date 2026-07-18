@@ -22,6 +22,7 @@ import {
   codingDeveloperProgram,
   codingBadges,
   codingConcepts,
+  codingConceptRecords,
   codingRecoveryPlan,
   codingLessons,
   codingMastery,
@@ -30,6 +31,7 @@ import {
 } from "./coding-developer";
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
 import { validateExecutionRequest } from "./coding-execution";
+import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -65,6 +67,7 @@ describe("Engineer Zero track engine", () => {
     );
     expect(validateCodingProgram()).toEqual([]);
     expect(codingConcepts.every((concept) => concept.sourceIds.length > 0 && Boolean(concept.escalation))).toBe(true);
+    expect(codingConceptRecords.every((record) => record.officialSources.length > 0 && record.assessmentIds.length > 0 && Boolean(record.knownLimitations))).toBe(true);
     expect(Object.keys(tracks)).toHaveLength(2);
   });
 
@@ -83,6 +86,16 @@ describe("Engineer Zero track engine", () => {
       assessmentAttempts: [{ id: "attempt", score: 82, completedAt: "2026-07-18T00:00:00.000Z", questionIds: [], competencyScores: { python: 80 } }],
     };
     expect(codingBadges(stronger).find((badge) => badge.id === "retrieval-return")?.earned).toBe(true);
+  });
+
+  it("makes each boss battle fail recoverably rather than revealing a full solution", () => {
+    expect(codingBossBattles).toHaveLength(5);
+    const battle = codingBossBattles.find((item) => item.id === "boss-api-recovery")!;
+    const weak = reviewBossBattle(battle, "I would look at it.", 0);
+    expect(weak.status).toBe("needs-retry");
+    expect(weak.missing).toContain("validation");
+    const strong = reviewBossBattle(battle, "The request validation must reject the empty equipment field with a 422 response before the route calls a pure service function. I would repair the exact 90 threshold in the service, add a direct boundary test, add an HTTP validation test, inspect the response contract, keep formatting in the route, and rerun the focused regression suite before making any broader change. The recovery is complete only after the requirement and verification are visible to a reviewer.", 0);
+    expect(strong.status).toBe("reviewed");
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {

@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, FileCode2, Flag, GitBranch, Mic, Play, RotateCcw, Route, TerminalSquare, Workflow } from "lucide-react";
+import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, FileCode2, Flag, GitBranch, Mic, Play, RotateCcw, Route, Swords, TerminalSquare, Workflow } from "lucide-react";
 import { useLearnerState } from "@/hooks/useLearnerState";
 import { CodingAssessment } from "@/components/CodingAssessment";
 import { CodingSystemsLab } from "@/components/CodingSystemsLab";
 import { CodingContinuation } from "@/components/CodingContinuation";
 import { CodingInterviewArena } from "@/components/CodingInterviewArena";
+import { CodingBossBattles } from "@/components/CodingBossBattles";
 import {
   codingChallenges,
   codingDayPlans,
@@ -26,7 +27,7 @@ import {
   type CodingLesson,
 } from "@/lib/coding-developer";
 
-type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "interview" | "continuation" | "review";
+type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "boss" | "interview" | "continuation" | "review";
 
 function scoreChallenge(challenge: CodingChallenge, code: string, explanation: string) {
   const normalized = code.toLowerCase();
@@ -142,6 +143,11 @@ export function CodingDeveloperApp() {
     notes: { ...progress.notes, [`interview-${id}`]: `${score}%\n${response}` },
     xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + Math.max(8, Math.round(score / 8)) },
   });
+  const recordBossBattle = (id: string, result: { score: number; response: string; hintCount: number; status: "needs-retry" | "reviewed" }) => setProgress({
+    ...progress,
+    bossBattleAttempts: { ...(progress.bossBattleAttempts ?? {}), [id]: { ...result, updatedAt: updateDate() } },
+    xp: result.status === "reviewed" ? { ...progress.xp, reliability: (progress.xp.reliability ?? 0) + 20, debugger: (progress.xp.debugger ?? 0) + 12 } : progress.xp,
+  });
   const submitChallenge = () => {
     const submittedDesign = challenge.kind === "terminal" ? terminalLines.join("\n") : code;
     const result = scoreChallenge(challenge, submittedDesign, explanation);
@@ -217,6 +223,7 @@ export function CodingDeveloperApp() {
           ["assessment", "Retrieval checks", ClipboardCheck],
           ["lab", "Code lab", Code2],
           ["systems", "Systems lab", Workflow],
+          ["boss", "Boss battles", Swords],
           ["interview", "Interview Arena", Mic],
           ["continuation", "Continue", Route],
           ["review", "Review board", GitBranch],
@@ -288,6 +295,8 @@ export function CodingDeveloperApp() {
       {workspace === "assessment" && <CodingAssessment onComplete={recordAssessment} priorAttempts={progress.assessmentAttempts ?? []} />}
 
       {workspace === "systems" && <CodingSystemsLab onEvidence={recordSystemsEvidence} />}
+
+      {workspace === "boss" && <CodingBossBattles attempts={progress.bossBattleAttempts ?? {}} onComplete={recordBossBattle} />}
 
       {workspace === "interview" && <CodingInterviewArena onComplete={recordInterviewEvidence} />}
 

@@ -67,7 +67,7 @@ export function normalizeLearnerState(
     programProgress: Object.fromEntries(Object.entries(saved.programProgress ?? {}).map(([programId, progress]) => [
       programId,
       programId === "coding-developer"
-        ? { ...progress, assessmentAttempts: progress.assessmentAttempts ?? [], completedContinuationIds: progress.completedContinuationIds ?? [] }
+        ? { ...progress, assessmentAttempts: progress.assessmentAttempts ?? [], completedContinuationIds: progress.completedContinuationIds ?? [], bossBattleAttempts: progress.bossBattleAttempts ?? {} }
         : progress,
     ])),
   };
