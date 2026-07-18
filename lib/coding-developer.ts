@@ -122,6 +122,18 @@ export type CodingProgramProgress = {
     competencyScores: Partial<Record<CodingCompetencyKey, number>>;
     questionIds: string[];
   }>;
+  /** Learner-owned interview practice history. It supports revision and replay,
+   * but cannot be represented as verified hiring or credential evidence. */
+  interviewAttempts: Array<{
+    id: string;
+    promptId: string;
+    score: number;
+    response: string;
+    initialResponse?: string;
+    support: "guided" | "limited" | "no-hints";
+    elapsedSeconds: number;
+    completedAt: string;
+  }>;
   challengeAttempts: Record<string, {
     score: number;
     feedback: string;
@@ -594,7 +606,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], interviewAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
 }
 
 export function reviewScheduleForLesson(lessonId: string, from = new Date()) {

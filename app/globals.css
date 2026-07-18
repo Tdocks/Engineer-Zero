@@ -4569,6 +4569,16 @@ html[data-theme="dark"] {
 .arena-feedback section { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--ez-border); }
 .arena-feedback section span { color: var(--ez-primary-strong); font: 600 10px/1.4 "IBM Plex Mono", monospace; letter-spacing: .05em; text-transform: uppercase; }
 .arena-feedback section p { margin: 8px 0 0; color: var(--ez-ink); font: 600 16px/1.5 "Source Sans 3", sans-serif; }
+.arena-attempt-history { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--ez-border); }
+.arena-attempt-history > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-bottom: 13px; border-bottom: 1px solid var(--ez-border); }
+.arena-attempt-history > header span { color: var(--ez-primary-strong); font: 600 10px/1.4 "IBM Plex Mono", monospace; letter-spacing: .05em; text-transform: uppercase; }
+.arena-attempt-history > header p { max-width: 45ch; margin: 0; color: var(--ez-muted); font-size: 13px; line-height: 1.48; }
+.arena-attempt-history article { padding: 17px 0; border-bottom: 1px solid var(--ez-border); }
+.arena-attempt-history article > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.arena-attempt-history article b { color: var(--ez-ink); font: 650 15px/1.4 "Source Sans 3", sans-serif; }
+.arena-attempt-history article small { color: var(--ez-muted); font: 10px/1.45 "IBM Plex Mono", monospace; }
+.arena-attempt-history article p { margin: 10px 0 0; color: var(--ez-muted); font-size: 14px; line-height: 1.58; white-space: pre-wrap; }
+.arena-attempt-history article strong { color: var(--ez-ink); font-weight: 650; }
 .coding-challenge-list { display: grid; align-content: start; gap: 3px; }
 .coding-challenge-list > button { display: grid; gap: 4px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--ez-border); background: transparent; color: var(--ez-muted); text-align: left; cursor: pointer; }
 .coding-challenge-list > button:hover, .coding-challenge-list > button.active { color: var(--ez-primary-strong); }
@@ -4872,6 +4882,7 @@ html[data-theme="dark"] {
   .coding-safe { margin-top: 15px; }
   .coding-evaluation-lab > footer { align-items: stretch; flex-direction: column; }
   .coding-tool-workflow > footer { align-items: stretch; flex-direction: column; }
+  .arena-attempt-history > header, .arena-attempt-history article > div { align-items: flex-start; flex-direction: column; }
   .coding-editor-shell > header { display: block; }
   .coding-editor-shell > header small { display: block; margin-top: 8px; }
   .coding-editor-shell footer { align-items: stretch; flex-direction: column; }

@@ -70,6 +70,7 @@ export function normalizeLearnerState(
         ? {
             ...progress,
             assessmentAttempts: progress.assessmentAttempts ?? [],
+            interviewAttempts: progress.interviewAttempts ?? [],
             completedContinuationIds: progress.completedContinuationIds ?? [],
             bossBattleAttempts: progress.bossBattleAttempts ?? {},
             reviewBoardAttempts: progress.reviewBoardAttempts ?? {},

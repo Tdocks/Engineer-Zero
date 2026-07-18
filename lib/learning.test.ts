@@ -122,6 +122,7 @@ describe("Engineer Zero track engine", () => {
     delete legacyCoding.reviewSchedule;
     delete legacyCoding.recallResponses;
     delete legacyCoding.reviewBoardAttempts;
+    delete legacyCoding.interviewAttempts;
     delete legacyCoding.workbenchDrafts;
     delete legacyCoding.workbenchSnapshots;
     const migrated = normalizeLearnerState({
@@ -129,6 +130,7 @@ describe("Engineer Zero track engine", () => {
     });
     const coding = migrated.programProgress["coding-developer"]!;
     expect(coding.reviewSchedule).toEqual([]);
+    expect(coding.interviewAttempts).toEqual([]);
     expect(coding.recallResponses).toEqual({});
     expect(coding.reviewBoardAttempts).toEqual({});
     expect(coding.workbenchDrafts).toEqual({});

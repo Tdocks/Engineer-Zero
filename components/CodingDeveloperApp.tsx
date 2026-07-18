@@ -154,10 +154,11 @@ export function CodingDeveloperApp() {
     notes: { ...progress.notes, [`continuation-${id}`]: reflection },
     xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + 30 },
   });
-  const recordInterviewEvidence = (id: string, score: number, response: string) => setProgress({
+  const recordInterviewEvidence = (attempt: Omit<typeof progress.interviewAttempts[number], "id" | "completedAt">) => setProgress({
     ...progress,
-    notes: { ...progress.notes, [`interview-${id}`]: `${score}%\n${response}` },
-    xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + Math.max(8, Math.round(score / 8)) },
+    interviewAttempts: [...(progress.interviewAttempts ?? []), { ...attempt, id: crypto.randomUUID(), completedAt: updateDate() }],
+    notes: { ...progress.notes, [`interview-${attempt.promptId}`]: `${attempt.score}%\n${attempt.response}` },
+    xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + Math.max(8, Math.round(attempt.score / 8)) },
   });
   const recordBossBattle = (id: string, result: { score: number; response: string; hintCount: number; status: "needs-retry" | "reviewed" }) => setProgress({
     ...progress,
@@ -341,7 +342,7 @@ export function CodingDeveloperApp() {
 
       {workspace === "boss" && <CodingBossBattles attempts={progress.bossBattleAttempts ?? {}} onComplete={recordBossBattle} />}
 
-      {workspace === "interview" && <CodingInterviewArena onComplete={recordInterviewEvidence} />}
+      {workspace === "interview" && <CodingInterviewArena attempts={progress.interviewAttempts ?? []} onComplete={recordInterviewEvidence} />}
 
       {workspace === "continuation" && <CodingContinuation completedIds={progress.completedContinuationIds ?? []} onComplete={recordContinuationEvidence} />}
 
