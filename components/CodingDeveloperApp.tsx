@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Braces, Bug, Check, CircleAlert, Code2, FileCode2, Flag, GitBranch, Play, RotateCcw, TerminalSquare } from "lucide-react";
+import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, FileCode2, Flag, GitBranch, Mic, Play, RotateCcw, Route, TerminalSquare, Workflow } from "lucide-react";
 import { useLearnerState } from "@/hooks/useLearnerState";
+import { CodingAssessment } from "@/components/CodingAssessment";
+import { CodingSystemsLab } from "@/components/CodingSystemsLab";
+import { CodingContinuation } from "@/components/CodingContinuation";
+import { CodingInterviewArena } from "@/components/CodingInterviewArena";
 import {
   codingChallenges,
   codingDayPlans,
   codingCompetencies,
+  codingBadges,
+  codingRecoveryPlan,
   codingDeveloperProgram,
   codingInstructionalSourceIds,
   codingLessons,
@@ -16,10 +22,11 @@ import {
   emptyCodingProgress,
   nextCodingLesson,
   type CodingChallenge,
+  type CodingCompetencyKey,
   type CodingLesson,
 } from "@/lib/coding-developer";
 
-type Workspace = "map" | "lesson" | "lab" | "review";
+type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "interview" | "continuation" | "review";
 
 function scoreChallenge(challenge: CodingChallenge, code: string, explanation: string) {
   const normalized = code.toLowerCase();
@@ -67,6 +74,8 @@ export function CodingDeveloperApp() {
   const lesson = codingLessons.find((item) => item.id === selectedLessonId) ?? codingLessons[0];
   const challenge = codingChallenges.find((item) => item.id === selectedChallengeId) ?? codingChallenges[0];
   const mastery = useMemo(() => codingMastery(progress), [progress]);
+  const badges = useMemo(() => codingBadges(progress), [progress]);
+  const recovery = useMemo(() => codingRecoveryPlan(progress), [progress]);
   const currentDayLessons = codingLessons.filter((item) => item.day === progress.activeDay);
   const completedToday = currentDayLessons.filter((item) => progress.completedLessonIds.includes(item.id)).length;
 
@@ -103,6 +112,36 @@ export function CodingDeveloperApp() {
     setTestConfirmed(previous?.testConfirmed ?? false);
     setWorkspace("lab");
   };
+  const recordAssessment = (
+    result: { score: number; competencyScores: Partial<Record<CodingCompetencyKey, number>> },
+    questionIds: string[],
+  ) => setProgress({
+    ...progress,
+    assessmentAttempts: [...(progress.assessmentAttempts ?? []), {
+      id: crypto.randomUUID(),
+      score: result.score,
+      competencyScores: result.competencyScores,
+      questionIds,
+      completedAt: updateDate(),
+    }],
+    xp: { ...progress.xp, systems: (progress.xp.systems ?? 0) + 10 },
+  });
+  const recordSystemsEvidence = (key: string, value: string) => setProgress({
+    ...progress,
+    notes: { ...progress.notes, [key]: value },
+    xp: { ...progress.xp, systems: (progress.xp.systems ?? 0) + 12 },
+  });
+  const recordContinuationEvidence = (id: string, reflection: string) => setProgress({
+    ...progress,
+    completedContinuationIds: [...new Set([...(progress.completedContinuationIds ?? []), id])],
+    notes: { ...progress.notes, [`continuation-${id}`]: reflection },
+    xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + 30 },
+  });
+  const recordInterviewEvidence = (id: string, score: number, response: string) => setProgress({
+    ...progress,
+    notes: { ...progress.notes, [`interview-${id}`]: `${score}%\n${response}` },
+    xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + Math.max(8, Math.round(score / 8)) },
+  });
   const submitChallenge = () => {
     const submittedDesign = challenge.kind === "terminal" ? terminalLines.join("\n") : code;
     const result = scoreChallenge(challenge, submittedDesign, explanation);
@@ -175,7 +214,11 @@ export function CodingDeveloperApp() {
         {([
           ["map", "Mission map", Flag],
           ["lesson", "Lesson reader", BookOpen],
+          ["assessment", "Retrieval checks", ClipboardCheck],
           ["lab", "Code lab", Code2],
+          ["systems", "Systems lab", Workflow],
+          ["interview", "Interview Arena", Mic],
+          ["continuation", "Continue", Route],
           ["review", "Review board", GitBranch],
         ] as const).map(([id, label, Icon]) => <button key={id} className={workspace === id ? "active" : ""} onClick={() => setWorkspace(id)}><Icon size={16} aria-hidden="true" />{label}</button>)}
       </nav>
@@ -207,10 +250,18 @@ export function CodingDeveloperApp() {
             <header><div><p className="coding-kicker">EVIDENCE, NOT CONFIDENCE</p><h2>Four-day target profile</h2></div><p>Every category begins at Level 0. Completion requires practice and defense—not just a running app.</p></header>
             <div>{mastery.map((item) => <article key={item.key}><b>{item.title}</b><span>Level {item.level} <small>/ target {item.target}</small></span><i><em style={{ width: `${Math.min(100, item.level * 20)}%` }} /></i><p>{item.description}</p></article>)}</div>
           </section>
+          <section className="coding-recovery" aria-label="Next recovery target">
+            <div><p className="coding-kicker">RECOVERY, NOT PENALTY</p><h2>Make the next weak link visible.</h2><p>{recovery.message}</p></div>
+            <aside><b>{codingCompetencies.find((item) => item.key === recovery.competency)?.title ?? "Next evidence"}</b><p>Return to one precise lesson, then create or repair one focused artifact. Passing a screen is not the same as proving the skill.</p><button onClick={() => recovery.lessonId && selectLesson(codingLessons.find((item) => item.id === recovery.lessonId) ?? codingLessons[0])}>Open recovery lesson →</button></aside>
+          </section>
+          <section className="coding-badges" aria-label="Learning milestones">
+            <header><p className="coding-kicker">MILESTONES</p><h2>Earn evidence, not streaks.</h2></header>
+            <div>{badges.map((badge) => <article key={badge.id} className={badge.earned ? "earned" : ""}><span>{badge.earned ? "Earned" : "In progress"}</span><b>{badge.title}</b><p>{badge.description}</p></article>)}</div>
+          </section>
           <details className="coding-method-note">
             <summary>Why this program uses recall, repair, practice, and defense</summary>
             <p>Each day alternates short instruction with retrieval, guided modification, repair, an independent local build, and explanation. This is an instructional design choice—not evidence that a learner is already job-ready.</p>
-            <div>{codingSourceList([...codingInstructionalSourceIds]).map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher} · {source.title}</b><small>{source.version} · verified {source.lastVerified}<br />Supports: {source.supportedClaim}</small></a>)}</div>
+            <div>{codingSourceList([...codingInstructionalSourceIds]).map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher} · {source.title}</b><small>{source.version} · verified {source.lastVerified} · revalidate {source.revalidateBy}<br />Supports: {source.supportedClaim}</small></a>)}</div>
           </details>
         </section>
       )}
@@ -228,11 +279,19 @@ export function CodingDeveloperApp() {
             <section className="coding-worked"><span>Worked example</span><pre>{lesson.workedExample}</pre></section>
             <section className="coding-practice"><span>Practice before you continue</span><b>{lesson.practicePrompt}</b></section>
             <section className="coding-defense"><span>Defense prompt</span><p>{lesson.defensePrompt}</p></section>
-            <section className="coding-sources"><h3>Source notes</h3>{codingSourceList(lesson.sourceIds).map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher} · {source.title}</b><small>{source.version} · verified {source.lastVerified}<br />Supports: {source.supportedClaim}</small></a>)}</section>
+            <section className="coding-sources"><h3>Source notes</h3>{codingSourceList(lesson.sourceIds).map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher} · {source.title}</b><small>{source.version} · verified {source.lastVerified} · revalidate {source.revalidateBy}<br />Supports: {source.supportedClaim}</small></a>)}</section>
             <button className="coding-primary" onClick={() => markLesson(lesson)}>{progress.completedLessonIds.includes(lesson.id) ? "Evidence recorded" : "Mark learning session complete"} <Check size={16} /></button>
           </article>
         </section>
       )}
+
+      {workspace === "assessment" && <CodingAssessment onComplete={recordAssessment} priorAttempts={progress.assessmentAttempts ?? []} />}
+
+      {workspace === "systems" && <CodingSystemsLab onEvidence={recordSystemsEvidence} />}
+
+      {workspace === "interview" && <CodingInterviewArena onComplete={recordInterviewEvidence} />}
+
+      {workspace === "continuation" && <CodingContinuation completedIds={progress.completedContinuationIds ?? []} onComplete={recordContinuationEvidence} />}
 
       {workspace === "lab" && (
         <section className="coding-lab-layout">

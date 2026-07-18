@@ -20,11 +20,16 @@ import {
   codingChallenges,
   codingDayPlans,
   codingDeveloperProgram,
+  codingBadges,
+  codingConcepts,
+  codingRecoveryPlan,
   codingLessons,
   codingMastery,
   emptyCodingProgress,
   validateCodingProgram,
 } from "./coding-developer";
+import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
+import { validateExecutionRequest } from "./coding-execution";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -59,6 +64,7 @@ describe("Engineer Zero track engine", () => {
       new Set([1, 2, 3, 4]),
     );
     expect(validateCodingProgram()).toEqual([]);
+    expect(codingConcepts.every((concept) => concept.sourceIds.length > 0 && Boolean(concept.escalation))).toBe(true);
     expect(Object.keys(tracks)).toHaveLength(2);
   });
 
@@ -66,6 +72,38 @@ describe("Engineer Zero track engine", () => {
     const mastery = codingMastery(emptyCodingProgress());
     expect(mastery.every((competency) => competency.level === 0)).toBe(true);
     expect(mastery.find((competency) => competency.key === "api")?.target).toBe(3);
+  });
+
+  it("uses recovery targets and milestones as evidence aids, not completion shortcuts", () => {
+    const empty = emptyCodingProgress();
+    expect(codingBadges(empty).every((badge) => !badge.earned)).toBe(true);
+    expect(codingRecoveryPlan(empty).lessonId).toBeTruthy();
+    const stronger = {
+      ...empty,
+      assessmentAttempts: [{ id: "attempt", score: 82, completedAt: "2026-07-18T00:00:00.000Z", questionIds: [], competencyScores: { python: 80 } }],
+    };
+    expect(codingBadges(stronger).find((badge) => badge.id === "retrieval-return")?.earned).toBe(true);
+  });
+
+  it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {
+    expect(codingAssessmentBank).toHaveLength(24);
+    const publicForm = publicCodingAssessment("assessment-integrity", 12);
+    expect(publicForm).toHaveLength(12);
+    expect(publicForm.every((question) => !("correctChoiceId" in question) && !("requiredConceptGroups" in question) && !("rationale" in question))).toBe(true);
+    const privateChoice = codingAssessmentBank.find((question) => question.format === "choice")!;
+    const privateResponse = codingAssessmentBank.find((question) => question.format === "response")!;
+    const result = gradeCodingAssessment({
+      [privateChoice.id]: privateChoice.correctChoiceId!,
+      [privateResponse.id]: "Use mkdir, cd, touch, and pwd to create the project, enter it, create main.py, and verify the working directory.",
+    }, [privateChoice.id, privateResponse.id]);
+    expect(result.complete).toBe(true);
+    expect(result.score).toBe(100);
+  });
+
+  it("never treats the main web process as an arbitrary-code runtime", () => {
+    expect(validateExecutionRequest({ language: "python", exerciseId: "safe", command: "python main.py", files: [{ path: "main.py", content: "print('fictional training')" }] })).toBeNull();
+    expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "rm -rf /", files: [{ path: "main.py", content: "print('no')" }] })).toContain("documented exercise commands");
+    expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "python main.py", files: [{ path: "../outside.py", content: "print('no')" }] })).toContain("relative Python files");
   });
 
   it("uses 24 distinct protected AIO baseline decisions", () => {

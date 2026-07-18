@@ -21,7 +21,20 @@ export type CodingSource = {
   version: string;
   locator: string;
   lastVerified: string;
+  revalidateBy?: string;
   supportedClaim: string;
+};
+
+/** A source-backed concept is intentionally separate from a lesson: it tells
+ * the learner what they should be able to recognize, not what they can claim
+ * to implement independently. */
+export type CodingConcept = {
+  id: string;
+  label: string;
+  competency: CodingCompetencyKey;
+  role: "know" | "practice" | "prove";
+  sourceIds: string[];
+  escalation: string;
 };
 
 export type CodingLesson = {
@@ -68,6 +81,14 @@ export type CodingDayPlan = {
 export type CodingProgramProgress = {
   activeDay: 1 | 2 | 3 | 4;
   completedLessonIds: string[];
+  completedContinuationIds: string[];
+  assessmentAttempts: Array<{
+    id: string;
+    score: number;
+    completedAt: string;
+    competencyScores: Partial<Record<CodingCompetencyKey, number>>;
+    questionIds: string[];
+  }>;
   challengeAttempts: Record<string, {
     score: number;
     feedback: string;
@@ -92,7 +113,8 @@ export type SharedProgramDefinition = {
   prerequisiteFor: Array<{ trackId: "applied-ai-operations" | "it-support-technician"; lessonIds: string[]; label: string }>;
 };
 
-const verified = "2026-07-17";
+const verified = "2026-07-18";
+const revalidate = "2027-01-18";
 
 export const codingSources: Record<string, CodingSource> = {
   pythonTutorial: {
@@ -165,6 +187,16 @@ export const codingSources: Record<string, CodingSource> = {
     lastVerified: verified,
     supportedClaim: "Secure development includes practices that reduce vulnerabilities and mitigate their effects through the lifecycle.",
   },
+  nasaSoftwareHandbook: {
+    id: "nasa-software-engineering-handbook",
+    title: "NASA Software Engineering and Software Assurance Handbook",
+    publisher: "NASA",
+    url: "https://swehb.nasa.gov/",
+    version: "Current electronic handbook / NPR 7150.2D guidance",
+    locator: "Requirements, testing, assurance, and objective-evidence guidance",
+    lastVerified: verified,
+    supportedClaim: "Disciplined software work includes requirements, implementation, testing, assurance, and objective evidence appropriate to the system context.",
+  },
   nistAiRmf: {
     id: "nist-ai-rmf",
     title: "AI Risk Management Framework",
@@ -217,6 +249,29 @@ export const codingSources: Record<string, CodingSource> = {
   },
 };
 
+for (const source of Object.values(codingSources)) source.revalidateBy ??= revalidate;
+
+/**
+ * Role literacy is kept honest: a learner can be asked to recognize a concept
+ * and name its owner before they are asked to configure or operate it.
+ */
+export const codingConcepts: CodingConcept[] = [
+  { id: "concept-terminal", label: "Terminal and shell", competency: "terminal", role: "practice", sourceIds: ["pythonTutorial"], escalation: "Escalate destructive filesystem, permissions, or production-host work to the accountable operator." },
+  { id: "concept-python", label: "Functions and explicit errors", competency: "python", role: "prove", sourceIds: ["pythonTutorial"], escalation: "Escalate unfamiliar runtime, packaging, or performance failures with the traceback and reproduction steps." },
+  { id: "concept-http", label: "HTTP and JSON contracts", competency: "dataInterfaces", role: "practice", sourceIds: ["fastapiBody"], escalation: "Escalate public interface changes to the owning API team." },
+  { id: "concept-api", label: "Request validation and service boundaries", competency: "api", role: "prove", sourceIds: ["fastapiBody", "fastapiResponse"], escalation: "Escalate authentication, authorization, and production gateway decisions to platform/security owners." },
+  { id: "concept-tests", label: "Tests as executable requirements", competency: "testingDebugging", role: "prove", sourceIds: ["pytest"], escalation: "Escalate flaky, integration, or unexplained production failures with the smallest reproducible case." },
+  { id: "concept-git", label: "Git review and reproducibility", competency: "git", role: "practice", sourceIds: ["githubPr"], escalation: "Escalate protected-branch policy and merge conflicts that affect others to the code owner." },
+  { id: "concept-sqlite", label: "Relational persistence and SQLite", competency: "dataInterfaces", role: "know", sourceIds: ["pythonTutorial"], escalation: "Escalate production data retention, backups, access control, and migration design to data/platform owners." },
+  { id: "concept-model-boundary", label: "Model boundary and structured output", competency: "aiApplications", role: "practice", sourceIds: ["openaiStructured", "nistAiRmf"], escalation: "Escalate model hosting, provider approval, and material risk decisions to the accountable AI/platform owners." },
+  { id: "concept-prompt-injection", label: "Prompt injection is untrusted input", competency: "securityReliability", role: "know", sourceIds: ["owaspGenAi"], escalation: "Escalate suspected data exposure, unsafe tool use, or injection vulnerabilities to security immediately." },
+  { id: "concept-evaluation", label: "Evaluation cases and safe fallback", competency: "testingDebugging", role: "practice", sourceIds: ["nistAiRmf", "pytest"], escalation: "Escalate go/no-go quality thresholds and monitoring policy to the product and risk owners." },
+  { id: "concept-secrets", label: "Secrets and environment configuration", competency: "securityReliability", role: "know", sourceIds: ["nistSsdf"], escalation: "Escalate key issuance, storage, rotation, and incident handling to the security/platform team." },
+  { id: "concept-architecture", label: "Prototype architecture and vertical slices", competency: "architecture", role: "practice", sourceIds: ["nasaSoftwareHandbook", "nistSsdf"], escalation: "Escalate scale, reliability, network, and formal assurance decisions to architecture and operations owners." },
+  { id: "concept-discovery", label: "Problem framing and acceptance criteria", competency: "decomposition", role: "prove", sourceIds: ["nasaSoftwareHandbook"], escalation: "Escalate unresolved scope, user safety, and business-priority conflicts to the responsible product lead." },
+  { id: "concept-defense", label: "Evidence-based technical defense", competency: "defense", role: "prove", sourceIds: ["githubPr", "nistSsdf"], escalation: "State uncertainty rather than inventing ownership or evidence; bring in the specialist who owns the decision." },
+];
+
 /** These sources justify the course method, not a learner's job competency. */
 export const codingInstructionalSourceIds = ["dunloskyPractice", "freemanActiveLearning"] as const;
 
@@ -259,7 +314,7 @@ export const codingLessons: CodingLesson[] = [
   lesson(3, 4, "securityReliability", "Tool boundaries and human approval", "Design a workflow where a model cannot silently perform a consequential action.", "The model may propose or extract. Trusted code validates. A qualified human approves. A separate authorized function performs the action and records an audit event.", "report → extraction → schema validation → deterministic rule → proposed action → human approval", "Identify the first point at which a malicious report should lose influence.", "Why is a second model not an approval gate?", ["nistAiRmf", "nistSsdf", "owaspGenAi"], "modify"),
   lesson(3, 5, "testingDebugging", "Evaluate model behavior", "Build a representative test set that includes failure and abstention cases.", "Test supported, ambiguous, contradictory, missing, irrelevant, injected, and unsupported inputs. Track valid schema, field accuracy, invented facts, uncertainty, latency, and cost.", "Case: missing unit. Expected: uncertainty is present and escalation is recommended.", "Write one evaluation case that a polished demo would likely miss.", "Why is one successful prompt not a benchmark?", ["nistAiRmf", "owaspGenAi"], "build"),
   lesson(3, 6, "defense", "Explain the trust boundary", "Defend why an AI-assisted prototype keeps final risk classification outside the model.", "A good answer identifies the model’s limited task, the trusted Python rules, validation, approval, fallback behavior, and the data that should not leave the organization.", "AI extracts a possible issue; deterministic code classifies risk; a human approves any action.", "Give a 90-second explanation of the system’s trusted and untrusted portions.", "What would change before connecting this prototype to a real operational system?", ["nistAiRmf", "openaiStructured"], "defend"),
-  lesson(4, 1, "decomposition", "SCOPE: specify the problem", "Turn an ambiguous request into a bounded prototype brief.", "Ask who uses the system, what they do now, which input exists, what output helps, what is out of scope, and how success will be observed.", "“Summarize shift notes” becomes “extract blockers, owners, and deadlines from fictional notes for human review.”", "Write inputs, outputs, constraints, and acceptance criteria for a handoff assistant.", "What question prevents you from building an unnecessary feature?", ["nistSsdf"], "build"),
+  lesson(4, 1, "decomposition", "SCOPE: specify the problem", "Turn an ambiguous request into a bounded prototype brief.", "Ask who uses the system, what they do now, which input exists, what output helps, what is out of scope, and how success will be observed.", "“Summarize shift notes” becomes “extract blockers, owners, and deadlines from fictional notes for human review.”", "Write inputs, outputs, constraints, and acceptance criteria for a handoff assistant.", "What question prevents you from building an unnecessary feature?", ["nistSsdf", "nasaSoftwareHandbook"], "build"),
   lesson(4, 2, "architecture", "SCOPE: choose the simplest architecture", "Select the smallest stack that proves the product assumption.", "For an interview prototype, one Python service, FastAPI, SQLite or memory, one external model dependency, and clear modules are usually more defensible than premature microservices.", "request → service → repository → response, with model extraction as one bounded dependency", "Choose between in-memory data and SQLite for a 90-minute handoff prototype.", "Why is a microservice architecture usually a poor first answer here?", ["fastapiBody", "nistSsdf"], "build"),
   lesson(4, 3, "dataInterfaces", "SCOPE: outline data and behavior", "Write input and output schemas, main workflow, and failure cases before coding.", "A thin architecture starts with a clear contract. A good schema makes missing data, ownership, review status, and uncertainty visible.", "HandoffIn(notes: str); HandoffOut(issues, owners, urgency, review_status, uncertainties)", "Sketch a response schema that cannot confuse a draft with an approved action.", "Which field proves that a human has reviewed the output?", ["fastapiBody", "fastapiResponse"], "modify"),
   lesson(4, 4, "testingDebugging", "SCOPE: produce vertically", "Build one end-to-end path before expanding features.", "Implement request → logic → response → test, then add the next feature. This exposes contract mistakes early and gives you a working demonstration path.", "POST /handoffs → parse one note → return one structured issue → test the result", "Put three implementation tasks in vertical-slice order.", "What does a passing vertical slice prove—and what does it not prove?", ["pytest", "fastapiBody"], "build"),
@@ -297,7 +352,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [] };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [] };
 }
 
 export function codingMastery(progress: CodingProgramProgress) {
@@ -312,6 +367,37 @@ export function codingMastery(progress: CodingProgramProgress) {
     const level = Math.min(5, Math.round(lessonScore * 3 + challengeScore / 45));
     return { ...competency, level, lessonScore, challengeScore: Math.round(challengeScore) };
   });
+}
+
+export type CodingBadge = { id: string; title: string; description: string; earned: boolean };
+
+export function codingBadges(progress: CodingProgramProgress): CodingBadge[] {
+  const reviewed = Object.values(progress.challengeAttempts).filter((attempt) => attempt.status === "reviewed");
+  const bestAssessment = Math.max(0, ...(progress.assessmentAttempts ?? []).map((attempt) => attempt.score));
+  return [
+    { id: "first-repair", title: "Repair before expand", description: "Reviewed a debugging or boundary-test exercise.", earned: Boolean(progress.challengeAttempts["coding-test-repair"]?.status === "reviewed") },
+    { id: "safe-boundary", title: "Safe boundary", description: "Reviewed the structured AI extraction exercise without unsafe tool or secret patterns.", earned: Boolean(progress.challengeAttempts["coding-ai-extraction"]?.status === "reviewed") },
+    { id: "reviewer-ready", title: "Reviewer ready", description: "Recorded three coherent, reviewable learning artifacts.", earned: reviewed.length >= 3 },
+    { id: "retrieval-return", title: "Retrieval return", description: "Completed a mixed retrieval check at 75% or higher.", earned: bestAssessment >= 75 },
+    { id: "continuation", title: "Keep building", description: "Recorded evidence for all four continuation weeks.", earned: (progress.completedContinuationIds ?? []).length >= 4 },
+  ];
+}
+
+export function codingRecoveryPlan(progress: CodingProgramProgress) {
+  const latest = progress.assessmentAttempts?.at(-1);
+  const weak = Object.entries(latest?.competencyScores ?? {}).filter(([, score]) => (score ?? 0) < 70).map(([key]) => key as CodingCompetencyKey);
+  const weakest = weak[0] ?? codingMastery(progress).sort((a, b) => a.level - b.level)[0]?.key;
+  const lesson = codingLessons.find((item) => item.competency === weakest && !progress.completedLessonIds.includes(item.id))
+    ?? codingLessons.find((item) => item.competency === weakest);
+  const challenge = codingChallenges.find((item) => item.competencyWeights[weakest!]);
+  return {
+    competency: weakest,
+    lessonId: lesson?.id,
+    challengeId: challenge?.id,
+    message: weak.length
+      ? "Use the latest retrieval evidence to repair one weak concept before adding new scope."
+      : "Choose the next incomplete lesson, then use a lab to turn recognition into a visible artifact.",
+  };
 }
 
 export function nextCodingLesson(progress: CodingProgramProgress) {
@@ -354,6 +440,13 @@ export function validateCodingProgram() {
   }
   for (const sourceId of codingInstructionalSourceIds) {
     if (!codingSources[sourceId]) issues.push(`Instructional design source is missing: ${sourceId}`);
+  }
+  for (const source of Object.values(codingSources)) {
+    if (!source.revalidateBy) issues.push(`Source lacks a revalidation date: ${source.id}`);
+  }
+  for (const concept of codingConcepts) {
+    if (!concept.label || !concept.sourceIds.length || !concept.escalation) issues.push(`Concept lacks role-literacy guidance: ${concept.id}`);
+    if (concept.sourceIds.some((id) => !codingSources[id])) issues.push(`Concept lacks valid source mapping: ${concept.id}`);
   }
   for (const imported of codingDeveloperProgram.prerequisiteFor) {
     if (imported.lessonIds.some((id) => !seenLessons.has(id))) {

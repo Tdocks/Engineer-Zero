@@ -13,8 +13,9 @@ Requires Python 3.11 or later.
 ```bash
 python -m venv .venv
 source .venv/bin/activate # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python main.py
-python -m unittest discover -s tests
+python -m pytest
 ```
 
 ## What to defend

@@ -64,7 +64,12 @@ export function normalizeLearnerState(
       ...saved.preferences,
     },
     capstoneReview: saved.capstoneReview ?? emptyLearnerState.capstoneReview,
-    programProgress: saved.programProgress ?? {},
+    programProgress: Object.fromEntries(Object.entries(saved.programProgress ?? {}).map(([programId, progress]) => [
+      programId,
+      programId === "coding-developer"
+        ? { ...progress, assessmentAttempts: progress.assessmentAttempts ?? [], completedContinuationIds: progress.completedContinuationIds ?? [] }
+        : progress,
+    ])),
   };
 }
 

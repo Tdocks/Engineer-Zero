@@ -17,3 +17,7 @@ Run these projects only with the supplied fictional data. Do not point them at a
 ## Evidence checklist
 
 For each project, save the test output, one deliberate failure and repair, a short architecture explanation, and an AI-assistance disclosure. The program’s Review Board uses those records to distinguish a learner who can explain a working prototype from someone who only pasted generated code.
+
+## Run each project independently
+
+Each folder is a separate learning repository with its own application package and tests. Change into a project folder before installing dependencies or running its test suite. Do not run every project’s tests from this parent directory: several intentionally use conventional names such as `app` and `test_service.py`, which Python would otherwise treat as one package during collection.
