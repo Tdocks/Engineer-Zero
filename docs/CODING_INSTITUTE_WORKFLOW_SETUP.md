@@ -29,10 +29,14 @@ repository metadata in Supabase; the private key remains server-only.
 ## Reviewer operations
 
 An operator grants a reviewer role through the protected service workflow,
-then assigns only eligible evidence packets. Reviewers must record a decision,
-rubric evidence, revision request, and note. The first launch should use at
-least two qualified reviewers to calibrate a shared sample before approving
-learner credentials.
+then assigns only eligible evidence packets. The protected evidence-packet,
+reviewer-queue, and reviewer-decision routes keep the immutable evidence
+snapshot and decision history server-side. Reviewers must record a decision,
+rubric evidence, revision request, and note. Only a qualified `approved`
+decision may issue a verification token; no browser completion or deterministic
+score can issue a certificate. The first launch should use at least two
+qualified reviewers to calibrate a shared sample before approving learner
+credentials.
 
 ## Source governance
 
