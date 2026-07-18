@@ -47,6 +47,8 @@ import { reviewCodingBoardResponse } from "./coding-review-board";
 import { codingEvaluationCases, scoreCodingEvaluation } from "./coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowOptionsFor } from "./coding-tool-workflow";
 import { reviewToolWorkflow } from "./coding-tool-workflow-review";
+import { codingContextBudget, codingContextChunks, selectedContextTokens } from "./coding-context-window";
+import { reviewCodingContextWindow } from "./coding-context-window-review";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -216,6 +218,16 @@ describe("Engineer Zero track engine", () => {
       "close-incident": "allow-read-only",
       "injected-export": "allow-read-only",
     })).toMatchObject({ correct: 0, total: 4, complete: true });
+  });
+
+  it("treats context construction as a bounded authorization and freshness decision", () => {
+    expect(codingContextChunks).toHaveLength(5);
+    expect(codingContextChunks.every((chunk) => !("expected" in chunk))).toBe(true);
+    const safe = ["current-report", "approved-procedure"];
+    expect(selectedContextTokens(safe)).toBe(160);
+    expect(reviewCodingContextWindow(safe, selectedContextTokens(safe))).toMatchObject({ complete: true, withinBudget: true, budget: codingContextBudget });
+    const unsafe = ["current-report", "approved-procedure", "old-procedure", "cross-team-history", "injected-note"];
+    expect(reviewCodingContextWindow(unsafe, selectedContextTokens(unsafe))).toMatchObject({ complete: false, withinBudget: false });
   });
 
   it("does not let visible syntax or repeated labels become Code Lab evidence", () => {
