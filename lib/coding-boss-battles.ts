@@ -53,23 +53,27 @@ export const codingBossBattles: CodingBossBattle[] = [
 ];
 
 function words(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9\s/-]/g, " ").split(/\s+/).filter(Boolean);
+  return value.toLowerCase().match(/[a-z0-9][a-z0-9'/-]*/g) ?? [];
 }
 
 export function reviewBossBattle(battle: CodingBossBattle, response: string, hintCount: number) {
   const responseWords = words(response);
-  const missing = battle.requiredClaims.filter((claim) => !responseWords.some((word) => word.includes(claim)));
-  const uniqueTerms = new Set(responseWords).size;
-  const specific = response.trim().split(/\s+/).length >= 65 && uniqueTerms >= 28;
-  const score = Math.max(0, Math.min(100, Math.round(((battle.requiredClaims.length - missing.length) / battle.requiredClaims.length) * 70 + (specific ? 20 : 0) + (hintCount === 0 ? 10 : hintCount === 1 ? 5 : 0))));
+  const segments = response.toLowerCase().split(/[\n.!?]+/).map((segment) => segment.trim()).filter(Boolean);
+  const uniqueRatio = responseWords.length ? new Set(responseWords).size / responseWords.length : 0;
+  const found = battle.requiredClaims.filter((claim) => segments.some((segment) => words(segment).length >= 8 && segment.includes(claim)));
+  const missing = battle.requiredClaims.filter((claim) => !found.includes(claim));
+  const hasDepth = responseWords.length >= 75;
+  const hasStructure = segments.length >= 3 && uniqueRatio >= .42;
+  const specific = hasDepth && hasStructure;
+  const score = Math.max(0, Math.min(100, Math.round((found.length / battle.requiredClaims.length) * 70 + (hasDepth ? 20 : 0) + (hasStructure ? 10 : 0) - (hintCount > 1 ? 5 : 0))));
   return {
     score,
     missing,
     status: missing.length === 0 && specific ? "reviewed" as const : "needs-retry" as const,
     feedback: missing.length
-      ? `Before retrying, make these decisions explicit: ${missing.join(", ")}.`
+      ? `Before retrying, make these decisions explicit in full sentences: ${missing.join(", ")}.`
       : specific
         ? "The core decisions are specific enough to review. Revisit the delayed-recall prompt tomorrow without notes."
-        : "Your core decisions are present. Add the observed evidence, the order of recovery, and a concrete verification step before retrying.",
+        : "Your core decisions are present. Add distinct evidence sentences, the order of recovery, and a concrete verification step before retrying; a list of labels is not a recovery plan.",
   };
 }

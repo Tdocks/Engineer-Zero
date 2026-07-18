@@ -148,6 +148,7 @@ describe("Engineer Zero track engine", () => {
     expect(weak.missing).toContain("validation");
     const strong = reviewBossBattle(battle, "The request validation must reject the empty equipment field with a 422 response before the route calls a pure service function. I would repair the exact 90 threshold in the service, add a direct boundary test, add an HTTP validation test, inspect the response contract, keep formatting in the route, and rerun the focused regression suite before making any broader change. The recovery is complete only after the requirement and verification are visible to a reviewer.", 0);
     expect(strong.status).toBe("reviewed");
+    expect(reviewBossBattle(battle, "validation 90 service 422 test ".repeat(20), 0).status).toBe("needs-retry");
   });
 
   it("keeps coding tutor assistance progressive and non-executing", () => {
