@@ -4552,6 +4552,16 @@ html[data-theme="dark"] {
 .interview-arena-layout textarea { display: block; width: 100%; min-height: 260px; padding: 15px; border: 1px solid var(--ez-border); border-radius: 3px; outline: 0; resize: vertical; background: var(--ez-surface); color: var(--ez-ink); font: 400 16px/1.62 "Source Sans 3", sans-serif; }
 .interview-arena-layout textarea:focus { border-color: var(--ez-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ez-primary) 18%, transparent); }
 .interview-arena-layout textarea + .coding-primary { margin-top: 15px; }
+.arena-change-workflow { display: grid; gap: 0; margin-top: 26px; border-top: 1px solid var(--ez-border); border-bottom: 1px solid var(--ez-border); }
+.arena-change-workflow > section { padding: 22px 0; }
+.arena-change-workflow > section + section { border-top: 1px solid var(--ez-border); }
+.arena-change-workflow span { display: block; color: var(--ez-primary-strong); font: 600 10px/1.4 "IBM Plex Mono", monospace; letter-spacing: .05em; text-transform: uppercase; }
+.arena-change-workflow p { max-width: 65ch; margin: 8px 0 0; color: var(--ez-muted); font-size: 15px; line-height: 1.58; }
+.arena-change-workflow textarea { min-height: 176px; margin-top: 18px; }
+.arena-change-workflow small { display: block; margin-top: 8px; color: var(--ez-muted); font: 11px/1.45 "IBM Plex Mono", monospace; }
+.arena-change-workflow .coding-secondary { margin-top: 16px; }
+.arena-change-reveal { border-top: 2px solid var(--ez-primary) !important; }
+.arena-change-reveal p { color: var(--ez-ink); font: 500 16px/1.6 "Source Sans 3", sans-serif; }
 .arena-feedback { margin-top: 25px; padding-top: 18px; border-top: 2px solid var(--ez-primary); }
 .arena-feedback > b { color: var(--ez-primary-strong); font: 600 16px/1.4 "Source Sans 3", sans-serif; }
 .arena-feedback > p { margin: 9px 0; color: var(--ez-muted); font-size: 15px; line-height: 1.58; }

@@ -95,6 +95,17 @@ function words(value: string) {
   return value.toLowerCase().match(/[a-z0-9][a-z0-9'-]*/g) ?? [];
 }
 
+function distinctReasoning(value: string) {
+  const segments = value.toLowerCase().split(/[\n.!?]+/).map((segment) => segment.trim()).filter(Boolean);
+  const allWords = words(value);
+  return {
+    segments,
+    allWords,
+    hasDepth: allWords.length >= 70,
+    hasStructure: segments.length >= 3 && (allWords.length ? new Set(allWords).size / allWords.length : 0) >= .42,
+  };
+}
+
 /** Deterministic self-review, deliberately stricter than keyword/word-count grading. */
 export function reviewCodingInterview(promptId: string, response: string) {
   const prompt = codingInterviewPrompts.find((item) => item.id === promptId);
@@ -116,5 +127,34 @@ export function reviewCodingInterview(promptId: string, response: string) {
     hasDepth,
     hasStructure,
     complete: found.length === prompt.evidenceRequirements.length && hasDepth && hasStructure,
+  };
+}
+
+/**
+ * A requirement change is a two-stage assessment: the learner first scopes a
+ * thin prototype, then revises it after a new identity/write-access constraint.
+ * It is intentionally not reducible to a polished final answer alone.
+ */
+export function reviewRequirementChangeInterview(initialResponse: string, revisedResponse: string) {
+  const initial = distinctReasoning(initialResponse);
+  const initialRequirements = [
+    { label: "an initial bounded user outcome", anchors: ["team", "user", "manual", "outcome", "scope"] },
+    { label: "a request or data contract", anchors: ["input", "request", "schema", "note", "handoff"] },
+    { label: "an initial read-only or prototype boundary", anchors: ["read-only", "prototype", "not write", "boundary", "out of scope"] },
+  ];
+  const initialFound = initialRequirements.filter((requirement) => initial.segments.some((segment) => {
+    const anchored = requirement.anchors.filter((anchor) => segment.includes(anchor)).length;
+    return anchored >= 2 && words(segment).length >= 8;
+  }));
+  const initialComplete = initial.hasDepth && initial.hasStructure && initialFound.length === initialRequirements.length;
+  const revised = reviewCodingInterview("interview-requirement-change", revisedResponse);
+  if (!revised) return null;
+  const score = Math.round((revised.score * .7) + ((initialFound.length / initialRequirements.length) * 20) + (initial.hasDepth && initial.hasStructure ? 10 : 0));
+  return {
+    ...revised,
+    score,
+    initialComplete,
+    initialMissing: initialRequirements.filter((item) => !initialFound.includes(item)).map((item) => item.label),
+    complete: initialComplete && revised.complete,
   };
 }

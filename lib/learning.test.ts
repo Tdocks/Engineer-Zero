@@ -39,7 +39,7 @@ import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts } from "./coding-interview-prompts";
-import { reviewCodingInterview } from "./coding-interviews";
+import { reviewCodingInterview, reviewRequirementChangeInterview } from "./coding-interviews";
 import { reviewCodingChallenge, validateCodingChallengeRubrics } from "./coding-challenge-review";
 import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
 import { codingReviewBoardPrompts } from "./coding-review-board-prompts";
@@ -170,6 +170,18 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingInterview(prompt.id, stuffed)?.complete).toBe(false);
     const evidenceRich = "The operations team needs a bounded way to replace manual reading of fictional sensor reports, so I would scope the prototype to triage only. The POST request uses a typed input schema and validation before returning a structured response. The route delegates deterministic threshold policy to a pure service function, keeping the business boundary easy to test. I would assert the exact 90-degree boundary and one invalid reading so a rule change has regression evidence. This is a prototype limitation: it has no identity or production monitoring, so my next decision would be a controlled pilot with those owners involved. I would document that decision, retain the test output, and ask the operations owner whether the proposed workflow actually reduces manual review time.";
     expect(reviewCodingInterview(prompt.id, evidenceRich)?.complete).toBe(true);
+  });
+
+  it("requires both an initial scope and a revised safe design when requirements change", () => {
+    const incomplete = reviewRequirementChangeInterview("We can make a prototype.", "authorization scope human approval rollback evaluation ".repeat(30));
+    expect(incomplete?.initialComplete).toBe(false);
+    expect(incomplete?.complete).toBe(false);
+    const initial = "The operations team needs a small prototype so a user can review fictional handoff notes instead of searching manually. The input is a handoff note request with a simple schema that names the team and note fields. The first slice is read-only, keeps write access out of scope, and records the boundary before any later expansion. I would verify that the team can find an approved note before I introduce AI, persistence changes, or action automation.";
+    const revised = "Each team must have a verified identity and authorization check before the service retrieves any handoff note, so I would scope the first narrow prototype revision to team-filtered read-only retrieval. The prototype would not automatically write back because a human reviewer must approve any consequential action after trusted validation of the structured proposal. I would preserve the identity decision and audit record, and I would add a reversible rollback or escalation path if a permission check fails. To evaluate the change, I would test cross-team access denial, a correct team retrieval, an invalid request, and measure whether reviewers can still complete their workflow without an unsafe write path. The next decision would be whether representative evidence supports a separately authorized, human-approved drafting action.";
+    const reviewed = reviewRequirementChangeInterview(initial, revised);
+    expect(reviewed?.initialComplete).toBe(true);
+    expect(reviewed?.complete).toBe(true);
+    expect(reviewed?.score).toBeGreaterThanOrEqual(90);
   });
 
   it("requires role-specific evidence in engineering review responses", () => {
