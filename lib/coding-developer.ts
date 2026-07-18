@@ -121,6 +121,12 @@ export type CodingProgramProgress = {
     status: "needs-retry" | "reviewed";
     updatedAt: string;
   }>;
+  reviewBoardAttempts: Record<string, {
+    response: string;
+    score: number;
+    status: "needs-revision" | "reviewed";
+    updatedAt: string;
+  }>;
   assessmentAttempts: Array<{
     id: string;
     score: number;
@@ -631,7 +637,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
 }
 
 export function reviewScheduleForLesson(lessonId: string, from = new Date()) {
@@ -705,7 +711,7 @@ export function codingGraduationStatus(progress: CodingProgramProgress) {
     { id: "labs", label: "Six reviewed practice artifacts", passed: codingChallenges.every((challenge) => progress.challengeAttempts[challenge.id]?.status === "reviewed") },
     { id: "assessment", label: "One 75%+ mixed retrieval check", passed: (progress.assessmentAttempts ?? []).some((attempt) => attempt.score >= 75) },
     { id: "battles", label: "Five reviewable boss-battle attempts", passed: Object.values(progress.bossBattleAttempts ?? {}).filter((attempt) => attempt.status === "reviewed").length >= 5 },
-    { id: "review", label: "Five written Review Board responses", passed: ["Product representative", "Software engineer", "Security engineer", "Operations user", "Assurance reviewer"].every((role) => (progress.notes[`review-${role}`] ?? "").trim().split(/\s+/).length >= 35) },
+    { id: "review", label: "Five evidence-based Review Board responses", passed: Object.values(progress.reviewBoardAttempts ?? {}).filter((attempt) => attempt.status === "reviewed").length >= 5 },
     { id: "readiness", label: "75% local weighted evidence signal", passed: readiness.overall >= 75 },
   ];
   const readyForReviewer = checks.every((check) => check.passed);

@@ -14,6 +14,7 @@ import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
 import { CodingRecallPractice } from "@/components/CodingRecallPractice";
 import { reviewCodingChallenge } from "@/lib/coding-challenge-review";
+import { codingReviewBoardPrompts, reviewCodingBoardResponse } from "@/lib/coding-review-board";
 import {
   codingChallenges,
   codingDayPlans,
@@ -160,6 +161,17 @@ export function CodingDeveloperApp() {
     bossBattleAttempts: { ...(progress.bossBattleAttempts ?? {}), [id]: { ...result, updatedAt: updateDate() } },
     xp: result.status === "reviewed" ? { ...progress.xp, reliability: (progress.xp.reliability ?? 0) + 20, debugger: (progress.xp.debugger ?? 0) + 12 } : progress.xp,
   });
+  const reviewBoardResponse = (id: string) => {
+    const prompt = codingReviewBoardPrompts.find((item) => item.id === id);
+    if (!prompt) return;
+    const response = progress.reviewBoardAttempts?.[id]?.response ?? "";
+    const result = reviewCodingBoardResponse(prompt, response);
+    setProgress({
+      ...progress,
+      reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [id]: { response, ...result, updatedAt: updateDate() } },
+      xp: result.status === "reviewed" ? { ...progress.xp, communication: (progress.xp.communication ?? 0) + 15 } : progress.xp,
+    });
+  };
   const submitChallenge = () => {
     const submittedDesign = challenge.kind === "terminal"
       ? (progress.terminalSession?.transcript.map((entry) => `${entry.command}\n${entry.output}`).join("\n") ?? "")
@@ -356,13 +368,10 @@ export function CodingDeveloperApp() {
       {workspace === "review" && (
         <section className="coding-review-board">
           <header><p className="coding-kicker">ENGINEERING REVIEW BOARD</p><h2>Defend the Mission Operations Handoff Assistant.</h2><p>Answer in order: user outcome, system boundary, data contract, tests, failure behavior, and next production decision.</p></header>
-          <div>{[
-            ["Product representative", "Which manual handoff decision becomes easier, and how will you know it helped?"],
-            ["Software engineer", "Why is the route separate from the service function, and which test proves the important business behavior?"],
-            ["Security engineer", "What data is out of scope for the model and how do you prevent an untrusted note from changing system behavior?"],
-            ["Operations user", "What happens when the model is unavailable during a shift handoff?"],
-            ["Assurance reviewer", "What makes this a prototype rather than an approved operational system?"],
-          ].map(([role, prompt]) => <article key={role}><span>{role}</span><p>{prompt}</p><textarea value={progress.notes[`review-${role}`] ?? ""} onChange={(event) => setProgress({ ...progress, notes: { ...progress.notes, [`review-${role}`]: event.target.value } })} placeholder="State your reasoning, evidence, and remaining limitation…" /></article>)}</div>
+          <div>{codingReviewBoardPrompts.map((reviewer) => {
+            const attempt = progress.reviewBoardAttempts?.[reviewer.id];
+            return <article key={reviewer.id}><span>{reviewer.role}</span><p>{reviewer.prompt}</p><textarea value={attempt?.response ?? ""} onChange={(event) => setProgress({ ...progress, reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [reviewer.id]: { response: event.target.value, score: attempt?.score ?? 0, status: attempt?.status ?? "needs-revision", updatedAt: attempt?.updatedAt ?? updateDate() } } })} placeholder="State a specific decision, evidence, and remaining limitation in separate sentences…" /><button className="coding-secondary" onClick={() => reviewBoardResponse(reviewer.id)}>Review this response</button>{attempt && <aside><b>{attempt.status === "reviewed" ? "Review recorded" : "Revision needed"} · {attempt.score}% evidence completeness</b><p>{reviewCodingBoardResponse(reviewer, attempt.response).feedback}</p></aside>}</article>;
+          })}</div>
           <section className="coding-graduation"><h3>Four-day graduation standard</h3><p>Completion means you can navigate a project, build a typed FastAPI prototype, validate input, test key behavior, use AI only at a defensible boundary, explain failure behavior, and disclose what you built or reviewed. It does not represent production or safety-critical software certification.</p><ul>{graduation.checks.map((check) => <li key={check.id} className={check.passed ? "done" : ""}>{check.passed ? <Check size={15} /> : <span />} {check.label}</li>)}</ul><b>{graduation.readyForReviewer ? "Ready for qualified review — certification is still not automatic." : `${graduation.readiness}% local evidence signal — continue building the missing evidence above.`}</b></section>
         </section>
       )}

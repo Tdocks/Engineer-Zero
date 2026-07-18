@@ -22,7 +22,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 | API Simulator | Factual request builder, validation and failure paths | Implemented as deterministic browser simulation. |
 | AI Systems Lab | Structured-output comparison, injection decision, Debug Bay | Partial: no real model-cost/latency telemetry until a controlled provider is configured. |
 | Interview Arena | Timed prompts, guided/limited/no-hint mode, follow-up pressure question | Partial: no voice transcription or dynamic live coach. |
-| Review Board | Five reviewer perspectives and saved local responses | Partial: no human or qualified-reviewer approval workflow. |
+| Review Board | Five reviewer perspectives and saved local responses with role-specific deterministic evidence checks | Partial: no human or qualified-reviewer approval workflow. |
 | Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records; Code Lab and Interview Arena require distinct evidence segments and reject repeated keyword padding | Partial: deterministic study review still cannot certify independent coding skill or runtime correctness. |
 | Assessment weights | Functional, decomposition, defense, debugging, data, security categories exist in challenge/interview mappings | Partial: no trusted aggregate graduation calculation yet. |
 | Gamification | Six XP categories, evidence milestones, five boss battles, targeted recovery drills, and delayed-recall prompts | Partial: daily streak and cross-device recovery routing require trusted learner records. |
@@ -34,7 +34,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 ## Verified implementation evidence
 
-- `npm test`: 29 tests pass after the instructional engine, source-record/governance, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, anti-padding, learner-draft, and terminal-simulation work.
+- `npm test`: 30 tests pass after the instructional engine, source-record/governance, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, anti-padding, review-board, learner-draft, and terminal-simulation work.
 - `npm run build`: succeeds and includes protected assessment and execution routes.
 - Local projects remain separate from the web process and use only fictional training data. Their independent test suites pass from their own folders (4 CLI, 4 API, 3 AI-triage, 5 approval-workflow, 4 handoff-capstone tests); they intentionally must not be collected as one Python package.
 

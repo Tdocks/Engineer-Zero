@@ -72,6 +72,7 @@ export function normalizeLearnerState(
             assessmentAttempts: progress.assessmentAttempts ?? [],
             completedContinuationIds: progress.completedContinuationIds ?? [],
             bossBattleAttempts: progress.bossBattleAttempts ?? {},
+            reviewBoardAttempts: progress.reviewBoardAttempts ?? {},
             spacedReviewDue: progress.spacedReviewDue ?? [],
             reviewSchedule: progress.reviewSchedule ?? [],
             recallResponses: progress.recallResponses ?? {},

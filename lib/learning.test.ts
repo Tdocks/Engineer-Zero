@@ -41,6 +41,7 @@ import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCo
 import { codingInterviewPrompts, reviewCodingInterview } from "./coding-interviews";
 import { reviewCodingChallenge } from "./coding-challenge-review";
 import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
+import { codingReviewBoardPrompts, reviewCodingBoardResponse } from "./coding-review-board";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -114,6 +115,7 @@ describe("Engineer Zero track engine", () => {
     const legacyCoding = { ...emptyCodingProgress() } as Record<string, unknown>;
     delete legacyCoding.reviewSchedule;
     delete legacyCoding.recallResponses;
+    delete legacyCoding.reviewBoardAttempts;
     delete legacyCoding.workbenchDrafts;
     delete legacyCoding.workbenchSnapshots;
     const migrated = normalizeLearnerState({
@@ -122,6 +124,7 @@ describe("Engineer Zero track engine", () => {
     const coding = migrated.programProgress["coding-developer"]!;
     expect(coding.reviewSchedule).toEqual([]);
     expect(coding.recallResponses).toEqual({});
+    expect(coding.reviewBoardAttempts).toEqual({});
     expect(coding.workbenchDrafts).toEqual({});
     expect(coding.workbenchSnapshots).toEqual({});
   });
@@ -160,6 +163,13 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingInterview(prompt, stuffed).complete).toBe(false);
     const evidenceRich = "The operations team needs a bounded way to replace manual reading of fictional sensor reports, so I would scope the prototype to triage only. The POST request uses a typed input schema and validation before returning a structured response. The route delegates deterministic threshold policy to a pure service function, keeping the business boundary easy to test. I would assert the exact 90-degree boundary and one invalid reading so a rule change has regression evidence. This is a prototype limitation: it has no identity or production monitoring, so my next decision would be a controlled pilot with those owners involved. I would document that decision, retain the test output, and ask the operations owner whether the proposed workflow actually reduces manual review time.";
     expect(reviewCodingInterview(prompt, evidenceRich).complete).toBe(true);
+  });
+
+  it("requires role-specific evidence in engineering review responses", () => {
+    const prompt = codingReviewBoardPrompts.find((item) => item.id === "software")!;
+    expect(reviewCodingBoardResponse(prompt, "route service test boundary ".repeat(30)).status).toBe("needs-revision");
+    const response = "The HTTP route receives the request model and returns the response, while the service function owns the deterministic business threshold. Keeping the route separate makes the policy reusable and lets a direct test isolate logic without standing up a web server. I would write an assertion that a reading of exactly 90 is URGENT because that boundary is the behavior most likely to regress after a rule edit. The remaining production limitation is that this prototype lacks identity, monitoring, and a deployment owner, so I would scope the next pilot with those responsibilities in place. I would retain the focused test output in the project evidence packet for a reviewer.";
+    expect(reviewCodingBoardResponse(prompt, response).status).toBe("reviewed");
   });
 
   it("does not let visible syntax or repeated labels become Code Lab evidence", () => {
