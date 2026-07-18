@@ -55,6 +55,7 @@ import { reviewToolWorkflow } from "./coding-tool-workflow-review";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "./coding-context-window";
 import { reviewCodingContextWindow } from "./coding-context-window-review";
 import { reviewCodingContinuation } from "./coding-continuation-rubric";
+import { codingSourceHealthRecords } from "./coding-source-health";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -266,6 +267,14 @@ describe("Engineer Zero track engine", () => {
       nextDecision: "If approved users and concurrent work justify a managed database, the service owner should select it, migrate the schema, and add rollback evidence before a pilot expands.",
     });
     expect(strong).toMatchObject({ status: "reviewed", missing: [] });
+  });
+
+  it("turns source reachability and overdue review dates into release-blocking source records", () => {
+    const records = codingSourceHealthRecords(new Date("2027-02-01T00:00:00.000Z"), {
+      "python-tutorial": { reachable: false, httpStatus: null },
+    });
+    expect(records.find((record) => record.source.id === "python-tutorial")?.status).toBe("overdue");
+    expect(records.some((record) => record.status === "overdue")).toBe(true);
   });
 
   it("keeps tool workflow answer keys server-side while varying client option positions", () => {

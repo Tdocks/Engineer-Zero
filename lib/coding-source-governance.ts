@@ -5,6 +5,7 @@ export type CodingSourceReview = {
   title: string;
   publisher: string;
   url: string;
+  version: string;
   lastVerified: string;
   revalidateBy: string;
   disposition: "current" | "review-due" | "deprecated";
@@ -31,6 +32,7 @@ export function codingSourceReviewReport(
       title: source.title,
       publisher: source.publisher,
       url: source.url,
+      version: source.version,
       lastVerified: source.lastVerified,
       revalidateBy: source.revalidateBy ?? source.lastVerified,
       disposition,

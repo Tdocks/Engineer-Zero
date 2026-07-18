@@ -39,3 +39,9 @@ learner credentials.
 Run the protected revalidation job on a schedule. It identifies overdue or
 changed sources, records a review record, and blocks affected content from a
 commercial release until a qualified technical/content reviewer resolves it.
+
+The repository includes a weekly Vercel Cron route. Set `CRON_SECRET` in a
+Vercel deployment, or set `SOURCE_REVALIDATION_SECRET` when another scheduler
+sends it as a bearer token. A successful HTTP response only confirms
+reachability; it never substitutes for a human review of the cited claim,
+document version, or lesson alignment.

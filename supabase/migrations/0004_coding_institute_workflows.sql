@@ -62,7 +62,7 @@ create table if not exists public.coding_source_reviews (
   canonical_url text not null,
   last_verified date not null,
   revalidate_by date not null,
-  status text not null check (status in ('author_verified', 'technical_approved', 'overdue', 'deprecated', 'replaced')),
+  status text not null check (status in ('author_verified', 'technical_approved', 'overdue', 'deprecated', 'replaced', 'needs_attention')),
   reviewer_id uuid references auth.users(id),
   reviewer_note text,
   replacement_source_id text,
