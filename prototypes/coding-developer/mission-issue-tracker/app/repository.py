@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import Issue, IssueCreate
+from .models import Issue, IssueCreate, IssueUpdate
 
 
 class IssueRepository:
@@ -44,3 +44,28 @@ class IssueRepository:
                 "SELECT id, summary, owner, status, created_at FROM issues ORDER BY id"
             ).fetchall()
         return [Issue(**dict(row)) for row in rows]
+
+    def get(self, issue_id: int) -> Issue | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT id, summary, owner, status, created_at FROM issues WHERE id = ?",
+                (issue_id,),
+            ).fetchone()
+        return Issue(**dict(row)) if row else None
+
+    def update(self, issue_id: int, change: IssueUpdate) -> Issue | None:
+        existing = self.get(issue_id)
+        if not existing:
+            return None
+        updated = existing.model_copy(update=change.model_dump(exclude_none=True))
+        with self._connection() as connection:
+            connection.execute(
+                "UPDATE issues SET summary = ?, owner = ?, status = ? WHERE id = ?",
+                (updated.summary, updated.owner, updated.status, issue_id),
+            )
+        return updated
+
+    def delete(self, issue_id: int) -> bool:
+        with self._connection() as connection:
+            cursor = connection.execute("DELETE FROM issues WHERE id = ?", (issue_id,))
+        return cursor.rowcount == 1

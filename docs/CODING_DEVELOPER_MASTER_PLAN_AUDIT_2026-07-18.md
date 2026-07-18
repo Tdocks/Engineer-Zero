@@ -10,7 +10,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 | Master-plan requirement | Current evidence | Status |
 | --- | --- | --- |
-| Python, FastAPI, Git/GitHub, pytest, SQL, hosted-model progression | Four-day curriculum, local CLI/API/AI projects, SQLite Issue Tracker, a protected fictional Git change-review simulation, and Mission Operations Handoff capstone with optional local OpenAI adapter | Partial: team Git workflow is simulated; it is not yet verified through a hosted collaborative repository. |
+| Python, FastAPI, Git/GitHub, pytest, SQL, hosted-model progression | Four-day curriculum, local CLI/API/AI projects, a SQLite Issue Tracker with typed CRUD routes, a protected fictional Git change-review simulation, and Mission Operations Handoff capstone with optional local OpenAI adapter | Partial: team Git workflow is simulated; it is not yet verified through a hosted collaborative repository. |
 | Honest four-day outcome | Shared-program promise and graduation language explicitly limit claims | Implemented. |
 | Observe → explain → modify → complete → repair → build → defend | Lesson modes, safe terminal, Code Lab, systems labs, comprehension gates, Review Board | Partial: individual lesson completion remains local/self-recorded. |
 | Retrieval, spacing, interleaving, self-explanation, specific feedback | Protected 12-prompt mixed retrieval forms, five persisted recall returns per completed lesson, a write-before-reveal recall workspace, comprehension gates, targeted responses | Partial: delayed-review notifications and adaptive sequencing are not yet implemented. |
