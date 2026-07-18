@@ -7,6 +7,8 @@ out
 __pycache__/
 *.pyc
 coverage
+test-results
+playwright-report
 *.tsbuildinfo
 
 # Local Codex/Impeccable working material and screenshots

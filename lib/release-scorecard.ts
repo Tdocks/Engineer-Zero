@@ -2,7 +2,7 @@ import "server-only";
 
 import { validateAioContent, validateItSupportContent } from "./content-validation";
 import { codingCatalogPublicationStatus } from "./coding-source-governance";
-import { itSupportLabs } from "./it-support-content";
+import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions } from "./it-support-content";
 
 export type QualityCategory =
   | "instructional-quality"
@@ -91,9 +91,9 @@ export function productReleaseScorecard(
         signal("instructional-quality", itValidation.length === 0 ? "partial" : "blocked", itValidation.length === 0 ? "The protected Reality Check and authored eight-block Sprint pass structural content validation; Fast and Master catalog scaffolding is still excluded from the release-ready path." : `${itValidation.length} authored IT content validation finding(s) remain.`, "Replace every generated lesson, lab, mission, and interview variation with a reviewed typed content package."),
         signal("role-accuracy", "partial", "The baseline uses current Microsoft, Cisco, and NIST primary-source records and fictional mission-critical support scenarios.", "Technical SME reviews the full authored track and its escalation boundaries."),
         signal("assessment-integrity", "strong", "The 24-question Reality Check is server-only, answer-key isolated, and randomized for every attempt.", "Maintain alternate forms and learner-pilot item analysis."),
-        signal("simulation-authenticity", itSupportLabs.length >= 4 ? "partial" : "blocked", "Four authored evidence-led simulations now cover Solo, Pair Programming, AI Builder, and Production Incident modes; missions and remaining labs are still generated scaffolding.", "Ship authored logs, configurations, device evidence, debriefs, stateful consequences, and revision paths."),
+        signal("simulation-authenticity", itSupportLabs.length >= 4 && itSupportMissions.length >= 2 ? "partial" : "blocked", "Four authored evidence-led simulations cover Solo, Pair Programming, AI Builder, and Production Incident modes; two stateful missions now model controlled endpoint-network and compliant-label recovery. The remaining catalog is still in authoring.", "Ship and independently scenario-review the remaining logs, configurations, device evidence, branch consequences, debriefs, and revision paths."),
         signal("learner-evidence", "partial", "The authored Sprint and simulations capture structured evidence and deterministic feedback locally; the rest of the IT catalog and trusted hosted records remain incomplete.", verifiedEvidence),
-        signal("interview-credibility", "blocked", "The current interview list repeats a small seed bank through generated variations.", "Author 150 unique role questions with artifacts, pressure follow-ups, rubrics, and revision history."),
+        signal("interview-credibility", itSupportInterviewPrompts.length === 150 ? "partial" : "blocked", itSupportInterviewPrompts.length === 150 ? "Interview Studio now serves 150 unique, protected, category-specific IT Support prompts with role-specific rubric guidance and pressure follow-ups." : "The protected IT Support interview bank is incomplete.", "Independent author review confirms prompt uniqueness, role accuracy, follow-up quality, timed-practice calibration, and learner-pilot discrimination."),
         signal("ux-accessibility", "partial", "The authored IT Sprint and its first four labs use the dedicated academic reader/workbench; missions and legacy catalog surfaces still need migration.", "Migrate IT to the dedicated academic reader, lab workbench, mission timeline, and mobile accessibility checks."),
         signal("source-governance", "partial", "Reality Check sources are versioned and revalidation-dated.", "Source records and technical review must cover every IT lesson, lab, mission, and interview claim."),
         signal("privacy-security", "partial", "All current IT assessment scenarios are fictional and the answer key is protected.", "Apply protected attempts, RLS, and fictional-data reviews across the entire IT track."),
