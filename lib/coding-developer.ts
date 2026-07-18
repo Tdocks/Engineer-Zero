@@ -486,6 +486,20 @@ export function codingReadiness(progress: CodingProgramProgress) {
   return { dimensions, overall: Math.round(dimensions.reduce((sum, item) => sum + item.score * (item.weight / 100), 0)), evidence };
 }
 
+export function codingGraduationStatus(progress: CodingProgramProgress) {
+  const readiness = codingReadiness(progress);
+  const checks = [
+    { id: "instruction", label: "24 learning sessions completed", passed: progress.completedLessonIds.length >= codingLessons.length },
+    { id: "labs", label: "Six reviewed practice artifacts", passed: codingChallenges.every((challenge) => progress.challengeAttempts[challenge.id]?.status === "reviewed") },
+    { id: "assessment", label: "One 75%+ mixed retrieval check", passed: (progress.assessmentAttempts ?? []).some((attempt) => attempt.score >= 75) },
+    { id: "battles", label: "Five reviewable boss-battle attempts", passed: Object.values(progress.bossBattleAttempts ?? {}).filter((attempt) => attempt.status === "reviewed").length >= 5 },
+    { id: "review", label: "Five written Review Board responses", passed: ["Product representative", "Software engineer", "Security engineer", "Operations user", "Assurance reviewer"].every((role) => (progress.notes[`review-${role}`] ?? "").trim().split(/\s+/).length >= 35) },
+    { id: "readiness", label: "75% local weighted evidence signal", passed: readiness.overall >= 75 },
+  ];
+  const readyForReviewer = checks.every((check) => check.passed);
+  return { checks, readyForReviewer, certified: false, readiness: readiness.overall };
+}
+
 export type CodingBadge = { id: string; title: string; description: string; earned: boolean };
 
 export function codingBadges(progress: CodingProgramProgress): CodingBadge[] {

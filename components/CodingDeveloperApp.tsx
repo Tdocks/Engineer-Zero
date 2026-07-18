@@ -22,6 +22,7 @@ import {
   codingLessons,
   codingMastery,
   codingReadiness,
+  codingGraduationStatus,
   codingSourceList,
   emptyCodingProgress,
   nextCodingLesson,
@@ -79,6 +80,7 @@ export function CodingDeveloperApp() {
   const challenge = codingChallenges.find((item) => item.id === selectedChallengeId) ?? codingChallenges[0];
   const mastery = useMemo(() => codingMastery(progress), [progress]);
   const readiness = useMemo(() => codingReadiness(progress), [progress]);
+  const graduation = useMemo(() => codingGraduationStatus(progress), [progress]);
   const badges = useMemo(() => codingBadges(progress), [progress]);
   const recovery = useMemo(() => codingRecoveryPlan(progress), [progress]);
   const currentDayLessons = codingLessons.filter((item) => item.day === progress.activeDay);
@@ -354,7 +356,7 @@ export function CodingDeveloperApp() {
             ["Operations user", "What happens when the model is unavailable during a shift handoff?"],
             ["Assurance reviewer", "What makes this a prototype rather than an approved operational system?"],
           ].map(([role, prompt]) => <article key={role}><span>{role}</span><p>{prompt}</p><textarea value={progress.notes[`review-${role}`] ?? ""} onChange={(event) => setProgress({ ...progress, notes: { ...progress.notes, [`review-${role}`]: event.target.value } })} placeholder="State your reasoning, evidence, and remaining limitation…" /></article>)}</div>
-          <section className="coding-graduation"><h3>Four-day graduation standard</h3><p>Completion means you can navigate a project, build a typed FastAPI prototype, validate input, test key behavior, use AI only at a defensible boundary, explain failure behavior, and disclose what you built or reviewed. It does not represent production or safety-critical software certification.</p></section>
+          <section className="coding-graduation"><h3>Four-day graduation standard</h3><p>Completion means you can navigate a project, build a typed FastAPI prototype, validate input, test key behavior, use AI only at a defensible boundary, explain failure behavior, and disclose what you built or reviewed. It does not represent production or safety-critical software certification.</p><ul>{graduation.checks.map((check) => <li key={check.id} className={check.passed ? "done" : ""}>{check.passed ? <Check size={15} /> : <span />} {check.label}</li>)}</ul><b>{graduation.readyForReviewer ? "Ready for qualified review — certification is still not automatic." : `${graduation.readiness}% local evidence signal — continue building the missing evidence above.`}</b></section>
         </section>
       )}
     </main>

@@ -27,6 +27,7 @@ import {
   codingLessons,
   codingMastery,
   codingReadiness,
+  codingGraduationStatus,
   emptyCodingProgress,
   validateCodingProgram,
 } from "./coding-developer";
@@ -78,6 +79,7 @@ describe("Engineer Zero track engine", () => {
     expect(mastery.every((competency) => competency.level === 0)).toBe(true);
     expect(mastery.find((competency) => competency.key === "api")?.target).toBe(3);
     expect(codingReadiness(emptyCodingProgress()).overall).toBe(0);
+    expect(codingGraduationStatus(emptyCodingProgress()).readyForReviewer).toBe(false);
   });
 
   it("uses recovery targets and milestones as evidence aids, not completion shortcuts", () => {
