@@ -7,7 +7,7 @@ These projects are the local, runnable counterpart to the Engineer Zero Coding D
 | 1 | `equipment-triage-cli` | Python functions, structured data, validation, JSON output, and boundary tests. |
 | 2 | `equipment-triage-api` | FastAPI request/response models, separated business logic, and API tests. |
 | 3 | `ai-maintenance-report-triage` | Structured model extraction, deterministic policy, safe fallback, and human-review status. |
-| 4 | `../human-approved-operations-triage` | Approval gates, idempotency, audit evidence, safe escalation, and prototype defense. |
+| 4 | `mission-operations-handoff-assistant` | Typed handoff API, SQLite persistence, provider-degraded mode, human review, and prototype defense. |
 | Continued AIO practice | `../permission-aware-knowledge-assistant` | Authorization before retrieval, cited evidence, abstention, and auditability. |
 
 ## Safety boundary
