@@ -215,6 +215,12 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingInterview(prompt.id, evidenceRich)?.complete).toBe(true);
   });
 
+  it("ships the four progressively timed Day 4 prototype simulations", () => {
+    const timed = codingInterviewPrompts.filter((prompt) => [30, 45, 60, 90].includes(prompt.durationMinutes));
+    expect(timed.map((prompt) => prompt.durationMinutes)).toEqual([30, 45, 60, 90]);
+    expect(timed.every((prompt) => prompt.followUp && Object.keys(prompt.competencyWeights).length >= 3)).toBe(true);
+  });
+
   it("requires both an initial scope and a revised safe design when requirements change", () => {
     const incomplete = reviewRequirementChangeInterview("We can make a prototype.", "authorization scope human approval rollback evaluation ".repeat(30));
     expect(incomplete?.initialComplete).toBe(false);

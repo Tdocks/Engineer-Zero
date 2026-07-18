@@ -25,6 +25,57 @@ const evidence = (id: string, label: string, anchors: string[], minAnchors = 2):
 
 export const codingInterviewPrompts: CodingInterviewPrompt[] = [
   {
+    id: "interview-overdue-tasks", title: "30-minute overdue-task utility", durationMinutes: 30, mode: "architecture",
+    prompt: "Build a small Python program that reads fictional team tasks and identifies overdue items. Explain the data shape, deterministic rule, tests, and why AI is not part of this first version.",
+    guidedHint: "Start with a list of task dictionaries, a clear due-date comparison, and a small test set. State why a probabilistic model would add no value to an explicit date rule.",
+    evidenceRequirements: [
+      evidence("contract", "a concrete task data shape and output", ["task", "list", "dictionary", "due", "overdue", "output"], 3),
+      evidence("rule", "a deterministic overdue rule", ["date", "compare", "deterministic", "rule", "today"], 2),
+      evidence("verification", "a focused normal or boundary test", ["test", "assert", "boundary", "overdue", "verify"], 2),
+      evidence("no-ai", "why AI is not justified for the explicit rule", ["ai", "model", "deterministic", "rule", "probabilistic"], 2),
+    ],
+    followUp: "A user wants the output sorted by accountable owner. What small change would you make, and what would you test?", competencyWeights: { python: .8, decomposition: 1, dataInterfaces: .8, testingDebugging: .7, defense: .8 },
+  },
+  {
+    id: "interview-sensor-limits", title: "45-minute sensor-limits API", durationMinutes: 45, mode: "architecture",
+    prompt: "Build a typed API that accepts fictional sensor readings and returns the readings outside configured limits. Explain the contract, configuration boundary, response, error behavior, and focused tests.",
+    guidedHint: "Describe the request model, a pure comparison function, a configured limit source, invalid-input behavior, and an exact-boundary test before discussing extra features.",
+    evidenceRequirements: [
+      evidence("contract", "a typed request and response contract", ["request", "response", "schema", "model", "reading", "validation"], 3),
+      evidence("configuration", "a configured and testable limit boundary", ["configuration", "limit", "threshold", "rule", "configurable"], 2),
+      evidence("service", "a pure service or comparison boundary", ["service", "function", "route", "compare", "logic"], 2),
+      evidence("failure", "invalid-input handling", ["invalid", "422", "error", "validation", "reject"], 2),
+      evidence("verification", "an exact-boundary regression test", ["test", "assert", "boundary", "exact", "regression"], 2),
+    ],
+    followUp: "The limit changes weekly for one approved sensor type. What do you configure, validate, and regression-test?", competencyWeights: { api: 1, dataInterfaces: .8, testingDebugging: .9, architecture: .6, defense: .8 },
+  },
+  {
+    id: "interview-incident-draft", title: "60-minute incident-summary draft", durationMinutes: 60, mode: "ai-boundary",
+    prompt: "Build an API that accepts an unstructured fictional incident description, extracts key facts, and returns a draft summary for human review. Defend why AI is justified here and where trusted code must retain control.",
+    guidedHint: "Use schema-first extraction, explicit uncertainty, validation, a human-review status, safe failure, and no autonomous ticketing or action.",
+    evidenceRequirements: [
+      evidence("model", "a bounded model extraction task", ["model", "extract", "draft", "unstructured", "summary"], 2),
+      evidence("schema", "a structured schema and validation boundary", ["schema", "structured", "validate", "output", "uncertainty"], 2),
+      evidence("approval", "a human-review or no-action boundary", ["human", "review", "approve", "not", "action"], 2),
+      evidence("failure", "a safe failure or invented-fact response", ["failure", "unavailable", "invent", "degraded", "escalate"], 2),
+      evidence("verification", "evaluation or test evidence", ["evaluate", "test", "case", "assert", "verify"], 2),
+    ],
+    followUp: "The model invents an owner not present in the source text. What does the response contain and what must not happen?", competencyWeights: { aiApplications: 1, api: .8, securityReliability: 1, testingDebugging: .7, defense: 1 },
+  },
+  {
+    id: "interview-handoff-search", title: "90-minute handoff-search prototype", durationMinutes: 90, mode: "project-defense",
+    prompt: "Another fictional department manually reviews shift handoff notes. Design a prototype that extracts blockers, owners, deadlines, and unresolved questions, then provides a searchable result. Choose in-memory storage or SQLite and defend the decision.",
+    guidedHint: "Scope one vertical slice: typed input, bounded extraction, persistent or in-memory data choice, a search/filter contract, human review, and a small evaluation/test plan.",
+    evidenceRequirements: [
+      evidence("outcome", "a user outcome and bounded scope", ["team", "user", "manual", "handoff", "scope"], 2),
+      evidence("storage", "a storage decision and tradeoff", ["sqlite", "memory", "storage", "persistence", "concurrency"], 2),
+      evidence("contract", "a typed input/output or search contract", ["request", "response", "schema", "filter", "search"], 2),
+      evidence("boundary", "a model and human-review boundary", ["model", "extract", "human", "review", "approval"], 2),
+      evidence("verification", "an evaluation or test plan", ["test", "evaluate", "case", "assert", "verify"], 2),
+    ],
+    followUp: "The team asks for write-back to their workflow. What is the smallest safe next step, and who must be involved?", competencyWeights: { decomposition: 1, architecture: 1, dataInterfaces: .8, aiApplications: .8, securityReliability: .9, defense: 1 },
+  },
+  {
     id: "interview-triage-api", title: "Build the narrow triage API", durationMinutes: 12, mode: "architecture",
     prompt: "A fictional team manually reviews equipment readings. Describe a Python prototype that accepts a reading, returns NORMAL, REVIEW, or URGENT, and can be demonstrated in an interview.",
     guidedHint: "Begin with user outcome, then name input, request validation, pure rule, response, test, and what is intentionally out of scope.",
