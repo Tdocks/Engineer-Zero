@@ -44,6 +44,7 @@ import { reviewCodingChallenge, validateCodingChallengeRubrics } from "./coding-
 import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
 import { codingReviewBoardPrompts } from "./coding-review-board-prompts";
 import { reviewCodingBoardResponse } from "./coding-review-board";
+import { codingEvaluationCases, scoreCodingEvaluation } from "./coding-evaluation";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -174,6 +175,13 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingBoardResponse(prompt.id, "route service test boundary ".repeat(30))?.status).toBe("needs-revision");
     const response = "The HTTP route receives the request model and returns the response, while the service function owns the deterministic business threshold. Keeping the route separate makes the policy reusable and lets a direct test isolate logic without standing up a web server. I would write an assertion that a reading of exactly 90 is URGENT because that boundary is the behavior most likely to regress after a rule edit. The remaining production limitation is that this prototype lacks identity, monitoring, and a deployment owner, so I would scope the next pilot with those responsibilities in place. I would retain the focused test output in the project evidence packet for a reviewer.";
     expect(reviewCodingBoardResponse(prompt.id, response)?.status).toBe("reviewed");
+  });
+
+  it("uses an evaluation set that rewards bounded accept, escalate, and reject decisions", () => {
+    expect(codingEvaluationCases).toHaveLength(6);
+    const allCorrect = Object.fromEntries(codingEvaluationCases.map((item) => [item.id, item.expected]));
+    expect(scoreCodingEvaluation(allCorrect)).toMatchObject({ correct: 6, total: 6, complete: true, score: 100 });
+    expect(scoreCodingEvaluation({ injection: "accept" })).toMatchObject({ correct: 0, total: 6, complete: false, score: 0 });
   });
 
   it("does not let visible syntax or repeated labels become Code Lab evidence", () => {
