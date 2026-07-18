@@ -29,6 +29,7 @@ import {
   codingReadiness,
   codingGraduationStatus,
   emptyCodingProgress,
+  reviewScheduleForLesson,
   validateCodingProgram,
 } from "./coding-developer";
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
@@ -82,6 +83,28 @@ describe("Engineer Zero track engine", () => {
     expect(codingGraduationStatus(emptyCodingProgress()).readyForReviewer).toBe(false);
   });
 
+  it("creates durable spaced-retrieval events rather than treating review as a completed click", () => {
+    const from = new Date("2026-07-18T20:00:00.000Z");
+    const review = reviewScheduleForLesson("coding-day-1-01", from);
+    expect(review.map((item) => item.interval)).toEqual(["20-minutes", "end-of-day", "next-morning", "three-days", "one-week"]);
+    expect(new Date(review.find((item) => item.interval === "end-of-day")!.dueAt).getTime()).toBeGreaterThan(from.getTime());
+    expect(review.every((item) => !item.completedAt)).toBe(true);
+  });
+
+  it("migrates earlier Coding Developer progress to durable drafts and snapshots", () => {
+    const legacyCoding = { ...emptyCodingProgress() } as Record<string, unknown>;
+    delete legacyCoding.reviewSchedule;
+    delete legacyCoding.workbenchDrafts;
+    delete legacyCoding.workbenchSnapshots;
+    const migrated = normalizeLearnerState({
+      programProgress: { "coding-developer": legacyCoding as never },
+    });
+    const coding = migrated.programProgress["coding-developer"]!;
+    expect(coding.reviewSchedule).toEqual([]);
+    expect(coding.workbenchDrafts).toEqual({});
+    expect(coding.workbenchSnapshots).toEqual({});
+  });
+
   it("uses recovery targets and milestones as evidence aids, not completion shortcuts", () => {
     const empty = emptyCodingProgress();
     expect(codingBadges(empty).every((badge) => !badge.earned)).toBe(true);
@@ -115,6 +138,13 @@ describe("Engineer Zero track engine", () => {
     const publicForm = publicCodingAssessment("assessment-integrity", 12);
     expect(publicForm).toHaveLength(12);
     expect(publicForm.every((question) => !("correctChoiceId" in question) && !("requiredConceptGroups" in question) && !("rationale" in question))).toBe(true);
+    const choicePositions = publicForm
+      .filter((question) => question.format === "choice")
+      .map((question) => {
+        const privateQuestion = codingAssessmentBank.find((item) => item.id === question.id)!;
+        return question.choices!.findIndex((choice) => choice.id === privateQuestion.correctChoiceId);
+      });
+    expect(new Set(choicePositions).size).toBe(Math.min(4, choicePositions.length));
     const privateChoice = codingAssessmentBank.find((question) => question.format === "choice")!;
     const privateResponse = codingAssessmentBank.find((question) => question.format === "response")!;
     const result = gradeCodingAssessment({

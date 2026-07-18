@@ -122,6 +122,31 @@ export type CodingProgramProgress = {
   notes: Record<string, string>;
   xp: Partial<Record<"builder" | "debugger" | "systems" | "aiJudgment" | "reliability" | "communication", number>>;
   spacedReviewDue: string[];
+  /** A scheduled retrieval event is evidence support, never completion on its own. */
+  reviewSchedule: Array<{
+    id: string;
+    lessonId: string;
+    dueAt: string;
+    interval: "20-minutes" | "end-of-day" | "next-morning" | "three-days" | "one-week";
+    completedAt?: string;
+  }>;
+  /** Browser-only drafts and snapshots preserve study work without claiming it ran. */
+  workbenchDrafts: Record<string, CodingWorkbenchFile[]>;
+  workbenchSnapshots: Record<string, CodingWorkbenchSnapshot[]>;
+};
+
+export type CodingWorkbenchFile = {
+  path: string;
+  content: string;
+  editable: boolean;
+  role: "source" | "test" | "note";
+};
+
+export type CodingWorkbenchSnapshot = {
+  id: string;
+  label: string;
+  createdAt: string;
+  files: CodingWorkbenchFile[];
 };
 
 export type SharedProgramDefinition = {
@@ -157,6 +182,26 @@ export const codingSources: Record<string, CodingSource> = {
     locator: "venv library reference",
     lastVerified: verified,
     supportedClaim: "Project-local Python environments isolate installed packages.",
+  },
+  bashManual: {
+    id: "bash-reference-manual",
+    title: "Bash Reference Manual",
+    publisher: "GNU Project",
+    url: "https://www.gnu.org/software/bash/manual/bash.html",
+    version: "Current online manual",
+    locator: "Shell operation, commands, and file-name expansion",
+    lastVerified: verified,
+    supportedClaim: "A shell interprets commands and passes requested program execution to the operating system.",
+  },
+  sqliteLanguage: {
+    id: "sqlite-language",
+    title: "The SQLite Language",
+    publisher: "SQLite",
+    url: "https://www.sqlite.org/lang.html",
+    version: "Current documentation",
+    locator: "SQL language overview and statements",
+    lastVerified: verified,
+    supportedClaim: "SQLite is a relational database engine with tables, rows, queries, and transaction-oriented SQL operations.",
   },
   fastapiBody: {
     id: "fastapi-body",
@@ -284,13 +329,13 @@ for (const [key, source] of Object.entries(codingSources)) {
  * and name its owner before they are asked to configure or operate it.
  */
 export const codingConcepts: CodingConcept[] = [
-  { id: "concept-terminal", label: "Terminal and shell", competency: "terminal", role: "practice", sourceIds: ["pythonTutorial"], escalation: "Escalate destructive filesystem, permissions, or production-host work to the accountable operator." },
+  { id: "concept-terminal", label: "Terminal and shell", competency: "terminal", role: "practice", sourceIds: ["bashManual", "pythonTutorial"], escalation: "Escalate destructive filesystem, permissions, or production-host work to the accountable operator." },
   { id: "concept-python", label: "Functions and explicit errors", competency: "python", role: "prove", sourceIds: ["pythonTutorial"], escalation: "Escalate unfamiliar runtime, packaging, or performance failures with the traceback and reproduction steps." },
   { id: "concept-http", label: "HTTP and JSON contracts", competency: "dataInterfaces", role: "practice", sourceIds: ["fastapiBody"], escalation: "Escalate public interface changes to the owning API team." },
   { id: "concept-api", label: "Request validation and service boundaries", competency: "api", role: "prove", sourceIds: ["fastapiBody", "fastapiResponse"], escalation: "Escalate authentication, authorization, and production gateway decisions to platform/security owners." },
   { id: "concept-tests", label: "Tests as executable requirements", competency: "testingDebugging", role: "prove", sourceIds: ["pytest"], escalation: "Escalate flaky, integration, or unexplained production failures with the smallest reproducible case." },
   { id: "concept-git", label: "Git review and reproducibility", competency: "git", role: "practice", sourceIds: ["githubPr"], escalation: "Escalate protected-branch policy and merge conflicts that affect others to the code owner." },
-  { id: "concept-sqlite", label: "Relational persistence and SQLite", competency: "dataInterfaces", role: "know", sourceIds: ["pythonTutorial"], escalation: "Escalate production data retention, backups, access control, and migration design to data/platform owners." },
+  { id: "concept-sqlite", label: "Relational persistence and SQLite", competency: "dataInterfaces", role: "know", sourceIds: ["sqliteLanguage"], escalation: "Escalate production data retention, backups, access control, and migration design to data/platform owners." },
   { id: "concept-model-boundary", label: "Model boundary and structured output", competency: "aiApplications", role: "practice", sourceIds: ["openaiStructured", "nistAiRmf"], escalation: "Escalate model hosting, provider approval, and material risk decisions to the accountable AI/platform owners." },
   { id: "concept-prompt-injection", label: "Prompt injection is untrusted input", competency: "securityReliability", role: "know", sourceIds: ["owaspGenAi"], escalation: "Escalate suspected data exposure, unsafe tool use, or injection vulnerabilities to security immediately." },
   { id: "concept-evaluation", label: "Evaluation cases and safe fallback", competency: "testingDebugging", role: "practice", sourceIds: ["nistAiRmf", "pytest"], escalation: "Escalate go/no-go quality thresholds and monitoring policy to the product and risk owners." },
@@ -300,20 +345,107 @@ export const codingConcepts: CodingConcept[] = [
   { id: "concept-defense", label: "Evidence-based technical defense", competency: "defense", role: "prove", sourceIds: ["githubPr", "nistSsdf"], escalation: "State uncertainty rather than inventing ownership or evidence; bring in the specialist who owns the decision." },
 ];
 
+const codingConceptDetails: Record<string, Pick<CodingConceptRecord, "definition" | "whyItMatters" | "interviewApplication" | "prototypeApplication">> = {
+  "concept-terminal": {
+    definition: "A terminal is the text window; a shell is the command interpreter inside it. A command names a program or shell operation, and the operating system starts the requested program in a working directory.",
+    whyItMatters: "Prototype work starts with repeatable setup and recovery. Knowing where a command runs prevents accidental edits in the wrong project and makes error reports reproducible.",
+    interviewApplication: "Describe the current directory, command, output, and exit status you would capture before asking for help with a setup failure.",
+    prototypeApplication: "Create a fictional project folder, activate its virtual environment, run one program, and record the command sequence in the README.",
+  },
+  "concept-python": {
+    definition: "A function names a reusable behavior: it accepts explicit inputs, performs a bounded operation, and returns a result or raises a meaningful error when its contract cannot be met.",
+    whyItMatters: "Named functions let a learner isolate deterministic rules from presentation or API transport, which makes both tests and explanation more precise.",
+    interviewApplication: "Explain why a threshold rule belongs in a small function and name the input, return value, and invalid-input behavior.",
+    prototypeApplication: "Put triage thresholds in a function, write a normal and boundary test, then show the traceback or test output from one repaired failure.",
+  },
+  "concept-http": {
+    definition: "HTTP is a request-response protocol. A client selects a method and route, sends headers and an optional body, and receives a status code and response body; JSON is one common structured body format.",
+    whyItMatters: "A small prototype becomes usable by another team only when its input and output contract is explicit enough to validate and integrate.",
+    interviewApplication: "State what a client sends to a POST endpoint, which invalid request belongs in a 4xx response, and what response shape a caller can rely on.",
+    prototypeApplication: "Document one request and response example for a fictional triage route, including the invalid-input response.",
+  },
+  "concept-api": {
+    definition: "An API boundary validates an external request and returns a documented response. Business rules should remain in a separate service so they can be tested without the web server.",
+    whyItMatters: "The separation prevents transport details from hiding core logic and makes it easier to reason about validation, testing, and later reuse.",
+    interviewApplication: "Defend a typed request model over a raw dictionary and explain what belongs in the route versus the service function.",
+    prototypeApplication: "Build a read-only FastAPI route with a typed request model and a service-level test for the key rule.",
+  },
+  "concept-tests": {
+    definition: "A test is executable evidence for one expected behavior. It arranges a known condition, acts on the unit under test, and asserts an observable result, including a boundary or failure when relevant.",
+    whyItMatters: "A demo can hide regressions. Focused tests turn an important requirement into a repeatable check while leaving the learner honest about what is not covered.",
+    interviewApplication: "Name the highest-risk behavior, the input at its boundary, and the specific assertion that would show it still works after a change.",
+    prototypeApplication: "Add direct tests for normal, boundary, and invalid triage behavior, then preserve the failing test that led to a repair.",
+  },
+  "concept-git": {
+    definition: "Git records snapshots of a project history. A commit groups a coherent change, while a diff and pull request make the change, its tests, and its risks reviewable by another person.",
+    whyItMatters: "A prototype becomes collaborative when another engineer can see what changed, why it changed, and how to verify it without guessing.",
+    interviewApplication: "Explain a commit message, the files included, the test evidence, and the question you would put in a pull-request description.",
+    prototypeApplication: "Make a small validation change with its test and write a commit message that names the behavior rather than the tool used.",
+  },
+  "concept-sqlite": {
+    definition: "SQLite is an embedded relational database. It stores structured records in tables and uses SQL to create, query, update, and relate those records without operating a separate database server for a small prototype.",
+    whyItMatters: "It supplies real persistence and query design for a bounded prototype while avoiding infrastructure that would obscure the product question.",
+    interviewApplication: "Explain why SQLite is reasonable for a prototype and name the concurrency, backup, access-control, or scale conditions that would trigger a different data platform.",
+    prototypeApplication: "Model a fictional issue table, store an issue through a repository function, and retrieve it with a tested query.",
+  },
+  "concept-model-boundary": {
+    definition: "A model boundary limits an LLM to an untrusted, bounded task such as extraction or drafting. A schema validates its output before trusted code uses it, and consequential actions stay outside the model.",
+    whyItMatters: "Fluent text is not a trustworthy interface. A visible boundary keeps uncertainty, authorization, and final policy decisions accountable to the application and people who own them.",
+    interviewApplication: "Identify the model task, the output schema, the deterministic rule after validation, and the human approval point.",
+    prototypeApplication: "Extract fictional incident facts into a typed schema, reject malformed output, and send only a proposed action to a human reviewer.",
+  },
+  "concept-prompt-injection": {
+    definition: "Prompt injection is untrusted content that attempts to change an AI system’s instructions or obtain unauthorized information or actions. Treat reports, documents, and tool results as data—not authority.",
+    whyItMatters: "An AI application can appear helpful while letting embedded content influence tools or disclose data outside the intended workflow.",
+    interviewApplication: "Explain how you keep document text separate from system instructions, restrict tool permissions, and escalate suspected exposure.",
+    prototypeApplication: "Include an injected fictional report in an evaluation set and show that the service preserves the report as evidence while rejecting its instruction.",
+  },
+  "concept-evaluation": {
+    definition: "Evaluation uses a representative set of inputs and explicit expected behavior to measure groundedness, schema validity, uncertainty, latency, cost, and safe fallback—not just a persuasive demo.",
+    whyItMatters: "A prototype earns a controlled pilot through evidence about success and failure modes, not because one prompt produced an attractive answer.",
+    interviewApplication: "Name the cases, measures, threshold, owner, and rollback or escalation condition that would inform a go/no-go decision.",
+    prototypeApplication: "Create a small fictional evaluation set with ambiguous, contradictory, unsupported, and injection cases; record the expected safe response for each.",
+  },
+  "concept-secrets": {
+    definition: "A secret is an authentication value such as an API key that must be supplied through approved configuration, not embedded in source, committed to Git, printed in logs, or pasted into an assistant prompt.",
+    whyItMatters: "Leaked credentials can grant access outside the learner’s prototype and make a simple demo a security incident.",
+    interviewApplication: "Describe the missing-key behavior, safe operational logging, and the security or platform owner responsible for key issuance and rotation.",
+    prototypeApplication: "Load an optional provider key from an environment variable, omit the value from logs, and use a deterministic fallback when it is absent.",
+  },
+  "concept-architecture": {
+    definition: "Prototype architecture assigns clear responsibilities to a small number of components—request boundary, business rule, storage, model adapter, and audit or log path—so one end-to-end slice can be tested and explained.",
+    whyItMatters: "A simple visible design is safer to change under interview time pressure than a premature collection of services with unclear ownership.",
+    interviewApplication: "Draw the request-to-response path, identify the trust boundary, then explain the first scale or reliability change you would defer until evidence justifies it.",
+    prototypeApplication: "Create a request → service → response → test slice and write a short architecture note naming its failure and rollback behavior.",
+  },
+  "concept-discovery": {
+    definition: "Problem framing converts a vague request into a named user, current workflow, inputs, outputs, rules, constraints, failure cases, acceptance criteria, and a smallest useful first slice.",
+    whyItMatters: "Good prototypes prove a specific operating assumption. Without a bounded outcome, teams often add AI before they understand what problem requires it.",
+    interviewApplication: "Ask the stakeholder questions that distinguish a deterministic automation opportunity from a language-understanding problem and state what evidence would change the recommendation.",
+    prototypeApplication: "Write a SCOPE brief for a fictional handoff workflow, including one explicit non-goal and a measurable success signal.",
+  },
+  "concept-defense": {
+    definition: "Technical defense is an evidence-based explanation of what the learner designed, built, tested, reviewed, and could not verify, plus the limitation, owner, and next decision needed to proceed safely.",
+    whyItMatters: "AI-assisted work is credible only when the learner can separate personal ownership from generated output and reason about the system under follow-up questions.",
+    interviewApplication: "Answer why this technology, what the important test proves, what fails safely, and what you would change before production without overstating experience.",
+    prototypeApplication: "Record an AI-assistance disclosure, one repaired bug, test evidence, architecture tradeoff, and a five-minute walkthrough of the fictional prototype.",
+  },
+};
+
 /** Versioned source-of-truth records used by the learner-facing concept library. */
 export const codingConceptRecords: CodingConceptRecord[] = codingConcepts.map((concept) => {
-  const competency = codingCompetenciesForRecord(concept.competency);
+  const details = codingConceptDetails[concept.id];
   return {
     conceptId: concept.id,
     title: concept.label,
-    definition: `${concept.label} is a bounded engineering concept in this course; learners should connect it to an observable system behavior rather than memorize a tool name.`,
-    whyItMatters: competency.description,
+    definition: details.definition,
+    whyItMatters: details.whyItMatters,
     officialSources: concept.sourceIds.map((id) => {
       const source = codingSources[id];
       return { publisher: source.publisher, url: source.url, version: source.version, lastVerified: source.lastVerified, sourceType: source.sourceType };
     }),
-    interviewApplication: `Explain ${concept.label.toLowerCase()} in terms of its boundary, evidence, and the accountable owner—not as a claim of unlimited implementation authority.`,
-    prototypeApplication: `Use ${concept.label.toLowerCase()} in a fictional, bounded prototype and preserve a visible test, artifact, or decision record.`,
+    interviewApplication: details.interviewApplication,
+    prototypeApplication: details.prototypeApplication,
     knownLimitations: concept.escalation,
     assessmentIds: [],
     capability: concept.role,
@@ -380,7 +512,7 @@ const lesson = (
 ): CodingLesson => ({ id: `coding-day-${day}-${String(order).padStart(2, "0")}`, day, order, title, durationMinutes: 50, competency, objective, explanation, workedExample, practicePrompt, defensePrompt, sourceIds, mode });
 
 export const codingLessons: CodingLesson[] = [
-  lesson(1, 1, "terminal", "Inside the machine", "Trace a command from keyboard to program output.", "A terminal is a text interface to a shell. The shell asks the operating system to locate and start a program; Python interprets a source file and returns output or an error.", "keyboard → shell → operating system → Python interpreter → main.py → output", "Put those six parts in order without looking.", "What is the difference between the terminal, shell, and Python interpreter?", ["pythonTutorial"], "observe"),
+  lesson(1, 1, "terminal", "Inside the machine", "Trace a command from keyboard to program output.", "A terminal is a text interface to a shell. The shell asks the operating system to locate and start a program; Python interprets a source file and returns output or an error.", "keyboard → shell → operating system → Python interpreter → main.py → output", "Put those six parts in order without looking.", "What is the difference between the terminal, shell, and Python interpreter?", ["bashManual", "pythonTutorial"], "observe"),
   lesson(1, 2, "terminal", "Safe terminal navigation", "Create and recover a small project folder without affecting a real system.", "Paths describe locations. Relative paths begin from the current folder; absolute paths begin from a known root. Use `pwd`, `ls`, `cd`, `mkdir`, and `touch` deliberately.", "mkdir ai_prototype → cd ai_prototype → touch main.py", "Recover after creating main.py in the wrong folder.", "Why check your location before removing or moving a file?", ["pythonTutorial"], "modify"),
   lesson(1, 3, "python", "Values, variables, and first execution", "Run a Python file and name the values it transforms.", "A value has a type. A variable gives a value a useful name. `print()` makes output visible; a traceback explains the path to an error.", "remaining_minutes = launch_time - current_time\nprint(remaining_minutes)", "Change a countdown calculation to include a hold duration.", "What does the variable name add that a raw number does not?", ["pythonTutorial"], "modify"),
   lesson(1, 4, "python", "Decisions and functions", "Put repeatable triage logic in a small function with a clear return value.", "A function gives behavior a name, keeps inputs narrow, and makes the result easier to test. Conditions select a branch based on explicit rules.", "def risk_level(temp: float) -> str:\n    return \"URGENT\" if temp >= 90 else \"NORMAL\"", "Add a REVIEW branch for temperatures from 80 through 89.", "Why is a function safer than duplicating the same condition in three places?", ["pythonTutorial"], "build"),
@@ -436,7 +568,24 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [] };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], workbenchDrafts: {}, workbenchSnapshots: {} };
+}
+
+export function reviewScheduleForLesson(lessonId: string, from = new Date()) {
+  const intervals: Array<CodingProgramProgress["reviewSchedule"][number]["interval"]> = ["20-minutes", "end-of-day", "next-morning", "three-days", "one-week"];
+  const dueDates = intervals.map((interval) => {
+    const due = new Date(from);
+    if (interval === "20-minutes") due.setMinutes(due.getMinutes() + 20);
+    if (interval === "end-of-day") {
+      due.setHours(19, 0, 0, 0);
+      if (due <= from) due.setDate(due.getDate() + 1);
+    }
+    if (interval === "next-morning") { due.setDate(due.getDate() + 1); due.setHours(9, 0, 0, 0); }
+    if (interval === "three-days") due.setDate(due.getDate() + 3);
+    if (interval === "one-week") due.setDate(due.getDate() + 7);
+    return { id: `${lessonId}-${interval}`, lessonId, dueAt: due.toISOString(), interval };
+  });
+  return dueDates;
 }
 
 export function codingMastery(progress: CodingProgramProgress) {

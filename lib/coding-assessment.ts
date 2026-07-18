@@ -91,12 +91,19 @@ function seededShuffle<T>(seed: string, values: T[]) {
 }
 
 export function publicCodingAssessment(seed: string, limit = 12) {
+  const positions = seededShuffle(`${seed}-choice-positions`, [0, 1, 2, 3]);
+  let choiceIndex = 0;
   return seededShuffle(seed, codingAssessmentBank)
     .slice(0, limit)
-    .map(({ correctChoiceId: _key, requiredConceptGroups: _rules, rationale: _rationale, ...question }) => ({
-      ...question,
-      choices: question.choices ? seededShuffle(`${seed}-${question.id}`, question.choices) : undefined,
-    }));
+    .map(({ correctChoiceId, requiredConceptGroups: _rules, rationale: _rationale, ...question }) => {
+      if (!question.choices || !correctChoiceId) return { ...question, choices: undefined };
+      const correct = question.choices.find((choice) => choice.id === correctChoiceId)!;
+      const distractors = seededShuffle(`${seed}-${question.id}`, question.choices.filter((choice) => choice.id !== correctChoiceId));
+      const choices = [...distractors];
+      choices.splice(positions[choiceIndex % positions.length], 0, correct);
+      choiceIndex += 1;
+      return { ...question, choices };
+    });
 }
 
 function words(value: string) {

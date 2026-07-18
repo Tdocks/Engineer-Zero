@@ -26,6 +26,7 @@ import {
   codingSourceList,
   emptyCodingProgress,
   nextCodingLesson,
+  reviewScheduleForLesson,
   type CodingChallenge,
   type CodingCompetencyKey,
   type CodingLesson,
@@ -83,6 +84,10 @@ export function CodingDeveloperApp() {
   const graduation = useMemo(() => codingGraduationStatus(progress), [progress]);
   const badges = useMemo(() => codingBadges(progress), [progress]);
   const recovery = useMemo(() => codingRecoveryPlan(progress), [progress]);
+  const upcomingReviews = useMemo(() => (progress.reviewSchedule ?? [])
+    .filter((review) => !review.completedAt)
+    .sort((left, right) => new Date(left.dueAt).getTime() - new Date(right.dueAt).getTime())
+    .slice(0, 3), [progress.reviewSchedule]);
   const currentDayLessons = codingLessons.filter((item) => item.day === progress.activeDay);
   const completedToday = currentDayLessons.filter((item) => progress.completedLessonIds.includes(item.id)).length;
 
@@ -103,6 +108,10 @@ export function CodingDeveloperApp() {
       activeDay: item.day < 4 && currentDayLessons.every((candidate) => completedLessonIds.includes(candidate.id)) ? ((item.day + 1) as 1 | 2 | 3 | 4) : progress.activeDay,
       xp: { ...progress.xp, [xpKey]: (progress.xp[xpKey] ?? 0) + 25 },
       spacedReviewDue: [...new Set([...progress.spacedReviewDue, item.id])],
+      reviewSchedule: [
+        ...(progress.reviewSchedule ?? []).filter((entry) => entry.lessonId !== item.id),
+        ...reviewScheduleForLesson(item.id),
+      ],
     });
   };
 
@@ -112,7 +121,8 @@ export function CodingDeveloperApp() {
   };
   const selectChallenge = (item: CodingChallenge) => {
     setSelectedChallengeId(item.id);
-    setCode(item.starter);
+    const draft = progress.workbenchDrafts?.[item.id];
+    setCode((draft ?? [{ role: "source", content: item.starter }]).filter((file) => file.role === "source").map((file) => file.content).join("\n"));
     const previous = progress.challengeAttempts[item.id];
     setExplanation(previous?.explanation ?? "");
     setLocalRunConfirmed(previous?.localRunConfirmed ?? false);
@@ -271,6 +281,13 @@ export function CodingDeveloperApp() {
             <div><p className="coding-kicker">RECOVERY, NOT PENALTY</p><h2>Make the next weak link visible.</h2><p>{recovery.message}</p></div>
             <aside><b>{codingCompetencies.find((item) => item.key === recovery.competency)?.title ?? "Next evidence"}</b><p>Return to one precise lesson, then create or repair one focused artifact. Passing a screen is not the same as proving the skill.</p><button onClick={() => recovery.lessonId && selectLesson(codingLessons.find((item) => item.id === recovery.lessonId) ?? codingLessons[0])}>Open recovery lesson →</button></aside>
           </section>
+          <section className="coding-review-schedule" aria-label="Upcoming retrieval practice">
+            <header><p className="coding-kicker">SPACED RETRIEVAL</p><h2>Return to ideas before they fade.</h2><p>Opening a review is not completion. Recall the idea first, then check it against the lesson or retrieval checks.</p></header>
+            {upcomingReviews.length ? <ul>{upcomingReviews.map((review) => {
+              const item = codingLessons.find((lesson) => lesson.id === review.lessonId);
+              return <li key={review.id}><div><b>{item?.title ?? "Learning review"}</b><span>{review.interval.replace("-", " ")} · {new Date(review.dueAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div><button onClick={() => item && selectLesson(item)}>Open recall prompt →</button></li>;
+            })}</ul> : <p className="coding-review-empty">Finish one learning session to schedule five short recall returns across the next week.</p>}
+          </section>
           <section className="coding-badges" aria-label="Learning milestones">
             <header><p className="coding-kicker">MILESTONES</p><h2>Earn evidence, not streaks.</h2></header>
             <div>{badges.map((badge) => <article key={badge.id} className={badge.earned ? "earned" : ""}><span>{badge.earned ? "Earned" : "In progress"}</span><b>{badge.title}</b><p>{badge.description}</p></article>)}</div>
@@ -328,7 +345,15 @@ export function CodingDeveloperApp() {
                 <p className="terminal-hint">Try: <code>pwd</code>, <code>ls</code>, <code>mkdir ai_prototype</code>, <code>cd ai_prototype</code>, <code>touch main.py</code>, <code>python main.py</code>.</p>
               </section>
             ) : (
-              <><CodingFileWorkbench key={challenge.id} challenge={challenge} onCodeChange={setCode} onSnapshot={(summary) => setProgress({ ...progress, notes: { ...progress.notes, [`snapshot-${challenge.id}`]: summary } })} /><button className="coding-primary coding-workbench-review" onClick={submitChallenge}>Review visible design <Braces size={16} /></button></>
+              <><CodingFileWorkbench
+                key={challenge.id}
+                challenge={challenge}
+                initialFiles={progress.workbenchDrafts?.[challenge.id]}
+                initialSnapshots={progress.workbenchSnapshots?.[challenge.id]}
+                onCodeChange={setCode}
+                onFilesChange={(files) => setProgress({ ...progress, workbenchDrafts: { ...(progress.workbenchDrafts ?? {}), [challenge.id]: files } })}
+                onSnapshotsChange={(snapshots) => setProgress({ ...progress, workbenchSnapshots: { ...(progress.workbenchSnapshots ?? {}), [challenge.id]: snapshots } })}
+              /><button className="coding-primary coding-workbench-review" onClick={submitChallenge}>Review visible design <Braces size={16} /></button></>
             )}
             {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
             <section className="coding-checklist"><h3>What the reviewer looks for</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>

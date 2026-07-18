@@ -2,31 +2,41 @@
 
 import { useMemo, useState } from "react";
 import { Check, FileCode2, FileText, FolderTree, RotateCcw, Save, SearchCheck } from "lucide-react";
-import type { CodingChallenge } from "@/lib/coding-developer";
+import type { CodingChallenge, CodingWorkbenchSnapshot } from "@/lib/coding-developer";
 import { starterWorkbenchFiles, visibleCheckStatus, type WorkbenchFile } from "@/lib/coding-workbench";
 
-export function CodingFileWorkbench({ challenge, onCodeChange, onSnapshot }: { challenge: CodingChallenge; onCodeChange: (combinedSource: string) => void; onSnapshot: (summary: string) => void }) {
-  const [files, setFiles] = useState(() => starterWorkbenchFiles(challenge));
-  const [selectedPath, setSelectedPath] = useState(() => starterWorkbenchFiles(challenge)[0].path);
-  const [snapshots, setSnapshots] = useState<Array<{ id: string; label: string; files: WorkbenchFile[] }>>([]);
+export function CodingFileWorkbench({ challenge, initialFiles, initialSnapshots, onCodeChange, onFilesChange, onSnapshotsChange }: {
+  challenge: CodingChallenge;
+  initialFiles?: WorkbenchFile[];
+  initialSnapshots?: CodingWorkbenchSnapshot[];
+  onCodeChange: (combinedSource: string) => void;
+  onFilesChange: (files: WorkbenchFile[]) => void;
+  onSnapshotsChange: (snapshots: CodingWorkbenchSnapshot[]) => void;
+}) {
+  const [files, setFiles] = useState(() => initialFiles?.length ? initialFiles : starterWorkbenchFiles(challenge));
+  const [selectedPath, setSelectedPath] = useState(() => (initialFiles?.length ? initialFiles : starterWorkbenchFiles(challenge))[0].path);
+  const [snapshots, setSnapshots] = useState<CodingWorkbenchSnapshot[]>(() => initialSnapshots ?? []);
   const [showChecks, setShowChecks] = useState(false);
   const selected = files.find((file) => file.path === selectedPath) ?? files[0];
   const checks = useMemo(() => visibleCheckStatus(challenge, files), [challenge, files]);
   const updateFile = (content: string) => {
     const next = files.map((file) => file.path === selected.path ? { ...file, content } : file);
     setFiles(next);
+    onFilesChange(next);
     onCodeChange(next.filter((file) => file.role === "source").map((file) => file.content).join("\n"));
   };
-  const reset = () => { const next = starterWorkbenchFiles(challenge); setFiles(next); setSelectedPath(next[0].path); setShowChecks(false); onCodeChange(next[0].content); };
+  const reset = () => { const next = starterWorkbenchFiles(challenge); setFiles(next); onFilesChange(next); setSelectedPath(next[0].path); setShowChecks(false); onCodeChange(next[0].content); };
   const snapshot = () => {
     const count = snapshots.length + 1;
-    const next = { id: crypto.randomUUID(), label: `Snapshot ${count}`, files: files.map((file) => ({ ...file })) };
-    setSnapshots((current) => [...current, next]);
-    onSnapshot(`${next.label}: ${checks.passed.length}/${challenge.requiredSignals.length} visible design checks present in ${challenge.title}.`);
+    const next = { id: crypto.randomUUID(), label: `Snapshot ${count}`, createdAt: new Date().toISOString(), files: files.map((file) => ({ ...file })) };
+    const updated = [...snapshots, next];
+    setSnapshots(updated);
+    onSnapshotsChange(updated);
   };
-  const restoreSnapshot = (snapshot: { files: WorkbenchFile[] }) => {
+  const restoreSnapshot = (snapshot: CodingWorkbenchSnapshot) => {
     const next = snapshot.files.map((file) => ({ ...file }));
     setFiles(next);
+    onFilesChange(next);
     setSelectedPath(next[0].path);
     onCodeChange(next.filter((file) => file.role === "source").map((file) => file.content).join("\n"));
   };

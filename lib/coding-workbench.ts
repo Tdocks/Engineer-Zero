@@ -1,6 +1,6 @@
-import type { CodingChallenge } from "./coding-developer";
+import type { CodingChallenge, CodingWorkbenchFile } from "./coding-developer";
 
-export type WorkbenchFile = { path: string; content: string; editable: boolean; role: "source" | "test" | "note" };
+export type WorkbenchFile = CodingWorkbenchFile;
 
 export function starterWorkbenchFiles(challenge: CodingChallenge): WorkbenchFile[] {
   const sourcePath = challenge.kind === "api" ? "app/main.py" : challenge.kind === "ai" ? "app/extraction.py" : "main.py";
