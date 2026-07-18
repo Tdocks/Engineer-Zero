@@ -453,6 +453,39 @@ export function codingMastery(progress: CodingProgramProgress) {
   });
 }
 
+export type CodingReadinessDimension = {
+  key: "functional" | "decomposition" | "defense" | "testing" | "data" | "security";
+  label: string;
+  weight: number;
+  score: number;
+};
+
+function codingCompetencyEvidence(progress: CodingProgramProgress, key: CodingCompetencyKey) {
+  const lessons = codingLessons.filter((lesson) => lesson.competency === key);
+  const lessonEvidence = lessons.length ? lessons.filter((lesson) => progress.completedLessonIds.includes(lesson.id)).length / lessons.length : 0;
+  const challenges = codingChallenges.filter((challenge) => challenge.competencyWeights[key]);
+  const reviewed = challenges.map((challenge) => progress.challengeAttempts[challenge.id]).filter((attempt) => attempt?.status === "reviewed");
+  const challengeEvidence = reviewed.length ? reviewed.reduce((sum, attempt) => sum + attempt!.score, 0) / (reviewed.length * 100) : 0;
+  const assessments = (progress.assessmentAttempts ?? []).map((attempt) => attempt.competencyScores[key]).filter((score): score is number => typeof score === "number");
+  const assessmentEvidence = assessments.length ? Math.max(...assessments) / 100 : 0;
+  return Math.round((lessonEvidence * .3 + challengeEvidence * .5 + assessmentEvidence * .2) * 100);
+}
+
+/** Mirrors the course score weights. It is a local study signal until evidence
+ * is server-owned and a qualified reviewer applies the graduation standard. */
+export function codingReadiness(progress: CodingProgramProgress) {
+  const evidence = Object.fromEntries(codingCompetencies.map((competency) => [competency.key, codingCompetencyEvidence(progress, competency.key)])) as Record<CodingCompetencyKey, number>;
+  const dimensions: CodingReadinessDimension[] = [
+    { key: "functional", label: "Functional correctness", weight: 25, score: Math.round((evidence.python + evidence.api) / 2) },
+    { key: "decomposition", label: "Problem decomposition", weight: 20, score: evidence.decomposition },
+    { key: "defense", label: "Explanation and defense", weight: 20, score: evidence.defense },
+    { key: "testing", label: "Testing and debugging", weight: 15, score: evidence.testingDebugging },
+    { key: "data", label: "Data and interfaces", weight: 10, score: evidence.dataInterfaces },
+    { key: "security", label: "Security and failure handling", weight: 10, score: evidence.securityReliability },
+  ];
+  return { dimensions, overall: Math.round(dimensions.reduce((sum, item) => sum + item.score * (item.weight / 100), 0)), evidence };
+}
+
 export type CodingBadge = { id: string; title: string; description: string; earned: boolean };
 
 export function codingBadges(progress: CodingProgramProgress): CodingBadge[] {

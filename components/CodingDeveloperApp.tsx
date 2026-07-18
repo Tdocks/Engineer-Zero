@@ -21,6 +21,7 @@ import {
   codingInstructionalSourceIds,
   codingLessons,
   codingMastery,
+  codingReadiness,
   codingSourceList,
   emptyCodingProgress,
   nextCodingLesson,
@@ -77,6 +78,7 @@ export function CodingDeveloperApp() {
   const lesson = codingLessons.find((item) => item.id === selectedLessonId) ?? codingLessons[0];
   const challenge = codingChallenges.find((item) => item.id === selectedChallengeId) ?? codingChallenges[0];
   const mastery = useMemo(() => codingMastery(progress), [progress]);
+  const readiness = useMemo(() => codingReadiness(progress), [progress]);
   const badges = useMemo(() => codingBadges(progress), [progress]);
   const recovery = useMemo(() => codingRecoveryPlan(progress), [progress]);
   const currentDayLessons = codingLessons.filter((item) => item.day === progress.activeDay);
@@ -258,6 +260,10 @@ export function CodingDeveloperApp() {
           <section className="coding-mastery" aria-label="Four-day mastery targets">
             <header><div><p className="coding-kicker">EVIDENCE, NOT CONFIDENCE</p><h2>Four-day target profile</h2></div><p>Every category begins at Level 0. Completion requires practice and defense—not just a running app.</p></header>
             <div>{mastery.map((item) => <article key={item.key}><b>{item.title}</b><span>Level {item.level} <small>/ target {item.target}</small></span><i><em style={{ width: `${Math.min(100, item.level * 20)}%` }} /></i><p>{item.description}</p></article>)}</div>
+          </section>
+          <section className="coding-readiness" aria-label="Local four-day readiness signal">
+            <header><div><p className="coding-kicker">WEIGHTED EVIDENCE</p><h2>Local four-day readiness signal</h2></div><p><b>{readiness.overall}%</b> derived from visible learning evidence—not a credential, hiring score, or production-readiness claim.</p></header>
+            <div>{readiness.dimensions.map((dimension) => <article key={dimension.key}><span>{dimension.label} <small>{dimension.weight}% weight</small></span><b>{dimension.score}%</b><i><em style={{ width: `${dimension.score}%` }} /></i></article>)}</div>
           </section>
           <section className="coding-recovery" aria-label="Next recovery target">
             <div><p className="coding-kicker">RECOVERY, NOT PENALTY</p><h2>Make the next weak link visible.</h2><p>{recovery.message}</p></div>
