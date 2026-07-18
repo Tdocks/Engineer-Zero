@@ -20,7 +20,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 | Terminal Simulator | Persisted fictional filesystem; guided/unguided mode; navigation, file operations, command history, recovery, replay, and path map | Implemented as a safe training simulator; it deliberately is not the learner's host terminal. |
 | Code Lab | Editor, draft diff, persisted drafts/snapshots, server-owned structural/comprehension review, local-project handoff, and protected isolated-runner UI | Partial: execution output remains unavailable until an isolated provider is configured. |
 | API Simulator | Factual request builder, validation and failure paths | Implemented as deterministic browser simulation. |
-| AI Systems Lab | Structured-output comparison, injection decision, Debug Bay | Partial: no real model-cost/latency telemetry until a controlled provider is configured. |
+| AI Systems Lab | Structured-output comparison, injection decision, server-reviewed human-approved tool workflow, evaluation dataset, and Debug Bay | Partial: no real model-cost/latency telemetry or live model execution until a controlled provider is configured. |
 | Interview Arena | Timed public prompts, guided/limited/no-hint mode, follow-up pressure question, and server-owned evidence rubric | Partial: no voice transcription or dynamic live coach. |
 | Review Board | Five reviewer perspectives and saved local responses with role-specific deterministic evidence checks | Partial: no human or qualified-reviewer approval workflow. |
 | Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records; server-owned Code Lab rubric and distinct-evidence checks in Interview Arena reject repeated keyword padding | Partial: deterministic study review still cannot certify independent coding skill or runtime correctness. |
@@ -34,7 +34,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 ## Verified implementation evidence
 
-- `npm test`: 30 tests pass after the instructional engine, source-record/governance, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, anti-padding, review-board, learner-draft, and terminal-simulation work.
+- `npm test`: 32 tests pass after the instructional engine, source-record/governance, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, anti-padding, review-board, learner-draft, terminal-simulation, evaluation-set, and human-approved-tool-workflow work.
 - `npm run build`: succeeds and includes protected assessment and execution routes.
 - Local projects remain separate from the web process and use only fictional training data. Their independent test suites pass from their own folders (4 CLI, 4 API, 3 AI-triage, 5 approval-workflow, 4 handoff-capstone tests); they intentionally must not be collected as one Python package.
 
@@ -50,4 +50,5 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 - Code Lab gives only a **local study review**. It must observe the required non-comment code structures, reject prohibited patterns, and find every activity-specific evidence claim in distinct explanatory segments. A string of checklist words or headings cannot mark the lab reviewed.
 - Interview Arena uses the same evidence-segment and repetition checks. It remains a preparation tool rather than an authority on a learner's job performance.
+- Tool workflow disposition keys are held server-side. The learner sees fictional reports, model proposals, arguments, and policy signals, then must distinguish read-only authorized retrieval, human-approved external actions, and rejected unsafe requests. The simulation never invokes a credential or operational tool.
 - The source-health report makes overdue or deprecated materials block publication. All current records are still only author-verified; an independent technical reviewer must mark them approved before a commercial credential claim is defensible.

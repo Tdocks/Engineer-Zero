@@ -45,6 +45,8 @@ import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./codi
 import { codingReviewBoardPrompts } from "./coding-review-board-prompts";
 import { reviewCodingBoardResponse } from "./coding-review-board";
 import { codingEvaluationCases, scoreCodingEvaluation } from "./coding-evaluation";
+import { codingToolWorkflowCases, toolWorkflowOptionsFor } from "./coding-tool-workflow";
+import { reviewToolWorkflow } from "./coding-tool-workflow-review";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -182,6 +184,24 @@ describe("Engineer Zero track engine", () => {
     const allCorrect = Object.fromEntries(codingEvaluationCases.map((item) => [item.id, item.expected]));
     expect(scoreCodingEvaluation(allCorrect)).toMatchObject({ correct: 6, total: 6, complete: true, score: 100 });
     expect(scoreCodingEvaluation({ injection: "accept" })).toMatchObject({ correct: 0, total: 6, complete: false, score: 0 });
+  });
+
+  it("keeps tool workflow answer keys server-side while varying client option positions", () => {
+    expect(codingToolWorkflowCases).toHaveLength(4);
+    expect(codingToolWorkflowCases.every((item) => !("expected" in item))).toBe(true);
+    expect(new Set(codingToolWorkflowCases.map((item) => toolWorkflowOptionsFor(item.id).join(","))).size).toBeGreaterThan(1);
+    expect(reviewToolWorkflow({
+      "procedure-search": "allow-read-only",
+      "draft-ticket": "request-approval",
+      "close-incident": "reject",
+      "injected-export": "reject",
+    })).toMatchObject({ correct: 4, total: 4, complete: true });
+    expect(reviewToolWorkflow({
+      "procedure-search": "request-approval",
+      "draft-ticket": "allow-read-only",
+      "close-incident": "allow-read-only",
+      "injected-export": "allow-read-only",
+    })).toMatchObject({ correct: 0, total: 4, complete: true });
   });
 
   it("does not let visible syntax or repeated labels become Code Lab evidence", () => {
