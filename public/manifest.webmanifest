@@ -1,0 +1,9 @@
+{
+  "name": "Engineer Zero",
+  "short_name": "Engineer Zero",
+  "description": "Interactive, evidence-based career training for modern technical roles.",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#0a0d13",
+  "theme_color": "#0a0d13"
+}

@@ -1,0 +1,96 @@
+---
+title: Applied AI Operations Engineer — 48-Hour Interview Sprint
+version: aio-v2-sprint
+status: internal-draft
+fictional_data_review: approved
+---
+
+# 48-Hour Interview Sprint
+
+This is a preparation path, not a substitute for real shipped experience. Its purpose is to help a candidate explain sound engineering judgment truthfully, package real work honestly, and identify gaps that require more practice.
+
+## Block 1 — Role narrative and technical bridge
+
+**Outcome:** Deliver a 90-second fit narrative: operational discovery → controlled technical proposal → prototype/evaluation → cross-functional implementation.
+
+**Worked example:** “A team loses time locating current procedures. I would first map users, source ownership, access rules, and the decision being made. If retrieval is justified, I would start with a read-only, cited pilot and measure retrieval relevance, unsupported-answer behavior, and time saved before discussing tool execution.”
+
+**Artifact:** Explain one real project using context, your direct contribution, technical boundary, result, limitation, and next iteration. Disclose where AI accelerated work and what you personally reviewed or repaired.
+
+**Interviewer challenge:** “What did you personally build versus direct?”
+
+## Block 2 — LLM behavior and structured output
+
+**Outcome:** Explain that an LLM predicts useful text but is not an authorization system, source of truth, or deterministic workflow engine.
+
+**Worked example:** A model may prepare a structured incident draft, but the server validates the schema, deterministic policy validates allowed action types, and a human reviewer owns consequential approval.
+
+**Artifact:** Write a model-selection memo comparing two approved hypothetical options by task quality, output contract reliability, context fit, latency, cost, deployment boundary, and fallback behavior.
+
+**Interviewer challenge:** “Why not simply use the largest model?”
+
+## Block 3 — Permission-aware retrieval
+
+**Outcome:** Draw: identity → authorization → metadata-filtered retrieval → prompt/context construction → approved model → schema validation → citations/abstention → audit event.
+
+**Worked example:** A user can retrieve only current documents in their authorized scope. If current sources conflict, the application abstains and names the document owner rather than blending instructions.
+
+**Artifact:** Create an architecture sketch that names where authorization occurs, how freshness is determined, how citations are shown, and what happens on unsupported or conflicting evidence.
+
+**Interviewer challenge:** “Why is an embedding model not an access-control mechanism?”
+
+## Block 4 — Tool workflows and agents
+
+**Outcome:** Prefer deterministic states for predictable work. Use an agent only when ambiguity creates enough value to justify extra authority, observability, failure modes, and cost.
+
+**Worked example:** Retrieve → propose a draft → deterministic policy check → qualified approval → idempotent execution → audit is safer than a model with direct unrestricted write access.
+
+**Artifact:** Write an action-permission table: action, consequence, allowed caller, required evidence, approval owner, idempotency key, rollback, and audit event.
+
+**Interviewer challenge:** “When would you remove the agent entirely?”
+
+## Block 5 — Secure enterprise AI
+
+**Outcome:** Explain least privilege, authorization before retrieval/tools, prompt-injection boundaries, data minimization, auditability, and human escalation without pretending to give legal or compliance advice.
+
+**Worked example:** An isolated deployment can reduce network exposure; it does not replace data classification, authorization, safe tool design, output validation, or monitoring.
+
+**Artifact:** Produce a pilot-boundary recommendation with in-scope data, excluded data, user roles, non-goals, approvals, logs, retention assumptions, unsafe requests, and escalation path.
+
+**Interviewer challenge:** “What does air-gapped not solve?”
+
+## Block 6 — Evaluation and release decisions
+
+**Outcome:** Define a representative golden set before expansion. Include normal cases, authorization denial, unsupported answers, stale sources, source conflict, injection attempts, schema failures, latency, cost, and recovery.
+
+**Worked example:** A polished demo is not evidence of release readiness. A known failure becomes a named category, a regression case, an owner, a threshold, and a rerun condition.
+
+**Artifact:** Build an evaluation matrix with cases, expected behavior, metric, threshold, review owner, and release decision.
+
+**Interviewer challenge:** “What would make you stop or roll back a pilot?”
+
+## Block 7 — System design and rollout
+
+**Outcome:** Start from the workflow, define the smallest reversible pilot, then describe implementation, observability, support, rollout, and rollback.
+
+**Worked example:** A read-only procedure assistant delivers cited answers with a safe degraded state linking users to approved search when the model is unavailable.
+
+**Artifact:** Present a one-page design containing outcome, alternatives, components, boundaries, failure behavior, evaluation, dependencies, rollout stages, stop conditions, and stakeholder decision.
+
+**Interviewer challenge:** “What breaks first at ten times the demand?”
+
+## Block 8 — Full mock and packet review
+
+**Outcome:** Complete recruiter, hiring-manager, technical fundamentals, system-design, and project-defense rounds. Preserve first attempts and revise against precise missing reasoning.
+
+**Final packet:** role narrative, two case studies, system design, secure-boundary recommendation, evaluation plan, six behavioral stories, three technical answers, and a candid list of current gaps.
+
+**Interviewer challenge:** “What could you continue doing if your AI coding tool was unavailable today?”
+
+## Primary references
+
+- NIST AI Risk Management Framework, current program page and resources.
+- OWASP GenAI Security Project and current LLM security materials.
+- Python documentation, PostgreSQL documentation, OpenTelemetry documentation, Docker documentation, and current provider structured-output documentation.
+
+Each runtime activity links the exact source claim, locator, and review date. This document is original instruction and uses fictional scenarios only.
