@@ -75,7 +75,7 @@ describe("Engineer Zero track engine", () => {
     );
     expect(validateCodingProgram()).toEqual([]);
     expect(codingConcepts.every((concept) => concept.sourceIds.length > 0 && Boolean(concept.escalation))).toBe(true);
-    expect(codingConceptRecords.every((record) => record.officialSources.length > 0 && record.assessmentIds.length > 0 && Boolean(record.knownLimitations))).toBe(true);
+    expect(codingConceptRecords.every((record) => record.officialSources.length > 0 && record.officialSources.every((source) => source.revalidateBy && source.deprecationStatus) && record.assessmentIds.length > 0 && Boolean(record.knownLimitations))).toBe(true);
     expect(Object.keys(tracks)).toHaveLength(2);
   });
 

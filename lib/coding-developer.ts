@@ -24,6 +24,9 @@ export type CodingSource = {
   lastVerified: string;
   revalidateBy?: string;
   sourceType?: "official_documentation" | "government_guidance" | "peer_reviewed_research";
+  deprecationStatus?: "current" | "deprecated";
+  /** Required only when a source or worked pattern is formally deprecated. */
+  replacementLessonId?: string;
   supportedClaim: string;
 };
 
@@ -44,7 +47,7 @@ export type CodingConceptRecord = {
   title: string;
   definition: string;
   whyItMatters: string;
-  officialSources: Array<Pick<CodingSource, "publisher" | "url" | "version" | "lastVerified" | "sourceType">>;
+  officialSources: Array<Pick<CodingSource, "publisher" | "url" | "version" | "lastVerified" | "revalidateBy" | "sourceType" | "deprecationStatus" | "replacementLessonId">>;
   interviewApplication: string;
   prototypeApplication: string;
   knownLimitations: string;
@@ -319,6 +322,7 @@ export const codingSources: Record<string, CodingSource> = {
 
 for (const [key, source] of Object.entries(codingSources)) {
   source.revalidateBy ??= revalidate;
+  source.deprecationStatus ??= "current";
   source.sourceType ??= key === "nistSsdf" || key === "nistAiRmf" || key === "nasaSoftwareHandbook"
     ? "government_guidance"
     : key === "dunloskyPractice" || key === "freemanActiveLearning"
@@ -444,7 +448,16 @@ export const codingConceptRecords: CodingConceptRecord[] = codingConcepts.map((c
     whyItMatters: details.whyItMatters,
     officialSources: concept.sourceIds.map((id) => {
       const source = codingSources[id];
-      return { publisher: source.publisher, url: source.url, version: source.version, lastVerified: source.lastVerified, sourceType: source.sourceType };
+      return {
+        publisher: source.publisher,
+        url: source.url,
+        version: source.version,
+        lastVerified: source.lastVerified,
+        revalidateBy: source.revalidateBy,
+        sourceType: source.sourceType,
+        deprecationStatus: source.deprecationStatus,
+        replacementLessonId: source.replacementLessonId,
+      };
     }),
     interviewApplication: details.interviewApplication,
     prototypeApplication: details.prototypeApplication,
@@ -729,6 +742,8 @@ export function validateCodingProgram() {
   for (const source of Object.values(codingSources)) {
     if (!source.revalidateBy) issues.push(`Source lacks a revalidation date: ${source.id}`);
     if (!source.sourceType) issues.push(`Source lacks a hierarchy type: ${source.id}`);
+    if (!source.deprecationStatus) issues.push(`Source lacks a deprecation status: ${source.id}`);
+    if (source.deprecationStatus === "deprecated" && !source.replacementLessonId) issues.push(`Deprecated source lacks a replacement lesson: ${source.id}`);
   }
   for (const concept of codingConcepts) {
     if (!concept.label || !concept.sourceIds.length || !concept.escalation) issues.push(`Concept lacks role-literacy guidance: ${concept.id}`);
