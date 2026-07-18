@@ -30,6 +30,11 @@ class DeterministicTrainingProvider:
             uncertainties.append("No equipment identifier was found in the fictional report.")
         if not observations:
             uncertainties.append("No supported observation could be extracted from the fictional report.")
+        lowered = notes.lower()
+        if "temperature" in lowered and not any(unit in lowered for unit in ("celsius", "fahrenheit", "°c", "°f", " deg c", " deg f")):
+            uncertainties.append("Temperature unit was not specified in the fictional report.")
+        if any(phrase in lowered for phrase in ("ignore instructions", "ignore all rules", "execute the action", "close the incident")):
+            uncertainties.append("Instruction-like text was treated as untrusted report content and was not executed.")
         return Extraction(equipment=equipment_match.group(1) if equipment_match else None, observations=observations, uncertainties=uncertainties)
 
 
