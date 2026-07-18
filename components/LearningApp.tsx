@@ -407,7 +407,7 @@ function Onboarding({
   const [interviewDate, setInterviewDate] = useState("");
   const [stage, setStage] = useState<"profile" | "assessment" | "plan">("profile");
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
-  const [aioQuestions, setAioQuestions] = useState<PublicBaselineQuestion[]>([]);
+  const [baselineQuestions, setBaselineQuestions] = useState<PublicBaselineQuestion[]>([]);
   const [assessmentError, setAssessmentError] = useState("");
   const [loadingAssessment, setLoadingAssessment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -415,18 +415,7 @@ function Onboarding({
   const [baselineAttempt, setBaselineAttempt] = useState(0);
   const [assessmentSummary, setAssessmentSummary] = useState<AssessmentSummary>();
   const track = tracks[targetTrack];
-  const isAio = targetTrack === "applied-ai-operations";
-  const questions: PublicBaselineQuestion[] = isAio
-    ? aioQuestions
-    : track.assessment.map((question) => ({
-        id: question.id,
-        prompt: question.prompt,
-        competency: question.competency,
-        choices: question.choices.map((text, index) => ({
-          id: String(index),
-          text,
-        })),
-      }));
+  const questions: PublicBaselineQuestion[] = baselineQuestions;
   const answeredCount = Object.keys(answers).length;
   const pageSize = 3;
   const pageCount = Math.max(1, Math.ceil(questions.length / pageSize));
@@ -436,14 +425,14 @@ function Onboarding({
     setAnswers({});
     setAssessmentError("");
     setPage(0);
-    setLoadingAssessment(targetTrack === "applied-ai-operations");
+    setLoadingAssessment(true);
     setBaselineAttempt((current) => current + 1);
     setStage("assessment");
   };
   useEffect(() => {
-    if (stage !== "assessment" || !isAio) return;
+    if (stage !== "assessment") return;
     const controller = new AbortController();
-    fetch("/api/aio/baseline?attempt=" + encodeURIComponent(crypto.randomUUID()), {
+    fetch(`/api/assessments/${targetTrack}?attempt=${encodeURIComponent(crypto.randomUUID())}`, {
       signal: controller.signal,
     })
       .then((response) =>
@@ -452,7 +441,7 @@ function Onboarding({
           : Promise.reject(new Error("The baseline could not be loaded.")),
       )
       .then((data: { questions: PublicBaselineQuestion[] }) => {
-        setAioQuestions(data.questions);
+        setBaselineQuestions(data.questions);
         setAnswers({});
       })
       .catch((reason) => {
@@ -463,17 +452,12 @@ function Onboarding({
       })
       .finally(() => setLoadingAssessment(false));
     return () => controller.abort();
-  }, [stage, isAio, baselineAttempt]);
+  }, [stage, targetTrack, baselineAttempt]);
   const completeAssessment = async () => {
-    const profile = { name, targetTrack, experience, goal, interviewDate };
-    if (!isAio) {
-      setStage("plan");
-      return;
-    }
     setSubmitting(true);
     setAssessmentError("");
     try {
-      const response = await fetch("/api/aio/baseline", {
+      const response = await fetch(`/api/assessments/${targetTrack}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
@@ -481,6 +465,7 @@ function Onboarding({
       const result = (await response.json()) as {
         score?: number;
         competencyScores?: AssessmentSummary["competencyScores"];
+        version?: string;
         error?: string;
       };
       if (!response.ok || result.score === undefined || !result.competencyScores) {
@@ -491,7 +476,7 @@ function Onboarding({
         score: result.score,
         competencyScores: result.competencyScores,
         completedAt: new Date().toISOString(),
-        version: "aio-baseline-v2",
+        version: result.version ?? `${targetTrack}-baseline-v2`,
       });
       setStage("plan");
     } finally {
@@ -580,7 +565,7 @@ function Onboarding({
                       onClick={() =>
                         setAnswers((current) => ({
                           ...current,
-                          [question.id]: isAio ? choice.id : Number(choice.id),
+                          [question.id]: choice.id,
                         }))
                       }
                     >

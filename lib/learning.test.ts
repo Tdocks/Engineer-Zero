@@ -13,6 +13,7 @@ import { aioContentCounts, validateAioContent } from "./content-validation";
 import { gradeCourseAttempt } from "./aio-grade";
 import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
+import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
 import { aioPublicCatalog } from "./aio-public-catalog";
 import { aioFoundationModules, aioRoleConcepts } from "./aio-foundation";
 import { recommendAioFoundationStart } from "./aio-foundation-path";
@@ -362,7 +363,20 @@ describe("Engineer Zero track engine", () => {
   it("uses 24 distinct protected AIO baseline decisions", () => {
     expect(aioBaseline).toHaveLength(24);
     expect(new Set(aioBaseline.map((question) => question.prompt)).size).toBe(24);
-    expect(tracks["it-support-technician"].assessment).toHaveLength(24);
+    expect(tracks["it-support-technician"].assessment).toEqual([]);
+  });
+
+  it("keeps the IT Support baseline private, balanced, and traceable to current primary sources", () => {
+    expect(itSupportBaseline).toHaveLength(24);
+    expect(new Set(itSupportBaseline.map((question) => question.prompt)).size).toBe(24);
+    const publicForm = shuffledItSupportBaseline("adversarial-it-review");
+    expect(publicForm.every((question) => !("correctChoiceId" in question))).toBe(true);
+    const answerPositions = publicForm.map((question) => {
+      const privateQuestion = itSupportBaseline.find((item) => item.id === question.id)!;
+      return question.choices.findIndex((choice) => choice.id === privateQuestion.correctChoiceId);
+    });
+    expect(new Set(answerPositions)).toEqual(new Set([0, 1, 2, 3]));
+    expect(Object.values(itSupportBaselineSources).every((source) => Boolean(source.url && source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
   });
 
   it("does not expose AIO baseline answer keys or a fixed answer position", () => {
@@ -588,12 +602,16 @@ describe("Engineer Zero track engine", () => {
     const trackId = "it-support-technician" as const;
     const track = tracks[trackId];
     const capstone = track.activities.find((activity) => activity.capstone)!;
-    const answers = Object.fromEntries(
-      track.assessment.map((question) => [question.id, question.correct]),
-    );
     const state = {
       ...emptyLearnerState,
-      assessments: { ...emptyLearnerState.assessments, [trackId]: answers },
+      assessmentSummaries: {
+        [trackId]: {
+          score: 92,
+          competencyScores: {},
+          completedAt: new Date().toISOString(),
+          version: "it-support-baseline-v2",
+        },
+      },
       progress: {
         [capstone.id]: {
           status: "complete" as const,
