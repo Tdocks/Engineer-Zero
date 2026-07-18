@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Braces, Bug, Check, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
+import { BarChart3, Braces, Bug, Check, FlaskConical, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
 import { codingEvaluationCases, scoreCodingEvaluation, type EvaluationDisposition } from "@/lib/coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowDispositionLabels, toolWorkflowOptionsFor, type ToolWorkflowDisposition } from "@/lib/coding-tool-workflow";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "@/lib/coding-context-window";
 import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-git-review";
+import { codingTestReviewCases, testReviewDispositionLabels, testReviewOptionsFor, type TestReviewDisposition } from "@/lib/coding-test-review";
 
-type Mode = "api" | "ai" | "context" | "tools" | "evaluate" | "git" | "debug";
+type Mode = "api" | "ai" | "context" | "tools" | "evaluate" | "tests" | "git" | "debug";
 
 const debugCases = [
   {
@@ -150,6 +151,10 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [gitReview, setGitReview] = useState<{ complete: boolean; missing: string[]; unsafe: string[]; missingClaims: string[]; messageMatches: boolean; feedback: string } | null>(null);
   const [reviewingGit, setReviewingGit] = useState(false);
   const [gitReviewError, setGitReviewError] = useState("");
+  const [testChoices, setTestChoices] = useState<Record<string, TestReviewDisposition>>({});
+  const [testResult, setTestResult] = useState<{ correct: number; total: number; entries: { id: string; correct: boolean; reason: string }[] } | null>(null);
+  const [reviewingTests, setReviewingTests] = useState(false);
+  const [testReviewError, setTestReviewError] = useState("");
 
   const runApi = () => {
     if (method !== "POST" || route !== "/triage") return setApiResult({ status: 404, body: '{"detail":"No matching training route"}' });
@@ -204,6 +209,17 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
     } catch (error) { setGitReviewError(error instanceof Error ? error.message : "The Git review could not be scored. Keep your work and retry."); }
     finally { setReviewingGit(false); }
   };
+  const reviewTests = async () => {
+    setReviewingTests(true); setTestReviewError("");
+    try {
+      const response = await fetch("/api/coding/test-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ choices: testChoices }) });
+      const result = await response.json() as { error?: string; correct?: number; total?: number; entries?: { id: string; correct: boolean; reason: string }[] };
+      if (!response.ok || typeof result.correct !== "number" || typeof result.total !== "number" || !result.entries) throw new Error(result.error ?? "The test review did not return a valid result.");
+      setTestResult(result as NonNullable<typeof testResult>);
+      if (result.correct === result.total) onEvidence("test-review", "Classified weak, wrong, flaky, coupled, and boundary-missing tests before proposing a focused repair.");
+    } catch (error) { setTestReviewError(error instanceof Error ? error.message : "The test review could not be scored. Keep your choices and retry."); }
+    finally { setReviewingTests(false); }
+  };
   const reviewContextSelection = async () => {
     setReviewingContext(true);
     setContextReviewError("");
@@ -234,6 +250,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <button className={mode === "context" ? "active" : ""} onClick={() => setMode("context")}><Layers3 size={16} /> Context window</button>
       <button className={mode === "tools" ? "active" : ""} onClick={() => setMode("tools")}><Workflow size={16} /> Tool workflow</button>
       <button className={mode === "evaluate" ? "active" : ""} onClick={() => setMode("evaluate")}><BarChart3 size={16} /> Evaluation set</button>
+      <button className={mode === "tests" ? "active" : ""} onClick={() => setMode("tests")}><FlaskConical size={16} /> Test review</button>
       <button className={mode === "git" ? "active" : ""} onClick={() => setMode("git")}><GitPullRequest size={16} /> Change review</button>
       <button className={mode === "debug" ? "active" : ""} onClick={() => setMode("debug")}><Bug size={16} /> Debug Bay</button>
     </nav>
@@ -277,6 +294,13 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <header><p className="coding-kicker">EVALUATION SET · FICTIONAL CASES</p><h3>Decide what the workflow should do before calling a model successful.</h3><p>Choose whether each case can proceed to trusted policy, needs human clarification, or must be rejected. These are intentionally small training cases; a production evaluation set requires representative data and accountable quality thresholds.</p></header>
       <div className="evaluation-grid">{codingEvaluationCases.map((item, index) => <section key={item.id}><span>Case {String(index + 1).padStart(2, "0")}</span><p>{item.note}</p><fieldset><legend className="sr-only">Disposition for case {index + 1}</legend>{(["accept", "escalate", "reject"] as const).map((choice) => <label key={choice}><input type="radio" name={item.id} checked={evaluationChoices[item.id] === choice} onChange={() => setEvaluationChoices((current) => ({ ...current, [item.id]: choice }))} /> {choice === "accept" ? "Accept structured facts" : choice === "escalate" ? "Escalate for human clarification" : "Reject as unsupported or unsafe"}</label>)}</fieldset>{evaluationResult && <aside className={evaluationChoices[item.id] === item.expected ? "correct" : "incorrect"}><b>{evaluationChoices[item.id] === item.expected ? "Appropriate disposition" : "Reconsider this boundary"}</b><p>{item.reason}</p></aside>}</section>)}</div>
       <footer><div><span>Fictional evaluation dashboard</span><p>{evaluationResult ? `${evaluationResult.correct}/${evaluationResult.total} correct disposition decisions` : "Complete each case to inspect the learning dashboard."}</p><small>Illustrative run estimate: {codingEvaluationCases.length * 350} ms total latency · $0.03 synthetic cost. These values are teaching inputs, not provider telemetry.</small></div><button className="coding-primary" disabled={Object.keys(evaluationChoices).length !== codingEvaluationCases.length} onClick={() => { const result = scoreCodingEvaluation(evaluationChoices); setEvaluationResult(result); if (result.correct === result.total) onEvidence("evaluation-set", "Classified all six fictional evaluation cases with a safe accept, escalate, or reject disposition."); }}>Score evaluation choices <Check size={16} /></button></footer>
+    </article>}
+
+    {mode === "tests" && <article className="coding-test-review">
+      <header><p className="coding-kicker">TEST REVIEW · ASSERT BEHAVIOR</p><h3>Read the test before you change the code.</h3><p>Each fictional example is a different test-quality failure. Classify the problem, then inspect the server-reviewed explanation. This is an analysis exercise, not test execution.</p></header>
+      <div>{codingTestReviewCases.map((item, index) => { const feedback = testResult?.entries.find((entry) => entry.id === item.id); return <section key={item.id}><header><span>Test {String(index + 1).padStart(2, "0")}</span><code>{item.name}</code></header><pre>{item.code}</pre><p>{item.context}</p><fieldset><legend>What is the primary problem?</legend>{testReviewOptionsFor(item.id).map((option) => <label key={option}><input type="radio" name={item.id} checked={testChoices[item.id] === option} onChange={() => { setTestChoices((current) => ({ ...current, [item.id]: option })); setTestResult(null); }} /> {testReviewDispositionLabels[option]}</label>)}</fieldset>{feedback && <aside className={feedback.correct ? "correct" : "incorrect"}><b>{feedback.correct ? "Useful diagnosis" : "Reconsider the evidence"}</b><p>{feedback.reason}</p></aside>}</section>; })}</div>
+      <footer><div><b>{testResult ? `${testResult.correct}/${testResult.total} diagnoses supported` : "Classify each test before asking for feedback."}</b><p>A test is evidence only when it could fail for the behavior you care about. Keep checks near the public contract and exact decision boundaries.</p></div><button className="coding-primary" disabled={Object.keys(testChoices).length !== codingTestReviewCases.length || reviewingTests} onClick={reviewTests}>{reviewingTests ? "Reviewing tests…" : "Review test quality"} <FlaskConical size={16} /></button></footer>
+      {testReviewError && <p className="coding-form-error">{testReviewError}</p>}
     </article>}
 
     {mode === "git" && <article className="coding-git-review">
