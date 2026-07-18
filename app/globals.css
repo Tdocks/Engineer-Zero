@@ -4725,6 +4725,18 @@ html[data-theme="dark"] {
 .coding-tutor-sources b { color: var(--ez-ink); font: 600 13px/1.4 "Source Sans 3", sans-serif; }
 .coding-tutor-sources p { margin: 0; color: var(--ez-muted); font-size: 12px; line-height: 1.5; }
 .coding-tutor-sources a { color: var(--ez-primary-strong); text-underline-offset: 2px; }
+.coding-attempt-replay { margin-top: 24px; padding: 17px 0; border-top: 1px solid var(--ez-border); border-bottom: 1px solid var(--ez-border); }
+.coding-attempt-replay > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; cursor: pointer; color: var(--ez-ink); font: 600 16px/1.4 "Source Sans 3", sans-serif; }
+.coding-attempt-replay > summary span { color: var(--ez-muted); font: 400 12px/1.4 "IBM Plex Mono", monospace; }
+.coding-attempt-replay > p { max-width: 67ch; margin: 12px 0 0; color: var(--ez-muted); font-size: 13px; line-height: 1.55; }
+.coding-attempt-replay article { margin-top: 17px; padding-top: 17px; border-top: 1px solid var(--ez-border); }
+.coding-attempt-replay article header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 15px; }
+.coding-attempt-replay article header b { color: var(--ez-ink); font: 600 14px/1.4 "Source Sans 3", sans-serif; }
+.coding-attempt-replay article header span { color: var(--ez-muted); font: 400 11px/1.4 "IBM Plex Mono", monospace; }
+.coding-attempt-replay article > p { margin: 8px 0 11px; color: var(--ez-muted); font-size: 13px; line-height: 1.55; }
+.coding-attempt-replay article details > summary { cursor: pointer; color: var(--ez-primary-strong); font: 600 13px/1.4 "Source Sans 3", sans-serif; }
+.coding-attempt-replay article pre { max-height: 260px; overflow: auto; margin: 11px 0; padding: 13px; background: var(--ez-surface-alt); color: var(--ez-ink); font: 400 12px/1.55 "IBM Plex Mono", monospace; white-space: pre-wrap; }
+.coding-attempt-replay article details > p { max-width: 67ch; color: var(--ez-muted); font-size: 13px; line-height: 1.55; }
 .coding-review-board { max-width: 800px; padding-top: 52px; }
 .coding-review-board > header { padding-bottom: 28px; border-bottom: 2px solid var(--ez-ink); }
 .coding-review-board h2 { max-width: 21ch; font-size: clamp(35px, 4vw, 54px); }

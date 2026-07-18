@@ -143,6 +143,19 @@ export type CodingProgramProgress = {
     status?: "needs-revision" | "reviewed";
     updatedAt: string;
   }>;
+  /** Learner-owned revisions preserve how a Code Lab response changed. They
+   * are local study history, not verified runtime or credential evidence. */
+  challengeAttemptHistory: Record<string, Array<{
+    id: string;
+    code: string;
+    explanation: string;
+    score: number;
+    feedback: string;
+    localRunConfirmed: boolean;
+    testConfirmed: boolean;
+    status: "needs-revision" | "reviewed";
+    updatedAt: string;
+  }>>;
   notes: Record<string, string>;
   xp: Partial<Record<"builder" | "debugger" | "systems" | "aiJudgment" | "reliability" | "communication", number>>;
   spacedReviewDue: string[];
@@ -606,7 +619,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], interviewAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], interviewAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, challengeAttemptHistory: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
 }
 
 export function reviewScheduleForLesson(lessonId: string, from = new Date()) {

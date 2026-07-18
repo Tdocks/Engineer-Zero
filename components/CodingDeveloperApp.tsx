@@ -190,12 +190,15 @@ export function CodingDeveloperApp() {
       });
       const result = await response.json() as { score?: number; status?: "needs-revision" | "reviewed"; feedback?: string; error?: string };
       if (!response.ok || typeof result.score !== "number" || !result.status || !result.feedback) throw new Error(result.error ?? "The design review could not be completed.");
+      const reviewedAt = updateDate();
+      const attempt = { id: crypto.randomUUID(), code: submittedDesign, explanation, score: result.score, status: result.status, feedback: result.feedback, localRunConfirmed, testConfirmed, updatedAt: reviewedAt };
       setProgress({
         ...progress,
         challengeAttempts: {
           ...progress.challengeAttempts,
-          [challenge.id]: { score: result.score, status: result.status, feedback: result.feedback, explanation, localRunConfirmed, testConfirmed, updatedAt: updateDate() },
+          [challenge.id]: { score: result.score, status: result.status, feedback: result.feedback, explanation, localRunConfirmed, testConfirmed, updatedAt: reviewedAt },
         },
+        challengeAttemptHistory: { ...(progress.challengeAttemptHistory ?? {}), [challenge.id]: [...(progress.challengeAttemptHistory?.[challenge.id] ?? []), attempt].slice(-6) },
         xp: result.status === "reviewed"
           ? { ...progress.xp, builder: (progress.xp.builder ?? 0) + Math.max(5, Math.round(result.score / 10)) }
           : progress.xp,
@@ -379,6 +382,7 @@ export function CodingDeveloperApp() {
             </section>
             {challengeReviewError && <p className="coding-form-error" role="alert">{challengeReviewError}</p>}
             {progress.challengeAttempts[challenge.id] && <section className="coding-feedback"><b>{progress.challengeAttempts[challenge.id].status === "reviewed" ? "Review recorded" : "Revision needed"} · {progress.challengeAttempts[challenge.id].score}% evidence completeness</b><p>{progress.challengeAttempts[challenge.id].feedback}</p></section>}
+            {(progress.challengeAttemptHistory?.[challenge.id]?.length ?? 0) > 0 && <details className="coding-attempt-replay"><summary>Revision trail <span>{progress.challengeAttemptHistory[challenge.id].length} saved {progress.challengeAttemptHistory[challenge.id].length === 1 ? "attempt" : "attempts"}</span></summary><p>This local study history shows what you submitted and how the deterministic review changed. It is not proof that this code executed.</p>{[...(progress.challengeAttemptHistory[challenge.id] ?? [])].reverse().map((attempt, index) => <article key={attempt.id}><header><b>Revision {progress.challengeAttemptHistory[challenge.id].length - index}</b><span>{attempt.status === "reviewed" ? "reviewed" : "needs revision"} · {attempt.score}% · {new Date(attempt.updatedAt).toLocaleString()}</span></header><p>{attempt.feedback}</p><details><summary>Show submitted work</summary><pre>{attempt.code}</pre><p>{attempt.explanation || "No written explanation was saved for this attempt."}</p></details></article>)}</details>}
             <section className="coding-local-handoff"><h3>Run it for real</h3><p>This lab deliberately does not execute arbitrary learner code. Build the corresponding local starter project, run its tests in your own isolated environment, then return to defend the result.</p><code>python -m venv .venv && source .venv/bin/activate</code></section>
           </article>
         </section>

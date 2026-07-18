@@ -142,6 +142,7 @@ describe("Engineer Zero track engine", () => {
   it("uses recovery targets and milestones as evidence aids, not completion shortcuts", () => {
     const empty = emptyCodingProgress();
     expect(codingBadges(empty).every((badge) => !badge.earned)).toBe(true);
+    expect(empty.challengeAttemptHistory).toEqual({});
     expect(codingRecoveryPlan(empty).lessonId).toBeTruthy();
     const stronger = {
       ...empty,

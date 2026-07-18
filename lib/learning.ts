@@ -79,6 +79,7 @@ export function normalizeLearnerState(
             recallResponses: progress.recallResponses ?? {},
             workbenchDrafts: progress.workbenchDrafts ?? {},
             workbenchSnapshots: progress.workbenchSnapshots ?? {},
+            challengeAttemptHistory: progress.challengeAttemptHistory ?? {},
             terminalSession: progress.terminalSession,
           }
         : progress,
