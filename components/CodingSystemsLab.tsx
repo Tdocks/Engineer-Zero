@@ -9,12 +9,60 @@ type Mode = "api" | "ai" | "tools" | "evaluate" | "debug";
 
 const debugCases = [
   {
+    id: "syntax",
+    title: "Incomplete conditional",
+    traceback: "SyntaxError: expected ':'\n  File app/services.py, line 14\n    if temperature >= 90",
+    classification: "syntax error",
+    clues: ["line", "colon", "syntax"],
+    repair: "Read the exact line first, restore the missing colon, then run the smallest focused test before changing any threshold policy.",
+  },
+  {
+    id: "path",
+    title: "Missing rules file",
+    traceback: "FileNotFoundError: [Errno 2] No such file or directory: 'config/rules.json'\n  File app/services.py, line 8, in load_rules",
+    classification: "file or path",
+    clues: ["config", "path", "working directory"],
+    repair: "Confirm the configured path and working directory, then choose an explicit project-relative path or pass configuration rather than silently creating a second rules file.",
+  },
+  {
     id: "import",
     title: "Clean setup import failure",
     traceback: "ModuleNotFoundError: No module named 'app'\n  File tests/test_api.py, line 3, in <module>\n    from app.main import app",
     classification: "environment or import path",
     clues: ["environment", "path", "app"],
     repair: "Confirm the active virtual environment and working directory, then configure the test runner or package layout so the app package is discoverable.",
+  },
+  {
+    id: "dependency",
+    title: "Missing web dependency",
+    traceback: "ModuleNotFoundError: No module named 'fastapi'\n  File app/main.py, line 1, in <module>\n    from fastapi import FastAPI",
+    classification: "environment or dependency",
+    clues: ["virtual environment", "fastapi", "dependency"],
+    repair: "Verify the active virtual environment, inspect the declared dependency, and install the reviewed package into that environment rather than globally.",
+  },
+  {
+    id: "type",
+    title: "Invalid request type",
+    traceback: "422 Unprocessable Entity\nbody.temperature\n  Input should be a valid number [type=float_parsing, input_value='ninety']",
+    classification: "type validation",
+    clues: ["422", "temperature", "number"],
+    repair: "Treat this as input validation working as designed: confirm the request contract, correct the caller payload, and retain a test for nonnumeric temperature input.",
+  },
+  {
+    id: "api",
+    title: "Route contract mismatch",
+    traceback: "404 Not Found\nPOST /triage-reading\nAvailable route: POST /triage",
+    classification: "route or API contract",
+    clues: ["post", "route", "triage"],
+    repair: "Compare the caller method and path with the declared API contract, then change one side deliberately and add a request-level regression check.",
+  },
+  {
+    id: "json",
+    title: "Malformed JSON payload",
+    traceback: "json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 47 (char 46)\nPayload: {\"equipment\":\"pump-7\" \"temperature\":82}",
+    classification: "JSON contract",
+    clues: ["json", "delimiter", "payload"],
+    repair: "Inspect the serialized request rather than the business rule, correct the missing delimiter, and keep schema validation at the API boundary.",
   },
   {
     id: "boundary",
@@ -25,6 +73,14 @@ const debugCases = [
     repair: "Inspect the comparison operator and add a test for exactly 90 before changing the rule.",
   },
   {
+    id: "model",
+    title: "Invalid structured model output",
+    traceback: "ModelOutputValidationError: urgency must be one of ['low', 'medium', 'high']\nReceived: {\"urgency\":\"immediately\"}",
+    classification: "model response schema",
+    clues: ["schema", "urgency", "validation"],
+    repair: "Reject or retry the untrusted model response against its schema, preserve the raw failure safely, and do not pass an unknown urgency value into trusted policy.",
+  },
+  {
     id: "credential",
     title: "Unconfigured provider",
     traceback: "RuntimeError: OpenAI provider is not configured. Use the deterministic training provider or set local environment variables.",
@@ -32,6 +88,37 @@ const debugCases = [
     clues: ["environment", "credential", "fallback"],
     repair: "Do not add a secret to source code. Use the documented local environment configuration or remain in deterministic degraded mode.",
   },
+  {
+    id: "test",
+    title: "Incorrect expected behavior",
+    traceback: "AssertionError: assert 'REVIEW' == 'NORMAL'\n  tests/test_services.py:31\n  expected NORMAL for temperature 85",
+    classification: "test expectation",
+    clues: ["assert", "expected", "threshold"],
+    repair: "Trace the test expectation back to the documented threshold, correct either the requirement or test deliberately, and avoid changing production code just to satisfy a mistaken assertion.",
+  },
+  {
+    id: "git",
+    title: "Unresolved merge conflict",
+    traceback: "<<<<<<< HEAD\nreturn 'REVIEW'\n=======\nreturn 'URGENT'\n>>>>>>> update-threshold",
+    classification: "Git conflict",
+    clues: ["head", "conflict", "threshold"],
+    repair: "Read both changes and the underlying requirement, choose or reconcile the intended threshold, remove all conflict markers, run focused tests, and record the resolution in the commit.",
+  },
+] as const;
+
+const debugClassifications = [
+  "syntax error",
+  "file or path",
+  "environment or import path",
+  "environment or dependency",
+  "type validation",
+  "route or API contract",
+  "JSON contract",
+  "logic boundary",
+  "model response schema",
+  "credential or configuration",
+  "test expectation",
+  "Git conflict",
 ] as const;
 
 export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, value: string) => void }) {
@@ -138,7 +225,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
     </article>}
 
     {mode === "debug" && <article className="coding-system-workspace">
-      <div><p className="coding-kicker">DEBUG BAY · HYPOTHESIS BEFORE FIX</p><h3>Classify the failure before you change code.</h3><select value={currentDebug.id} onChange={(event) => setCurrentDebug(debugCases.find((item) => item.id === event.target.value) ?? debugCases[0])} aria-label="Broken application scenario">{debugCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><pre className="debug-traceback">{currentDebug.traceback}</pre><label>Failure classification<select value={classification} onChange={(event) => setClassification(event.target.value)}><option value="">Choose one</option><option>environment or import path</option><option>logic boundary</option><option>credential or configuration</option><option>syntax error</option></select></label><textarea value={repair} onChange={(event) => setRepair(event.target.value)} placeholder="Name the observation, your hypothesis, smallest safe diagnostic, and repair…" aria-label="Debug repair explanation" /><button className="coding-primary" onClick={() => debugSafe && onEvidence(`debug-${currentDebug.id}`, `Classified ${currentDebug.classification} and recorded a targeted repair hypothesis.`)}>Check diagnosis <Check size={16} /></button>{classification && <p className={debugSafe ? "coding-success" : "coding-form-error"}>{debugSafe ? `Good diagnostic path. ${currentDebug.repair}` : "Do not guess at fixes yet. Match the failure class and support the repair with at least two observed clues."}</p>}</div>
+      <div><p className="coding-kicker">DEBUG BAY · HYPOTHESIS BEFORE FIX</p><h3>Classify the failure before you change code.</h3><select value={currentDebug.id} onChange={(event) => { setCurrentDebug(debugCases.find((item) => item.id === event.target.value) ?? debugCases[0]); setClassification(""); setRepair(""); }} aria-label="Broken application scenario">{debugCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><pre className="debug-traceback">{currentDebug.traceback}</pre><label>Failure classification<select value={classification} onChange={(event) => setClassification(event.target.value)}><option value="">Choose one</option>{debugClassifications.map((item) => <option key={item}>{item}</option>)}</select></label><textarea value={repair} onChange={(event) => setRepair(event.target.value)} placeholder="Name the observation, your hypothesis, smallest safe diagnostic, and repair…" aria-label="Debug repair explanation" /><button className="coding-primary" onClick={() => debugSafe && onEvidence(`debug-${currentDebug.id}`, `Classified ${currentDebug.classification} and recorded a targeted repair hypothesis.`)}>Check diagnosis <Check size={16} /></button>{classification && <p className={debugSafe ? "coding-success" : "coding-form-error"}>{debugSafe ? `Good diagnostic path. ${currentDebug.repair}` : "Do not guess at fixes yet. Match the failure class and support the repair with at least two observed clues."}</p>}</div>
       <aside><span>Recovery loop</span><ol><li>Read the exact observed error.</li><li>Form one falsifiable hypothesis.</li><li>Run the smallest safe diagnostic.</li><li>Repair only the failing boundary.</li><li>Add regression evidence.</li></ol><p>A passing rerun is not the end: name the test or check that will prevent recurrence.</p></aside>
     </article>}
   </section>;
