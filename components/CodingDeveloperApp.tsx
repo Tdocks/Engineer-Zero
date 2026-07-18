@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, FileCode2, Flag, GitBranch, Mic, Play, RotateCcw, Route, Swords, TerminalSquare, Workflow } from "lucide-react";
+import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, Flag, GitBranch, Mic, Play, Route, Swords, TerminalSquare, Workflow } from "lucide-react";
 import { useLearnerState } from "@/hooks/useLearnerState";
 import { CodingAssessment } from "@/components/CodingAssessment";
 import { CodingSystemsLab } from "@/components/CodingSystemsLab";
@@ -10,6 +10,7 @@ import { CodingContinuation } from "@/components/CodingContinuation";
 import { CodingInterviewArena } from "@/components/CodingInterviewArena";
 import { CodingBossBattles } from "@/components/CodingBossBattles";
 import { CodingTutorPanel } from "@/components/CodingTutorPanel";
+import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import {
   codingChallenges,
   codingDayPlans,
@@ -319,11 +320,7 @@ export function CodingDeveloperApp() {
                 <p className="terminal-hint">Try: <code>pwd</code>, <code>ls</code>, <code>mkdir ai_prototype</code>, <code>cd ai_prototype</code>, <code>touch main.py</code>, <code>python main.py</code>.</p>
               </section>
             ) : (
-              <section className="coding-editor-shell">
-                <header><span><FileCode2 size={15} /> exercise.py</span><small>No arbitrary code runs in the browser. Use your local terminal for execution; this checks your visible design signals.</small></header>
-                <textarea value={code} onChange={(event) => setCode(event.target.value)} spellCheck={false} aria-label={`${challenge.title} code editor`} />
-                <footer><button className="coding-secondary" onClick={() => setCode(challenge.starter)}><RotateCcw size={15} /> Reset starter</button><button className="coding-primary" onClick={submitChallenge}>Check work <Braces size={16} /></button></footer>
-              </section>
+              <><CodingFileWorkbench key={challenge.id} challenge={challenge} onCodeChange={setCode} onSnapshot={(summary) => setProgress({ ...progress, notes: { ...progress.notes, [`snapshot-${challenge.id}`]: summary } })} /><button className="coding-primary coding-workbench-review" onClick={submitChallenge}>Review visible design <Braces size={16} /></button></>
             )}
             {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
             <section className="coding-checklist"><h3>What the reviewer looks for</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
