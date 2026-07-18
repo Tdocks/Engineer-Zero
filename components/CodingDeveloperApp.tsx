@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, Flag, GitBranch, Mic, Play, Route, Swords, TerminalSquare, Workflow } from "lucide-react";
+import { BookOpen, Braces, Bug, Check, CircleAlert, ClipboardCheck, Code2, Flag, GitBranch, Mic, Route, Swords, Workflow } from "lucide-react";
 import { useLearnerState } from "@/hooks/useLearnerState";
 import { CodingAssessment } from "@/components/CodingAssessment";
 import { CodingSystemsLab } from "@/components/CodingSystemsLab";
@@ -11,6 +11,7 @@ import { CodingInterviewArena } from "@/components/CodingInterviewArena";
 import { CodingBossBattles } from "@/components/CodingBossBattles";
 import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
+import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
 import {
   codingChallenges,
   codingDayPlans,
@@ -69,9 +70,6 @@ export function CodingDeveloperApp() {
   const [explanation, setExplanation] = useState("");
   const [localRunConfirmed, setLocalRunConfirmed] = useState(false);
   const [testConfirmed, setTestConfirmed] = useState(false);
-  const [terminalInput, setTerminalInput] = useState("");
-  const [terminalLines, setTerminalLines] = useState<string[]>(["Safe terminal simulator · no files on your computer are changed.", "/home/learner $"]);
-  const [inProject, setInProject] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
@@ -165,7 +163,9 @@ export function CodingDeveloperApp() {
     xp: result.status === "reviewed" ? { ...progress.xp, reliability: (progress.xp.reliability ?? 0) + 20, debugger: (progress.xp.debugger ?? 0) + 12 } : progress.xp,
   });
   const submitChallenge = () => {
-    const submittedDesign = challenge.kind === "terminal" ? terminalLines.join("\n") : code;
+    const submittedDesign = challenge.kind === "terminal"
+      ? (progress.terminalSession?.transcript.map((entry) => `${entry.command}\n${entry.output}`).join("\n") ?? "")
+      : code;
     const result = scoreChallenge(challenge, submittedDesign, explanation);
     setProgress({
       ...progress,
@@ -178,22 +178,6 @@ export function CodingDeveloperApp() {
         : progress.xp,
     });
   };
-  const runTerminalCommand = () => {
-    const command = terminalInput.trim();
-    if (!command) return;
-    let output = "command not recognized in this safe exercise";
-    if (command === "pwd") output = inProject ? "/home/learner/ai_prototype" : "/home/learner";
-    else if (command === "ls") output = inProject ? "main.py" : "notes.txt";
-    else if (command === "mkdir ai_prototype") output = "created ai_prototype";
-    else if (command === "cd ai_prototype") { setInProject(true); output = "entered /home/learner/ai_prototype"; }
-    else if (command === "cd ..") { setInProject(false); output = "entered /home/learner"; }
-    else if (command === "touch main.py") output = inProject ? "created main.py" : "main.py was created in the wrong folder — use cd ai_prototype, then recover it.";
-    else if (command === "python main.py") output = inProject ? "Mission countdown: 42 minutes remaining" : "python: cannot open file 'main.py' — check your directory";
-    else if (command === "clear") { setTerminalLines(["Safe terminal simulator · no files on your computer are changed.", inProject ? "/home/learner/ai_prototype $" : "/home/learner $"]); setTerminalInput(""); return; }
-    setTerminalLines((lines) => [...lines, `${inProject ? "/home/learner/ai_prototype" : "/home/learner"} $ ${command}`, output]);
-    setTerminalInput("");
-  };
-
   return (
     <main className="coding-program">
       <header className="coding-header">
@@ -338,12 +322,7 @@ export function CodingDeveloperApp() {
           <article className="coding-lab">
             <header><div><p className="coding-kicker">DAY {challenge.day} · {challenge.kind}</p><h2>{challenge.title}</h2><p>{challenge.brief}</p></div><span className="coding-safe"><CircleAlert size={15} /> Browser review only</span></header>
             {challenge.kind === "terminal" ? (
-              <section className="terminal-simulator">
-                <div className="terminal-title"><TerminalSquare size={16} /> Safe terminal simulator <small>Commands affect only this exercise.</small></div>
-                <pre>{terminalLines.join("\n")}</pre>
-                <form onSubmit={(event) => { event.preventDefault(); runTerminalCommand(); }}><span>{inProject ? "/home/learner/ai_prototype" : "/home/learner"} $</span><input value={terminalInput} onChange={(event) => setTerminalInput(event.target.value)} aria-label="Terminal command" placeholder="Try pwd" autoComplete="off" /><button aria-label="Run safe terminal command"><Play size={15} /></button></form>
-                <p className="terminal-hint">Try: <code>pwd</code>, <code>ls</code>, <code>mkdir ai_prototype</code>, <code>cd ai_prototype</code>, <code>touch main.py</code>, <code>python main.py</code>.</p>
-              </section>
+              <CodingTerminalSimulator session={progress.terminalSession} onChange={(terminalSession) => setProgress({ ...progress, terminalSession })} />
             ) : (
               <><CodingFileWorkbench
                 key={challenge.id}

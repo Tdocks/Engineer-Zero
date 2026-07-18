@@ -1,4 +1,5 @@
 import type { ProgramId } from "./types";
+import type { CodingTerminalSession } from "./coding-terminal";
 
 export type CodingCompetencyKey =
   | "terminal"
@@ -133,6 +134,7 @@ export type CodingProgramProgress = {
   /** Browser-only drafts and snapshots preserve study work without claiming it ran. */
   workbenchDrafts: Record<string, CodingWorkbenchFile[]>;
   workbenchSnapshots: Record<string, CodingWorkbenchSnapshot[]>;
+  terminalSession?: CodingTerminalSession;
 };
 
 export type CodingWorkbenchFile = {

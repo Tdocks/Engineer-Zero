@@ -36,6 +36,7 @@ import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } f
 import { createCodingExecutionProvider, validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
+import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -92,6 +93,17 @@ describe("Engineer Zero track engine", () => {
     expect(review.map((item) => item.interval)).toEqual(["20-minutes", "end-of-day", "next-morning", "three-days", "one-week"]);
     expect(new Date(review.find((item) => item.interval === "end-of-day")!.dueAt).getTime()).toBeGreaterThan(from.getTime());
     expect(review.every((item) => !item.completedAt)).toBe(true);
+  });
+
+  it("keeps terminal practice inside a fictional filesystem while supporting safe recovery", () => {
+    let terminal = initialCodingTerminalSession();
+    for (const command of ["mkdir ai_prototype", "touch main.py", "cd ai_prototype", "mv ../main.py main.py", "pwd", "history"]) {
+      terminal = runCodingTerminalCommand(terminal, command);
+    }
+    expect(terminal.entries["/home/learner/ai_prototype/main.py"]).toBe("file");
+    expect(codingTerminalStatus(terminal).recoveredFromWrongFolder).toBe(true);
+    expect(runCodingTerminalCommand(terminal, "rm -rf /").transcript.at(-1)?.kind).toBe("error");
+    expect(runCodingTerminalCommand(terminal, "rm -rf /").entries["/"]).toBe("directory");
   });
 
   it("migrates earlier Coding Developer progress to durable drafts and snapshots", () => {

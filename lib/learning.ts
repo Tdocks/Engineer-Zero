@@ -76,6 +76,7 @@ export function normalizeLearnerState(
             reviewSchedule: progress.reviewSchedule ?? [],
             workbenchDrafts: progress.workbenchDrafts ?? {},
             workbenchSnapshots: progress.workbenchSnapshots ?? {},
+            terminalSession: progress.terminalSession,
           }
         : progress,
     ])),
