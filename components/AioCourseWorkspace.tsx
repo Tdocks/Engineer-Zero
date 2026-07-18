@@ -8,22 +8,24 @@ import {
   type CourseKind,
 } from "@/components/AioCourseSurface";
 import { useLearnerState } from "@/hooks/useLearnerState";
-import type { CourseAttemptRecord, CourseDraft } from "@/lib/types";
+import type { CourseAttemptRecord, CourseDraft, TrackId } from "@/lib/types";
 
 export function AioCourseWorkspace({
   kind,
   itemId,
+  trackId = "applied-ai-operations",
 }: {
   kind: CourseKind;
   itemId: string;
+  trackId?: TrackId;
 }) {
   const router = useRouter();
-  const { state, setState, hydrated } = useLearnerState("applied-ai-operations");
+  const { state, setState, hydrated } = useLearnerState(trackId);
   const [catalog, setCatalog] = useState<CourseCatalog | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/course/catalog?workspace=${encodeURIComponent(itemId)}`)
+    fetch(`/api/course/catalog?track=${encodeURIComponent(trackId)}&workspace=${encodeURIComponent(itemId)}`)
       .then((response) =>
         response.ok
           ? response.json()
@@ -37,7 +39,7 @@ export function AioCourseWorkspace({
             : "The course workspace could not be loaded.",
         ),
       );
-  }, [itemId]);
+  }, [itemId, trackId]);
 
   const item = useMemo(() => {
     if (!catalog) return undefined;
@@ -57,7 +59,7 @@ export function AioCourseWorkspace({
           <p className="eyebrow">COURSE WORKSPACE</p>
           <h1>That activity is not available.</h1>
           <p>{error || "Return to the learning path and choose another activity."}</p>
-          <button className="primary" onClick={() => router.push("/learn?track=applied-ai-operations")}>
+          <button className="primary" onClick={() => router.push(`/learn?track=${trackId}`)}>
             Return to learning
           </button>
         </section>
@@ -88,6 +90,7 @@ export function AioCourseWorkspace({
       draft={draft}
       presentation="workspace"
       onClose={() => router.back()}
+      trackId={trackId}
       onDraftChange={(nextDraft) =>
         setState((current) => {
           const courseDrafts = { ...current.courseDrafts };

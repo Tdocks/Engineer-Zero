@@ -85,18 +85,19 @@ export function LearningApp({
 }: {
   initialTrack?: TrackId;
 }) {
-  const { state, setState } = useLearnerState(initialTrack);
+  const { state, setState, hydrated } = useLearnerState(initialTrack);
   const [view, setView] = useState<View>("today");
-  const [onboarding, setOnboarding] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return !window.localStorage.getItem(learnerStorageKey);
-  });
+  const [onboarding, setOnboarding] = useState(true);
   const [kyra, setKyra] = useState(false);
   const [mobileMore, setMobileMore] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     document.documentElement.dataset.theme = state.preferences.theme;
   }, [state.preferences.theme]);
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    setOnboarding(!window.localStorage.getItem(learnerStorageKey));
+  }, [hydrated]);
   const track = tracks[state.activeTrack];
   const readiness = useMemo(
     () => trackReadiness(state, state.activeTrack),
@@ -1140,11 +1141,12 @@ function Activities({
   mark: (activity: Activity, score: number, feedback: string) => void;
 }) {
   const [open, setOpen] = useState<Activity | null>(null);
-  if (trackId === "applied-ai-operations")
+  if (trackId === "applied-ai-operations" || (trackId === "it-support-technician" && type === "lesson"))
     return (
             <AioCourseSurface
               kind={type === "lesson" ? "module" : type}
               state={state}
+              trackId={trackId}
             />
     );
   const activities = tracks[trackId].activities.filter(

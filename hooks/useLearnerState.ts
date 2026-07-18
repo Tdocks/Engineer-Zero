@@ -22,10 +22,18 @@ function readLearnerState(initialTrack: TrackId): LearnerState {
 }
 
 export function useLearnerState(initialTrack: TrackId) {
-  const [state, setState] = useState<LearnerState>(() =>
-    readLearnerState(initialTrack),
-  );
-  const [hydrated] = useState(() => typeof window !== "undefined");
+  // The server and first browser render must agree. Reading localStorage in a
+  // state initializer creates a different client tree for returning learners.
+  const [state, setState] = useState<LearnerState>(() => ({
+    ...emptyLearnerState,
+    activeTrack: initialTrack,
+  }));
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setState(readLearnerState(initialTrack));
+    setHydrated(true);
+  }, [initialTrack]);
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;

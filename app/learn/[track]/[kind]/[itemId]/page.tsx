@@ -10,8 +10,17 @@ export default async function CourseWorkspacePage({
   params: Promise<{ track: string; kind: string; itemId: string }>;
 }) {
   const { track, kind, itemId } = await params;
-  if (track !== "applied-ai-operations" || !kinds.has(kind as CourseKind)) {
+  if (
+    !["applied-ai-operations", "it-support-technician"].includes(track) ||
+    !kinds.has(kind as CourseKind)
+  ) {
     notFound();
   }
-  return <AioCourseWorkspace kind={kind as CourseKind} itemId={itemId} />;
+  return (
+    <AioCourseWorkspace
+      kind={kind as CourseKind}
+      itemId={itemId}
+      trackId={track as "applied-ai-operations" | "it-support-technician"}
+    />
+  );
 }

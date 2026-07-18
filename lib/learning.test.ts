@@ -15,6 +15,8 @@ import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
 import { itSupportSprintModules } from "./it-support-content";
+import { itSupportPublicCatalog } from "./it-support-public-catalog";
+import { gradeItSupportCourseAttempt } from "./it-support-grade";
 import { aioPublicCatalog } from "./aio-public-catalog";
 import { aioFoundationModules, aioRoleConcepts } from "./aio-foundation";
 import { recommendAioFoundationStart } from "./aio-foundation-path";
@@ -410,6 +412,36 @@ describe("Engineer Zero track engine", () => {
       expect(module.review.fictionalData).toBe("approved");
       expect(module.review.versionApproved).toBe("pending");
     }
+  });
+
+  it("keeps IT Support Sprint answer keys and private rubric rules off the public catalog", () => {
+    const catalog = itSupportPublicCatalog("it-support-adversarial-seed") as {
+      modules: Array<Record<string, unknown>>;
+    };
+    expect(catalog.modules).toHaveLength(8);
+    expect("rules" in catalog.modules[0]).toBe(false);
+    expect("review" in catalog.modules[0]).toBe(false);
+    expect((catalog.modules[0].knowledgeChecks as Array<Record<string, unknown>>).every((question) => !("correctChoiceId" in question) && !("explanation" in question) && !("misconception" in question))).toBe(true);
+  });
+
+  it("rejects short or copied IT Support evidence even with correct knowledge checks", () => {
+    const module = itSupportSprintModules[0];
+    const answers = Object.fromEntries(module.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]));
+    const shallow = gradeItSupportCourseAttempt({
+      itemId: module.id,
+      answers,
+      evidence: {
+        scenarioFact: "impact impact impact impact impact impact impact impact",
+        decision: "decision decision decision decision decision decision decision decision",
+        boundary: "boundary boundary boundary boundary boundary boundary boundary boundary",
+        verification: "verify verify verify verify verify verify verify verify",
+        owner: "owner owner owner owner owner owner owner owner",
+        escalation: "owner owner owner owner owner owner owner owner",
+        evidenceReferences: [],
+      },
+    });
+    expect(shallow?.complete).toBe(false);
+    expect(shallow?.rubric.checks.some((check) => !check.passed)).toBe(true);
   });
 
   it("does not expose AIO baseline answer keys or a fixed answer position", () => {

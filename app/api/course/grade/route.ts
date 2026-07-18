@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { gradeCourseAttempt, type CourseItemKind } from "@/lib/aio-grade";
+import { gradeItSupportCourseAttempt } from "@/lib/it-support-grade";
 import type { StructuredEvidence } from "@/lib/course-types";
 
 const recentRequests = new Map<string, number[]>();
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   recent.push(now);
   recentRequests.set(client, recent);
   const body = (await request.json().catch(() => null)) as {
+    track?: "applied-ai-operations" | "it-support-technician";
     kind?: CourseItemKind;
     itemId?: string;
     answers?: Record<string, string>;
@@ -40,13 +42,28 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const result = gradeCourseAttempt({
-    kind: body.kind,
-    itemId: body.itemId,
-    answers: body.answers ?? {},
-    evidence: body.evidence,
-    missionChoices: body.missionChoices ?? {},
-  });
+  const track = body.track ?? "applied-ai-operations";
+  if (![
+    "applied-ai-operations",
+    "it-support-technician",
+  ].includes(track)) {
+    return NextResponse.json({ error: "Unknown course track." }, { status: 404 });
+  }
+  if (track === "it-support-technician" && body.kind !== "module") {
+    return NextResponse.json(
+      { error: "This IT Support activity is not yet an authored simulation." },
+      { status: 409 },
+    );
+  }
+  const result = track === "it-support-technician"
+    ? gradeItSupportCourseAttempt({ itemId: body.itemId, answers: body.answers ?? {}, evidence: body.evidence })
+    : gradeCourseAttempt({
+        kind: body.kind,
+        itemId: body.itemId,
+        answers: body.answers ?? {},
+        evidence: body.evidence,
+        missionChoices: body.missionChoices ?? {},
+      });
   if (!result)
     return NextResponse.json(
       { error: "Course item not found." },

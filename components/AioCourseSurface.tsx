@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CapabilityLevel, CourseAttemptRecord, CourseDraft, CourseStage, LearnerState } from "@/lib/types";
+import type { CapabilityLevel, CourseAttemptRecord, CourseDraft, CourseStage, LearnerState, TrackId } from "@/lib/types";
 import type { StructuredEvidence } from "@/lib/course-types";
 import { recommendAioFoundationStart } from "@/lib/aio-foundation-path";
 
@@ -217,9 +217,11 @@ function LessonBlocks({ blocks, reflection, onReflection }: { blocks: CourseBloc
 export function AioCourseSurface({
   kind,
   state,
+  trackId = "applied-ai-operations",
 }: {
   kind: CourseKind;
   state: LearnerState;
+  trackId?: TrackId;
 }) {
   const router = useRouter();
   const [catalog, setCatalog] = useState<CourseCatalog | null>(null);
@@ -231,7 +233,7 @@ export function AioCourseSurface({
   const [capabilityFilter, setCapabilityFilter] = useState("all");
   useEffect(() => {
     const attempt = crypto.randomUUID();
-    fetch("/api/course/catalog?attempt=" + encodeURIComponent(attempt))
+    fetch(`/api/course/catalog?track=${encodeURIComponent(trackId)}&attempt=${encodeURIComponent(attempt)}`)
       .then((response) =>
         response.ok
           ? response.json()
@@ -247,7 +249,7 @@ export function AioCourseSurface({
             : "The course catalog could not be loaded.",
         ),
       );
-  }, []);
+  }, [trackId]);
   const items = useMemo(
     () =>
       catalog
@@ -278,9 +280,9 @@ export function AioCourseSurface({
       }),
     [capabilityFilter, items, modeFilter, pathFilter, phaseFilter, state.courseAttempts, statusFilter],
   );
-  const foundationRecommendation = recommendAioFoundationStart(
-    state.assessmentSummaries["applied-ai-operations"],
-  );
+  const foundationRecommendation = trackId === "applied-ai-operations"
+    ? recommendAioFoundationStart(state.assessmentSummaries["applied-ai-operations"])
+    : null;
   const completedItems = new Set(
     state.courseAttempts.filter((attempt) => attempt.complete).map((attempt) => attempt.itemId),
   );
@@ -312,7 +314,7 @@ export function AioCourseSurface({
           <span className="eyebrow">{label}</span>
           <h2>{description}</h2>
         </div>
-        <span className="track-name">AIO v1 · internal review</span>
+        <span className="track-name">{trackId === "applied-ai-operations" ? "AIO v1" : "IT Support v1"} · internal review</span>
       </div>
       <p className="lede">
         Every activity follows Learn → Knowledge Check → Practice → Debrief →
@@ -324,7 +326,7 @@ export function AioCourseSurface({
         <div><b>Practice</b><span>Complete bounded guided work with support.</span></div>
         <div><b>Prove</b><span>Independently build, troubleshoot, or defend saved evidence.</span></div>
       </section>
-      {kind === "module" && (
+      {kind === "module" && foundationRecommendation && (
         <section className="foundation-diagnostic">
           <div>
             <span className="eyebrow amber">FOUNDATION DIAGNOSTIC</span>
@@ -379,7 +381,7 @@ export function AioCourseSurface({
                         ? `${unmetPrerequisites.length} prerequisite${unmetPrerequisites.length === 1 ? "" : "s"} required`
                         : "Artifact required"}
                 </span>
-                <button disabled={unmetPrerequisites.length > 0} onClick={() => router.push(`/learn/applied-ai-operations/${kind}/${item.id}`)}>
+                <button disabled={unmetPrerequisites.length > 0} onClick={() => router.push(`/learn/${trackId}/${kind}/${item.id}`)}>
                   {unmetPrerequisites.length ? "Locked" : attempt ? "Review →" : "Start →"}
                 </button>
               </footer>
@@ -402,6 +404,7 @@ export function CourseRunner({
   onClose,
   onSaved,
   onDraftChange,
+  trackId = "applied-ai-operations",
 }: {
   item: CourseItem;
   kind: CourseKind;
@@ -412,6 +415,7 @@ export function CourseRunner({
   onClose: () => void;
   onSaved: (attempt: CourseAttemptRecord) => void;
   onDraftChange?: (draft: CourseDraft | null) => void;
+  trackId?: TrackId;
 }) {
   const [stage, setStage] = useState<CourseStage>(draft?.stage ?? "learn");
   const [answers, setAnswers] = useState<Record<string, string>>(
@@ -498,7 +502,7 @@ export function CourseRunner({
       const response = await fetch("/api/course/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, itemId: item.id, answers, evidence, missionChoices }),
+        body: JSON.stringify({ track: trackId, kind, itemId: item.id, answers, evidence, missionChoices }),
       });
       const result = (await response.json()) as Grade & { error?: string };
       if (!response.ok) {
