@@ -29,7 +29,6 @@ import type {
 } from "@/lib/types";
 import { AioCourseSurface } from "@/components/AioCourseSurface";
 import { AioInterviewStudio } from "@/components/AioInterviewStudio";
-import { aioModules } from "@/lib/aio-content";
 
 type View =
   | "today"
@@ -752,10 +751,11 @@ function Today({
   const accountability = accountabilityStatus(state);
   const graduation = graduationStatus(state, trackId);
   const aioNextActions = trackId === "applied-ai-operations"
-    ? (["know", "practice", "prove"] as const).map((level) => ({
-        level,
-        item: aioModules.find((item) => item.capabilityLevel === level && !state.courseAttempts.some((attempt) => attempt.itemId === item.id && attempt.complete)),
-      }))
+    ? [
+        { level: "know" as const, title: "Role Concepts Library", description: "Build the vocabulary to recognize a system boundary and know when to involve a specialist." },
+        { level: "practice" as const, title: "48-Hour Interview Sprint", description: "Rehearse role-relevant explanations, decisions, and project stories with targeted feedback." },
+        { level: "prove" as const, title: "Zero-to-Role Foundation", description: "Create independent Python and system evidence before claiming implementation capability." },
+      ]
     : [];
   const checkIn = () =>
     setState((current) => ({
@@ -862,11 +862,11 @@ function Today({
             <p>Concept fluency, guided practice, and independent proof are tracked separately.</p>
           </header>
           <div>
-            {aioNextActions.map(({ level, item }) => (
+            {aioNextActions.map(({ level, title, description }) => (
               <article key={level}>
                 <b className={`capability ${level}`}>{level}</b>
-                <h3>{item?.title ?? "Evidence complete"}</h3>
-                <p>{item?.performanceExpectation ?? "You have completed the currently published activity at this evidence level."}</p>
+                <h3>{title}</h3>
+                <p>{description}</p>
                 <button className="link" onClick={() => onNavigate("academy")}>Open Academy →</button>
               </article>
             ))}
