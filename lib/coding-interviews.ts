@@ -1,3 +1,4 @@
+import "server-only";
 import type { CodingCompetencyKey } from "./coding-developer";
 
 type EvidenceRequirement = {
@@ -95,7 +96,9 @@ function words(value: string) {
 }
 
 /** Deterministic self-review, deliberately stricter than keyword/word-count grading. */
-export function reviewCodingInterview(prompt: CodingInterviewPrompt, response: string) {
+export function reviewCodingInterview(promptId: string, response: string) {
+  const prompt = codingInterviewPrompts.find((item) => item.id === promptId);
+  if (!prompt) return null;
   const segments = response.toLowerCase().split(/[\n.!?]+/).map((segment) => segment.trim()).filter(Boolean);
   const allWords = words(response);
   const uniqueRatio = allWords.length ? new Set(allWords).size / allWords.length : 0;

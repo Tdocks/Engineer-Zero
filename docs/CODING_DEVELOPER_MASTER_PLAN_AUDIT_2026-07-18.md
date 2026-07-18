@@ -21,7 +21,7 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 | Code Lab | Editor, draft diff, persisted drafts/snapshots, server-owned structural/comprehension review, local-project handoff, and protected isolated-runner UI | Partial: execution output remains unavailable until an isolated provider is configured. |
 | API Simulator | Factual request builder, validation and failure paths | Implemented as deterministic browser simulation. |
 | AI Systems Lab | Structured-output comparison, injection decision, Debug Bay | Partial: no real model-cost/latency telemetry until a controlled provider is configured. |
-| Interview Arena | Timed prompts, guided/limited/no-hint mode, follow-up pressure question | Partial: no voice transcription or dynamic live coach. |
+| Interview Arena | Timed public prompts, guided/limited/no-hint mode, follow-up pressure question, and server-owned evidence rubric | Partial: no voice transcription or dynamic live coach. |
 | Review Board | Five reviewer perspectives and saved local responses with role-specific deterministic evidence checks | Partial: no human or qualified-reviewer approval workflow. |
 | Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records; server-owned Code Lab rubric and distinct-evidence checks in Interview Arena reject repeated keyword padding | Partial: deterministic study review still cannot certify independent coding skill or runtime correctness. |
 | Assessment weights | Functional, decomposition, defense, debugging, data, security categories exist in challenge/interview mappings | Partial: no trusted aggregate graduation calculation yet. |
