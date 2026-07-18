@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, BrainCircuit, BriefcaseBusiness, Compass, FlaskConical, Gauge, LayoutDashboard, ListChecks, Sparkles, SunMoon } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, BrainCircuit, BriefcaseBusiness, Code2, Compass, FlaskConical, Gauge, LayoutDashboard, ListChecks, Sparkles, SunMoon } from "lucide-react";
 import {
   competencyLabels,
   crashCoursePlan,
@@ -164,6 +165,9 @@ export function LearningApp({
           ))}
         </nav>
         <div className="sidebar-footer">
+          <Link className="coding-program-link" href="/programs/coding-developer">
+            <Code2 size={15} aria-hidden="true" /> Coding program
+          </Link>
           <div className="learner">
             <span>{state.profile?.name.slice(0, 2).toUpperCase()}</span>
             <div>

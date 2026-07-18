@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records the project state immediately before the Coding Developer curriculum detour. It is a local checkpoint because this workspace does not currently contain a Git repository or commit history.
+This document records the project state immediately before the Coding Developer curriculum detour. It predates repository initialization; the later Coding Developer checkpoint records the current shared-program work.
 
 ## Current Product State
 

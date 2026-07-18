@@ -28,7 +28,10 @@ export function useLearnerState(initialTrack: TrackId) {
   const [hydrated] = useState(() => typeof window !== "undefined");
 
   useEffect(() => {
-    if (!hydrated || !state.profile || typeof window === "undefined") return;
+    if (!hydrated || typeof window === "undefined") return;
+    // Shared programs may be started before a learner chooses a career track.
+    // Preserve that work without forcing an onboarding profile first.
+    if (!state.profile && Object.keys(state.programProgress).length === 0) return;
     window.localStorage.setItem(learnerStorageKey, JSON.stringify(state));
   }, [hydrated, state]);
 

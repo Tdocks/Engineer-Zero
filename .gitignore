@@ -3,6 +3,9 @@ node_modules
 out
 .env
 .env.local
+.venv/
+__pycache__/
+*.pyc
 coverage
 *.tsbuildinfo
 

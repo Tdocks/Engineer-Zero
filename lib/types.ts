@@ -1,4 +1,6 @@
 export type TrackId = "applied-ai-operations" | "it-support-technician";
+/** Reusable programs are not career tracks; several tracks may consume them. */
+export type ProgramId = "coding-developer";
 export type PhaseId =
   | "reality-check"
   | "crash-course"
@@ -218,4 +220,5 @@ export type LearnerState = {
   courseDrafts: Record<string, CourseDraft>;
   preferences: LearnerPreferences;
   capstoneReview: CapstoneReview;
+  programProgress: Partial<Record<ProgramId, import("./coding-developer").CodingProgramProgress>>;
 };

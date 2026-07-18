@@ -16,6 +16,15 @@ import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { aioPublicCatalog } from "./aio-public-catalog";
 import { aioFoundationModules, aioRoleConcepts } from "./aio-foundation";
 import { recommendAioFoundationStart } from "./aio-foundation-path";
+import {
+  codingChallenges,
+  codingDayPlans,
+  codingDeveloperProgram,
+  codingLessons,
+  codingMastery,
+  emptyCodingProgress,
+  validateCodingProgram,
+} from "./coding-developer";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -38,6 +47,25 @@ describe("Engineer Zero track engine", () => {
     expect(tracks["it-support-technician"].interviewQuestions).toHaveLength(
       150,
     );
+  });
+
+  it("ships a source-mapped shared coding program rather than a third career track", () => {
+    expect(codingDeveloperProgram.id).toBe("coding-developer");
+    expect(codingLessons).toHaveLength(24);
+    expect(codingChallenges).toHaveLength(6);
+    expect(codingDayPlans.every((day) => day.focusedHours === 10 && day.cadence.length >= 6)).toBe(true);
+    expect(codingChallenges.every((challenge) => Boolean(challenge.comprehensionPrompt) && challenge.comprehensionRequirements.length >= 4)).toBe(true);
+    expect(new Set(codingLessons.map((lesson) => lesson.day))).toEqual(
+      new Set([1, 2, 3, 4]),
+    );
+    expect(validateCodingProgram()).toEqual([]);
+    expect(Object.keys(tracks)).toHaveLength(2);
+  });
+
+  it("keeps coding-program mastery at zero until learner evidence exists", () => {
+    const mastery = codingMastery(emptyCodingProgress());
+    expect(mastery.every((competency) => competency.level === 0)).toBe(true);
+    expect(mastery.find((competency) => competency.key === "api")?.target).toBe(3);
   });
 
   it("uses 24 distinct protected AIO baseline decisions", () => {

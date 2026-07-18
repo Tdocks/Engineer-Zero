@@ -31,6 +31,7 @@ export const emptyLearnerState: LearnerState = {
   courseDrafts: {},
   preferences: { theme: "system" },
   capstoneReview: { status: "not-submitted" },
+  programProgress: {},
 };
 export const learnerStorageKey = "engineer-zero-commercial-preview-v1";
 
@@ -63,6 +64,7 @@ export function normalizeLearnerState(
       ...saved.preferences,
     },
     capstoneReview: saved.capstoneReview ?? emptyLearnerState.capstoneReview,
+    programProgress: saved.programProgress ?? {},
   };
 }
 
