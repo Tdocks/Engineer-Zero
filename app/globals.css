@@ -4258,6 +4258,30 @@ html[data-theme="dark"] {
 .course-workspace .evidence-references { border-color: var(--ez-reader-rule); background: var(--ez-reader); color: var(--ez-reader-ink); }
 .course-workspace .primary.wide { min-height: 52px; margin: 32px 0 8px; border-radius: 5px; }
 
+/* Hosted accounts remain deliberately quiet in the academy shell. They are a
+   continuity tool, not a competing primary action. */
+.account-pilot-status, .account-sign-in, .account-signed-in { display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:0 10px; border:1px solid var(--ez-border); border-radius:5px; color:var(--ez-muted); background:transparent; font:600 12px/1 "Source Sans 3", sans-serif; white-space:nowrap; }
+.account-sign-in { color:var(--ez-ink); cursor:pointer; transition:background 180ms ease, border-color 180ms ease; }
+.account-sign-in:hover { border-color:var(--ez-primary); background:var(--ez-primary-soft); }
+.account-sign-in:focus-visible, .account-signed-in button:focus-visible, .account-dialog button:focus-visible, .account-dialog input:focus-visible { outline:3px solid var(--ez-focus); outline-offset:2px; }
+.account-signed-in { max-width:230px; padding-right:4px; }
+.account-signed-in span { overflow:hidden; text-overflow:ellipsis; }
+.account-signed-in button { display:grid; width:28px; height:28px; place-items:center; border:0; border-radius:4px; color:var(--ez-muted); background:transparent; cursor:pointer; }
+.account-signed-in button:hover { color:var(--ez-ink); background:var(--ez-surface-alt); }
+.account-dialog { width:min(430px, calc(100vw - 32px)); padding:28px; border:1px solid var(--ez-border); border-radius:10px; background:var(--ez-surface); color:var(--ez-ink); box-shadow:0 8px 24px color-mix(in srgb, var(--ez-ink) 16%, transparent); }
+.account-dialog::backdrop { background:color-mix(in srgb, var(--ez-ink) 28%, transparent); }
+.dialog-close-row { display:flex; justify-content:flex-end; margin:-8px -8px 16px; }
+.dialog-close-row button { padding:5px 8px; border:0; border-radius:4px; color:var(--ez-muted); background:transparent; font:600 12px/1 "Source Sans 3", sans-serif; cursor:pointer; }
+.dialog-close-row button:hover { color:var(--ez-ink); background:var(--ez-surface-alt); }
+.account-dialog-icon { display:grid; width:34px; height:34px; place-items:center; border-radius:50%; color:var(--ez-primary-strong); background:var(--ez-primary-soft); }
+.account-dialog h2 { margin:14px 0 7px; font:600 26px/1.15 "Source Serif 4", Georgia, serif; letter-spacing:-.02em; }
+.account-dialog p { margin:0; color:var(--ez-muted); font:15px/1.6 "Source Sans 3", sans-serif; }
+.account-form { display:grid; gap:16px; margin-top:24px; }
+.account-form label { display:grid; gap:7px; color:var(--ez-ink); font:600 13px/1.3 "Source Sans 3", sans-serif; }
+.account-form input { min-height:44px; padding:0 11px; border:1px solid var(--ez-border); border-radius:5px; color:var(--ez-ink); background:var(--ez-reader); font:16px/1.3 "Source Sans 3", sans-serif; }
+.account-form .primary { justify-content:center; min-height:44px; border-radius:5px; }
+.account-form-status { padding-top:2px; color:var(--ez-primary-strong) !important; font-size:13px !important; }
+
 /* Shared academy language beyond the reader. */
 .shell .content { max-width: 1320px; }
 .shell .section-title { padding-bottom: 20px; border-bottom: 1px solid var(--ez-border); }

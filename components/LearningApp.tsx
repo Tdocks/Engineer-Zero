@@ -29,6 +29,7 @@ import type {
 } from "@/lib/types";
 import { AioCourseSurface } from "@/components/AioCourseSurface";
 import { AioInterviewStudio } from "@/components/AioInterviewStudio";
+import { AccountControls } from "@/components/AccountControls";
 
 type View =
   | "today"
@@ -238,6 +239,7 @@ export function LearningApp({
                 <option value="dark">Dark</option>
               </select>
             </label>
+            <AccountControls />
             <button
               className="mobile-menu-button"
               onClick={() => setMobileMore(true)}
