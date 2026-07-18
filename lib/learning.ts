@@ -172,10 +172,13 @@ export function trackReadiness(state: LearnerState, trackId: TrackId) {
         0,
       ) / related.length
     : 0;
-  const courseAttempts =
-    trackId === "applied-ai-operations"
-      ? state.courseAttempts.filter((attempt) => attempt.complete)
-      : [];
+  // Course IDs are track-prefixed and local state can contain work for more
+  // than one track. Keep readiness evidence isolated without pretending that
+  // an IT Support simulation proves an AIO competency (or the reverse).
+  const coursePrefix = trackId === "applied-ai-operations" ? "aio-" : "it-";
+  const courseAttempts = state.courseAttempts.filter(
+    (attempt) => attempt.complete && attempt.itemId.startsWith(coursePrefix),
+  );
   const capabilityWeight = { know: 0.3, practice: 0.65, prove: 1 } as const;
   const courseScore = courseAttempts.length
     ? courseAttempts.reduce(
@@ -189,11 +192,12 @@ export function trackReadiness(state: LearnerState, trackId: TrackId) {
       97,
       trackId === "applied-ai-operations"
         ? assessmentScore * 0.55 +
-            activityScore * 0.18 +
-            courseScore * 0.17 +
+            activityScore * 0.2 +
+            courseScore * 0.15 +
             Math.min(state.projects.length * 5, 10)
-        : assessmentScore * 0.67 +
+        : assessmentScore * 0.57 +
             activityScore * 0.23 +
+            courseScore * 0.1 +
             Math.min(state.projects.length * 5, 10),
     ),
   );

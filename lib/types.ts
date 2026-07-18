@@ -174,6 +174,8 @@ export type CourseAttemptRecord = {
   competencies?: Partial<Record<CompetencyKey, number>>;
   evidenceDimension?: "understands" | "builds" | "troubleshoots" | "defends" | "aiCollaboration";
   capabilityLevel?: CapabilityLevel;
+  /** Local study is useful for practice but never becomes a credential claim. */
+  verificationLevel?: "local-study" | "server-scored" | "reviewer-approved";
 };
 export type ThemePreference = "system" | "light" | "dark";
 export type LearnerPreferences = {

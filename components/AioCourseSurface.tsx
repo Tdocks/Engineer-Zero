@@ -516,6 +516,7 @@ export function CourseRunner({
         missionChoices, hintCount, revisionOf: previous?.id, createdAt: new Date().toISOString(),
         competencies: item.competencies,
         capabilityLevel: item.capabilityLevel ?? "prove",
+        verificationLevel: "local-study",
         evidenceDimension: item.capabilityLevel === "know" ? "understands" : item.capabilityLevel === "practice" ? (item.mode === "Production Incident" ? "troubleshoots" : "aiCollaboration") : kind === "module" ? "builds" : kind === "mission" ? "defends" : item.mode === "Production Incident" ? "troubleshoots" : item.mode === "AI Builder" ? "aiCollaboration" : "builds",
       });
       onDraftChange?.(null);
@@ -719,6 +720,7 @@ export function CourseRunner({
                   </b>
                   <br />
                   {grade.feedback}
+                  <small className="verification-note">Saved as local study evidence in this browser. It is not a verified credential record.</small>
                 </div>
                 {grade.checks.map((check) => (
                   <div

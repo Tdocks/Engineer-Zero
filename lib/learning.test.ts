@@ -75,6 +75,32 @@ describe("Engineer Zero track engine", () => {
     expect(migrated.courseDrafts).toEqual({});
   });
 
+  it("keeps authored IT Support evidence inside the IT readiness calculation", () => {
+    const state = normalizeLearnerState({
+      activeTrack: "it-support-technician",
+      courseAttempts: [{
+        id: "it-attempt-1",
+        itemId: "it-sprint-01-service-reality",
+        version: "it-support-v1-interview-sprint-draft",
+        kind: "module",
+        score: 92,
+        complete: true,
+        artifact: "",
+        answers: {},
+        missionChoices: {},
+        hintCount: 0,
+        createdAt: "2026-07-18T00:00:00.000Z",
+        capabilityLevel: "practice",
+        competencies: { communication: 1, leadership: 0.5 },
+        evidenceDimension: "aiCollaboration",
+        verificationLevel: "local-study",
+      }],
+    });
+    const readiness = trackReadiness(state, "it-support-technician");
+    expect(readiness.signals.find((signal) => signal.key === "communication")?.dimensions.understands).toBeGreaterThan(0);
+    expect(readiness.overall).toBeGreaterThan(30);
+  });
+
   it("ships both active tracks with full interview banks", () => {
     expect(Object.keys(tracks)).toHaveLength(2);
     expect(tracks["applied-ai-operations"].interviewQuestions).toHaveLength(
