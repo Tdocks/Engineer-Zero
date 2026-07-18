@@ -1,4 +1,4 @@
-from app.providers import DeterministicTrainingProvider
+from app.providers import DeterministicTrainingProvider, ExtractionUnavailable
 from app.service import triage_report
 
 
@@ -19,7 +19,7 @@ class FailingProvider:
     name = "test-provider"
 
     def extract(self, notes):
-        raise TimeoutError("Synthetic outage")
+        raise ExtractionUnavailable("Synthetic outage")
 
 
 def test_provider_outage_is_safe_degraded_mode():
