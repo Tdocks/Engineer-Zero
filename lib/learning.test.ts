@@ -120,6 +120,15 @@ describe("Engineer Zero track engine", () => {
     expect(findRegistryItem("it-support-technician", "it-sprint-01-service-reality", "wrong-version")).toBeUndefined();
   });
 
+  it("uses authored, position-balanced knowledge checks in the AIO interview Sprint", () => {
+    const sprint = aioModules.filter((module) => module.id.startsWith("aio-sprint-0") && module.pathAvailability?.includes("sprint-48h"));
+    expect(sprint).toHaveLength(8);
+    const correctPositions = sprint.flatMap((module) => module.knowledgeChecks.map((question) => question.choices.findIndex((choice) => choice.id === question.correctChoiceId)));
+    expect(new Set(correctPositions)).toEqual(new Set([0, 1, 2, 3]));
+    expect(sprint.every((module) => module.knowledgeChecks.length === 3)).toBe(true);
+    expect(sprint.flatMap((module) => module.knowledgeChecks).every((question) => question.choices.every((choice) => choice.text.length >= 32))).toBe(true);
+  });
+
   it("keeps commercial enrollment configuration server-side and explicitly gated", () => {
     expect(isPurchasableTrack("applied-ai-operations")).toBe(true);
     expect(isPurchasableTrack("coding-developer")).toBe(false);
