@@ -83,6 +83,7 @@ describe("Engineer Zero track engine", () => {
     expect(codingChallenges).toHaveLength(6);
     expect(codingDayPlans.every((day) => day.focusedHours === 10 && day.cadence.length >= 6)).toBe(true);
     expect(codingChallenges.every((challenge) => Boolean(challenge.comprehensionPrompt) && challenge.comprehensionRequirements.length >= 4)).toBe(true);
+    expect(codingDayPlans.find((day) => day.day === 3)?.localProjectPath).toBe("prototypes/coding-developer/ai-maintenance-report-triage");
     expect(new Set(codingLessons.map((lesson) => lesson.day))).toEqual(
       new Set([1, 2, 3, 4]),
     );
