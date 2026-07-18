@@ -367,7 +367,7 @@ export function CodingDeveloperApp() {
                 onSnapshotsChange={(snapshots) => setProgress({ ...progress, workbenchSnapshots: { ...(progress.workbenchSnapshots ?? {}), [challenge.id]: snapshots } })}
               /><button className="coding-primary coding-workbench-review" onClick={submitChallenge} disabled={reviewingChallenge}>{reviewingChallenge ? "Reviewing…" : "Review visible design"} <Braces size={16} /></button></>
             )}
-            {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
+            {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} initialErrorOutput={progress.notes[`tutor-error-${challenge.id}`] ?? ""} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} onErrorOutput={(value) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-error-${challenge.id}`]: value } })} />}
             <section className="coding-checklist"><h3>Visible design checks</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
             <section className="coding-comprehension">
               <header><span>Comprehension gate</span><h3>{challenge.comprehensionPrompt}</h3><p>Address the points below in separate, concrete sentences. The study review checks for distinct claims and rejects repeated labels or keyword padding; it is not an automated claim of independent coding ability.</p></header>

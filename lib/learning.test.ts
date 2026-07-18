@@ -36,7 +36,7 @@ import {
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
 import { createCodingExecutionProvider, validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
-import { codingTutorResponse } from "./coding-tutor";
+import { classifyTutorError, codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts } from "./coding-interview-prompts";
 import { reviewCodingInterview, reviewRequirementChangeInterview } from "./coding-interviews";
@@ -166,6 +166,10 @@ describe("Engineer Zero track engine", () => {
     expect(codingTutorResponse(challenge, challenge.starter, 0).stage).toBe("predict");
     expect(codingTutorResponse(challenge, challenge.starter, 5).stage).toBe("full");
     expect(codingTutorResponse(challenge, challenge.starter, 5).message).toContain("rebuild");
+    const response = codingTutorResponse(challenge, challenge.starter, 1, "pydantic ValidationError: field required");
+    expect(response.observedError?.category).toBe("Request validation");
+    expect(response.observedError?.diagnosis).toContain("contract mismatch");
+    expect(classifyTutorError("ModuleNotFoundError: No module named 'fastapi'")?.category).toBe("Environment or import");
   });
 
   it("does not let keyword stuffing pass coding interview evidence review", () => {
