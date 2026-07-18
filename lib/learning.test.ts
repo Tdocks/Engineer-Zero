@@ -579,10 +579,10 @@ describe("Engineer Zero track engine", () => {
       ),
       evidence: {
         scenarioFact: "The fictional engineering team loses time finding the current procedure during a controlled shift handoff.",
-        decision: "Run a read-only cited retrieval pilot rather than an autonomous assistant or unbounded document search.",
+        decision: "Recommend the tradeoff of a read-only cited retrieval pilot rather than an autonomous assistant or unbounded document search.",
         boundary: "Authorize the requester before retrieval, expose no write tools, and abstain when current sources conflict.",
         verification: "Test supported, denied, stale, conflicting, injected, and unsupported cases before pilot expansion, then review failures weekly.",
-        owner: "The named policy owner publishes the decision record while the engineering lead owns the controlled pilot outcome.",
+        owner: "The named policy owner publishes an evidence-based decision record for the engineering audience while the engineering lead owns the controlled pilot outcome.",
         escalation: "Stop expansion and return users to ordinary search if the agreed safety threshold is missed or evidence conflicts.",
         evidenceReferences: [],
       },

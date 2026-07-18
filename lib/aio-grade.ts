@@ -132,6 +132,48 @@ function gradeEvidence(
   };
 }
 
+function gradeActivityRules(
+  evidence: StructuredEvidence,
+  rules: Array<{
+    id: string;
+    label: string;
+    requiredTerms?: string[];
+    minimumMatches?: number;
+    requiredSections?: string[];
+  }>,
+) {
+  const fieldForSection: Record<string, EvidenceFieldKey> = {
+    context: "scenarioFact",
+    "scenario fact": "scenarioFact",
+    constraint: "boundary",
+    boundary: "boundary",
+    decision: "decision",
+    verification: "verification",
+    owner: "owner",
+    escalation: "escalation",
+  };
+  const fullText = normalize(artifactText(evidence));
+  return rules.map((rule) => {
+    const requiredFields = (rule.requiredSections ?? [])
+      .map((section) => fieldForSection[normalize(section)])
+      .filter((field): field is EvidenceFieldKey => Boolean(field));
+    const fieldsPresent = requiredFields.every((field) => words(evidence[field] ?? "").length >= 8);
+    const matchedTerms = (rule.requiredTerms ?? []).filter((term) => fullText.includes(normalize(term)));
+    const termsPresent = matchedTerms.length >= (rule.minimumMatches ?? rule.requiredTerms?.length ?? 0);
+    const passed = fieldsPresent && termsPresent;
+    return {
+      id: `rule-${rule.id}`,
+      label: rule.label,
+      passed,
+      detail: passed
+        ? "Activity-specific requirement is present."
+        : requiredFields.length && !fieldsPresent
+          ? "Make the required decision fields specific and complete."
+          : `Add concrete reasoning that addresses: ${(rule.requiredTerms ?? []).join(", ")}.`,
+    };
+  });
+}
+
 export function gradeCourseAttempt(input: {
   kind: CourseItemKind;
   itemId: string;
@@ -146,6 +188,13 @@ export function gradeCourseAttempt(input: {
   let explanations: Array<{ id: string; correct: boolean; explanation: string }> = [];
   let schema: ArtifactSchema;
   let validEvidenceReferences: string[] = [];
+  let activityRules: Array<{
+    id: string;
+    label: string;
+    requiredTerms?: string[];
+    minimumMatches?: number;
+    requiredSections?: string[];
+  }> = [];
   let completionFeedback = "";
   let missionPathComplete = true;
 
@@ -164,10 +213,12 @@ export function gradeCourseAttempt(input: {
       };
     });
     schema = definition.artifact;
+    activityRules = definition.rules;
     completionFeedback = "Revise the exact decision boundary and verification method; do not add generic labels.";
   } else if (input.kind === "lab") {
     const lab = item as (typeof aioLabs)[number];
     schema = lab.evidence;
+    activityRules = lab.rules;
     validEvidenceReferences = lab.assets.map((asset) => asset.name);
     completionFeedback = lab.revisionPrompt;
   } else {
@@ -198,7 +249,11 @@ export function gradeCourseAttempt(input: {
     completionFeedback = "Revise by tying your mission state to a named boundary, owner, and verification point.";
   }
 
-  const rubric = gradeEvidence(input.evidence, schema, validEvidenceReferences);
+  const baseRubric = gradeEvidence(input.evidence, schema, validEvidenceReferences);
+  const rubric = {
+    ...baseRubric,
+    checks: [...baseRubric.checks, ...gradeActivityRules(input.evidence, activityRules)],
+  };
   const checkScore = checkTotal ? (checkCorrect / checkTotal) * 40 : 40;
   const evidenceScore =
     (rubric.checks.filter((check) => check.passed).length / Math.max(rubric.checks.length, 1)) * 60;
