@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/internal/coding-source-health", "schedule": "0 12 * * 1" }
+    { "path": "/api/internal/coding-source-health", "schedule": "0 12 * * 1" },
+    { "path": "/api/internal/course-source-health", "schedule": "15 12 * * 1" }
   ]
 }

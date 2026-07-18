@@ -29,6 +29,14 @@ authenticated reviewer and their active role. It accepts only an item and
 content version present in the server-only course registry. Browser drafts,
 learner records, and UI state cannot approve content.
 
+## Source health
+
+The weekly `course-source-health` job records source reachability and
+revalidation status for every AIO and IT lesson, lab, and mission claim. It
+can flag overdue or inaccessible material, but it only writes
+`author_verified`, `overdue`, or `needs_attention`; a qualified technical
+review is still required before a commercial release claim.
+
 ## What still blocks release
 
 The review record is one release input, not a release switch. Commercial
