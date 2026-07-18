@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Braces, Bug, Check, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
+import { BarChart3, Braces, Bug, Check, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
 import { codingEvaluationCases, scoreCodingEvaluation, type EvaluationDisposition } from "@/lib/coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowDispositionLabels, toolWorkflowOptionsFor, type ToolWorkflowDisposition } from "@/lib/coding-tool-workflow";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "@/lib/coding-context-window";
+import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-git-review";
 
-type Mode = "api" | "ai" | "context" | "tools" | "evaluate" | "debug";
+type Mode = "api" | "ai" | "context" | "tools" | "evaluate" | "git" | "debug";
 
 const debugCases = [
   {
@@ -143,6 +144,12 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [contextReview, setContextReview] = useState<{ complete: boolean; withinBudget: boolean; totalTokens: number; budget: number; missing: string[]; unsafe: string[]; feedback: string } | null>(null);
   const [reviewingContext, setReviewingContext] = useState(false);
   const [contextReviewError, setContextReviewError] = useState("");
+  const [gitFiles, setGitFiles] = useState<string[]>([]);
+  const [gitCommitId, setGitCommitId] = useState("");
+  const [gitReviewerNote, setGitReviewerNote] = useState("");
+  const [gitReview, setGitReview] = useState<{ complete: boolean; missing: string[]; unsafe: string[]; missingClaims: string[]; messageMatches: boolean; feedback: string } | null>(null);
+  const [reviewingGit, setReviewingGit] = useState(false);
+  const [gitReviewError, setGitReviewError] = useState("");
 
   const runApi = () => {
     if (method !== "POST" || route !== "/triage") return setApiResult({ status: 404, body: '{"detail":"No matching training route"}' });
@@ -186,6 +193,17 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
     }
   };
   const contextTokens = selectedContextTokens(selectedContext);
+  const reviewGitChange = async () => {
+    setReviewingGit(true); setGitReviewError("");
+    try {
+      const response = await fetch("/api/coding/git-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selectedFiles: gitFiles, commitId: gitCommitId, reviewerNote: gitReviewerNote }) });
+      const result = await response.json() as { error?: string; complete?: boolean; missing?: string[]; unsafe?: string[]; missingClaims?: string[]; messageMatches?: boolean; feedback?: string };
+      if (!response.ok || typeof result.complete !== "boolean" || !Array.isArray(result.missing) || !Array.isArray(result.unsafe) || !Array.isArray(result.missingClaims) || typeof result.messageMatches !== "boolean" || !result.feedback) throw new Error(result.error ?? "The Git review did not return a valid result.");
+      setGitReview(result as NonNullable<typeof gitReview>);
+      if (result.complete) onEvidence("git-review", "Created a scoped fictional Git change with an exact-boundary test, matching documentation, and no secret or local-output files.");
+    } catch (error) { setGitReviewError(error instanceof Error ? error.message : "The Git review could not be scored. Keep your work and retry."); }
+    finally { setReviewingGit(false); }
+  };
   const reviewContextSelection = async () => {
     setReviewingContext(true);
     setContextReviewError("");
@@ -216,6 +234,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <button className={mode === "context" ? "active" : ""} onClick={() => setMode("context")}><Layers3 size={16} /> Context window</button>
       <button className={mode === "tools" ? "active" : ""} onClick={() => setMode("tools")}><Workflow size={16} /> Tool workflow</button>
       <button className={mode === "evaluate" ? "active" : ""} onClick={() => setMode("evaluate")}><BarChart3 size={16} /> Evaluation set</button>
+      <button className={mode === "git" ? "active" : ""} onClick={() => setMode("git")}><GitPullRequest size={16} /> Change review</button>
       <button className={mode === "debug" ? "active" : ""} onClick={() => setMode("debug")}><Bug size={16} /> Debug Bay</button>
     </nav>
 
@@ -258,6 +277,14 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <header><p className="coding-kicker">EVALUATION SET · FICTIONAL CASES</p><h3>Decide what the workflow should do before calling a model successful.</h3><p>Choose whether each case can proceed to trusted policy, needs human clarification, or must be rejected. These are intentionally small training cases; a production evaluation set requires representative data and accountable quality thresholds.</p></header>
       <div className="evaluation-grid">{codingEvaluationCases.map((item, index) => <section key={item.id}><span>Case {String(index + 1).padStart(2, "0")}</span><p>{item.note}</p><fieldset><legend className="sr-only">Disposition for case {index + 1}</legend>{(["accept", "escalate", "reject"] as const).map((choice) => <label key={choice}><input type="radio" name={item.id} checked={evaluationChoices[item.id] === choice} onChange={() => setEvaluationChoices((current) => ({ ...current, [item.id]: choice }))} /> {choice === "accept" ? "Accept structured facts" : choice === "escalate" ? "Escalate for human clarification" : "Reject as unsupported or unsafe"}</label>)}</fieldset>{evaluationResult && <aside className={evaluationChoices[item.id] === item.expected ? "correct" : "incorrect"}><b>{evaluationChoices[item.id] === item.expected ? "Appropriate disposition" : "Reconsider this boundary"}</b><p>{item.reason}</p></aside>}</section>)}</div>
       <footer><div><span>Fictional evaluation dashboard</span><p>{evaluationResult ? `${evaluationResult.correct}/${evaluationResult.total} correct disposition decisions` : "Complete each case to inspect the learning dashboard."}</p><small>Illustrative run estimate: {codingEvaluationCases.length * 350} ms total latency · $0.03 synthetic cost. These values are teaching inputs, not provider telemetry.</small></div><button className="coding-primary" disabled={Object.keys(evaluationChoices).length !== codingEvaluationCases.length} onClick={() => { const result = scoreCodingEvaluation(evaluationChoices); setEvaluationResult(result); if (result.correct === result.total) onEvidence("evaluation-set", "Classified all six fictional evaluation cases with a safe accept, escalate, or reject disposition."); }}>Score evaluation choices <Check size={16} /></button></footer>
+    </article>}
+
+    {mode === "git" && <article className="coding-git-review">
+      <header><p className="coding-kicker">GIT REVIEW · SCOPE BEFORE COMMIT</p><h3>{codingGitReviewScenario.title}</h3><p>{codingGitReviewScenario.summary} This is a fictional local review exercise—no repository, branch, or credential is created.</p><div><span>{codingGitReviewScenario.base}</span><b>→</b><span>{codingGitReviewScenario.branch}</span></div></header>
+      <section className="coding-git-files"><h4>Proposed files</h4>{codingGitReviewScenario.files.map((file) => <label key={file.path}><input type="checkbox" checked={gitFiles.includes(file.path)} onChange={() => { setGitFiles((current) => current.includes(file.path) ? current.filter((path) => path !== file.path) : [...current, file.path]); setGitReview(null); }} /><article><header><code>{file.path}</code><span>{file.purpose}</span></header><pre>{file.change}</pre></article></label>)}</section>
+      <section className="coding-git-commit"><fieldset><legend>Commit message</legend>{codingGitCommitOptions.map((option) => <label key={option.id}><input type="radio" name="git-commit" checked={gitCommitId === option.id} onChange={() => { setGitCommitId(option.id); setGitReview(null); }} /> {option.label}</label>)}</fieldset><label>Reviewer note<textarea value={gitReviewerNote} onChange={(event) => { setGitReviewerNote(event.target.value); setGitReview(null); }} placeholder="Explain the exact boundary change, regression test, documentation update, and why an unsafe file is excluded…" aria-label="Git reviewer note" /></label></section>
+      <footer><div><b>{gitReview?.complete ? "Reviewable change assembled" : "Select a focused change set before requesting review."}</b><p>{gitReview ? gitReview.feedback : "A useful commit makes one behavior change legible to another engineer. It includes direct evidence and excludes secrets and incidental artifacts."}</p>{gitReview && !gitReview.complete && <small>{gitReview.missing.length > 0 ? `Missing files: ${gitReview.missing.join(", ")}. ` : ""}{gitReview.unsafe.length > 0 ? `Remove: ${gitReview.unsafe.join(", ")}. ` : ""}{gitReview.missingClaims.length > 0 ? `Add to the reviewer note: ${gitReview.missingClaims.join(", ")}. ` : ""}{!gitReview.messageMatches ? "Choose a message that names the focused behavior and test." : ""}</small>}</div><button className="coding-primary" disabled={gitFiles.length === 0 || !gitCommitId || !gitReviewerNote.trim() || reviewingGit} onClick={reviewGitChange}>{reviewingGit ? "Reviewing change…" : "Review proposed change"} <GitPullRequest size={16} /></button></footer>
+      {gitReviewError && <p className="coding-form-error">{gitReviewError}</p>}
     </article>}
 
     {mode === "debug" && <article className="coding-system-workspace">

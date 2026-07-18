@@ -37,6 +37,7 @@ import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } f
 import { createCodingExecutionProvider, validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { classifyTutorError, codingTutorResponse } from "./coding-tutor";
+import { reviewCodingGitChange } from "./coding-git-review-rubric";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts } from "./coding-interview-prompts";
 import { reviewCodingInterview, reviewRequirementChangeInterview } from "./coding-interviews";
@@ -171,6 +172,14 @@ describe("Engineer Zero track engine", () => {
     expect(response.observedError?.category).toBe("Request validation");
     expect(response.observedError?.diagnosis).toContain("contract mismatch");
     expect(classifyTutorError("ModuleNotFoundError: No module named 'fastapi'")?.category).toBe("Environment or import");
+  });
+
+  it("requires a focused, secret-free Git review with an exact regression test", () => {
+    const weak = reviewCodingGitChange(["app/services.py", ".env"], "misc-edits", "I changed the service.");
+    expect(weak.complete).toBe(false);
+    expect(weak.unsafe).toContain(".env");
+    const strong = reviewCodingGitChange(["app/services.py", "tests/test_services.py", "README.md"], "threshold-boundary", "The 88 degree boundary changes deterministic triage behavior, so I added a direct test and updated the README. The .env secret remains outside the commit.");
+    expect(strong.complete).toBe(true);
   });
 
   it("does not let keyword stuffing pass coding interview evidence review", () => {
