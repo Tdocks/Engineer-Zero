@@ -34,7 +34,7 @@ import {
   validateCodingProgram,
 } from "./coding-developer";
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
-import { createCodingExecutionProvider, validateExecutionRequest } from "./coding-execution";
+import { createCodingExecutionProvider, sandboxConfiguration, validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { classifyTutorError, codingTutorResponse } from "./coding-tutor";
 import { reviewCodingGitChange } from "./coding-git-review-rubric";
@@ -314,7 +314,9 @@ describe("Engineer Zero track engine", () => {
     expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "python main.py", files: [{ path: "../outside.py", content: "print('no')" }] })).toContain("relative Python files");
     const unconfigured = createCodingExecutionProvider({} as NodeJS.ProcessEnv);
     expect(unconfigured.policy).toBeNull();
-    const configured = createCodingExecutionProvider({ CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv);
+    expect(sandboxConfiguration({ CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv)).toBeNull();
+    expect(sandboxConfiguration({ CODING_SANDBOX_APPROVED: "true", CODING_SANDBOX_ENDPOINT: "http://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv)).toBeNull();
+    const configured = createCodingExecutionProvider({ CODING_SANDBOX_APPROVED: "true", CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv);
     expect(configured.policy?.network).toBe("denied");
     expect(configured.policy?.readOnlyBaseImage).toBe(true);
   });

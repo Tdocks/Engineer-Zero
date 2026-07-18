@@ -36,10 +36,42 @@ export type ExecutionProvider = {
   name: string;
 };
 
+export type SandboxConfiguration = {
+  endpoint: string;
+  token: string;
+  approved: true;
+};
+
 const maxFiles = 12;
 const maxFileBytes = 30_000;
 const maxSourceBytes = 100_000;
 const safePath = /^[a-zA-Z0-9_./-]+\.py$/;
+
+/**
+ * Enabling a remote runner is a security decision, not a convenience flag.
+ * The explicit approval marker prevents a copied endpoint/token pair from
+ * silently changing the product from its safe, local-project handoff mode.
+ */
+export function sandboxConfiguration(
+  environment = process.env,
+): SandboxConfiguration | null {
+  const endpoint = environment.CODING_SANDBOX_ENDPOINT?.trim();
+  const token = environment.CODING_SANDBOX_TOKEN?.trim();
+  if (!endpoint || !token || environment.CODING_SANDBOX_APPROVED !== "true") {
+    return null;
+  }
+
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  return { endpoint, token, approved: true };
+}
 
 export function validateExecutionRequest(request: ExecutionRequest): string | null {
   if (request.language !== "python") return "Only the Python learning runtime is planned for this exercise.";
@@ -98,7 +130,9 @@ export class RemoteSandboxExecutionProvider implements ExecutionProvider {
         signal: AbortSignal.timeout(this.policy.maxCpuMs + 2_000),
       });
       const body = (await response.json().catch(() => null)) as RemoteSandboxResponse | null;
-      if (!response.ok || !body || !["completed", "rejected"].includes(body.status) || typeof body.stdout !== "string" || typeof body.stderr !== "string" || (body.exitCode !== null && typeof body.exitCode !== "number") || (body.durationMs !== null && typeof body.durationMs !== "number")) {
+      const validDuration = body?.durationMs === null ||
+        (typeof body?.durationMs === "number" && body.durationMs >= 0 && body.durationMs <= this.policy.maxCpuMs);
+      if (!response.ok || !body || !["completed", "rejected"].includes(body.status) || typeof body.stdout !== "string" || typeof body.stderr !== "string" || (body.exitCode !== null && typeof body.exitCode !== "number") || !validDuration) {
         return { status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated sandbox did not return a valid bounded execution result. No learner code was run by the web application." };
       }
       const stdout = body.stdout.slice(0, this.policy.maxOutputBytes);
@@ -111,9 +145,10 @@ export class RemoteSandboxExecutionProvider implements ExecutionProvider {
 }
 
 export function createCodingExecutionProvider(environment = process.env): ExecutionProvider {
-  const endpoint = environment.CODING_SANDBOX_ENDPOINT;
-  const token = environment.CODING_SANDBOX_TOKEN;
-  return endpoint && token ? new RemoteSandboxExecutionProvider(endpoint, token) : new UnconfiguredExecutionProvider();
+  const configuration = sandboxConfiguration(environment);
+  return configuration
+    ? new RemoteSandboxExecutionProvider(configuration.endpoint, configuration.token)
+    : new UnconfiguredExecutionProvider();
 }
 
 export const codingExecutionProvider = createCodingExecutionProvider();

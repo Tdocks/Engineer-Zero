@@ -1,6 +1,12 @@
 # Coding Developer sandbox-provider contract
 
-The main Engineer Zero application must never execute learner code. A sandbox is optional and remains disabled unless both `CODING_SANDBOX_ENDPOINT` and `CODING_SANDBOX_TOKEN` are configured.
+The main Engineer Zero application must never execute learner code. A sandbox is optional and remains disabled unless all three deployment values are configured:
+
+- `CODING_SANDBOX_APPROVED=true`
+- `CODING_SANDBOX_ENDPOINT` — an HTTPS endpoint without credentials, a query string, or a fragment
+- `CODING_SANDBOX_TOKEN` — a server-only credential
+
+The approval marker is deliberately separate from the endpoint and token. It prevents an accidental configuration change from activating arbitrary code execution before the provider has completed security review.
 
 ## Required isolation controls
 
@@ -41,3 +47,14 @@ It accepts only a JSON result with `status`, `stdout`, `stderr`, `exitCode`, and
 ## Launch verification
 
 Before enabling the variables, security review must confirm the isolation controls with a controlled breakout test, timeout test, output-limit test, denied-network test, and audit-event inspection. This document is an interface contract, not evidence that a provider meets it.
+
+Record these launch artifacts outside this repository before setting `CODING_SANDBOX_APPROVED=true`:
+
+1. Provider name, image digest, deployment region, and approval date.
+2. Evidence that outbound network, host mounts, Docker socket access, privilege escalation, and sibling-container visibility are denied.
+3. A test that an infinite loop is terminated, a memory limit is enforced, and oversized stdout/stderr is truncated.
+4. A test proving the provider rejects paths outside the temporary workspace and commands outside the documented allowlist.
+5. An audit sample showing request metadata and result metadata without source code, learner secrets, or provider credentials.
+6. Named security and engineering reviewers, plus a planned re-review date after any runner-image or provider change.
+
+If a provider returns malformed data, claims a duration beyond the declared limit, or cannot be reached, Engineer Zero treats the attempt as unavailable. It must not show a passing run, award runtime evidence, or modify the learner's project.
