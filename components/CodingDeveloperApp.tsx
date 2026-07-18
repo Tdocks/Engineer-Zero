@@ -9,6 +9,7 @@ import { CodingSystemsLab } from "@/components/CodingSystemsLab";
 import { CodingContinuation } from "@/components/CodingContinuation";
 import { CodingInterviewArena } from "@/components/CodingInterviewArena";
 import { CodingBossBattles } from "@/components/CodingBossBattles";
+import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import {
   codingChallenges,
   codingDayPlans,
@@ -324,6 +325,7 @@ export function CodingDeveloperApp() {
                 <footer><button className="coding-secondary" onClick={() => setCode(challenge.starter)}><RotateCcw size={15} /> Reset starter</button><button className="coding-primary" onClick={submitChallenge}>Check work <Braces size={16} /></button></footer>
               </section>
             )}
+            {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
             <section className="coding-checklist"><h3>What the reviewer looks for</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
             <section className="coding-comprehension">
               <header><span>Comprehension gate</span><h3>{challenge.comprehensionPrompt}</h3><p>Address the points below in your own words. This records an explanation for review; it is not an automated claim of independent coding ability.</p></header>

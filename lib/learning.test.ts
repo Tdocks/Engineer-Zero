@@ -32,6 +32,7 @@ import {
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
 import { validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
+import { codingTutorResponse } from "./coding-tutor";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -96,6 +97,13 @@ describe("Engineer Zero track engine", () => {
     expect(weak.missing).toContain("validation");
     const strong = reviewBossBattle(battle, "The request validation must reject the empty equipment field with a 422 response before the route calls a pure service function. I would repair the exact 90 threshold in the service, add a direct boundary test, add an HTTP validation test, inspect the response contract, keep formatting in the route, and rerun the focused regression suite before making any broader change. The recovery is complete only after the requirement and verification are visible to a reviewer.", 0);
     expect(strong.status).toBe("reviewed");
+  });
+
+  it("keeps coding tutor assistance progressive and non-executing", () => {
+    const challenge = codingChallenges.find((item) => item.id === "coding-triage-api")!;
+    expect(codingTutorResponse(challenge, challenge.starter, 0).stage).toBe("predict");
+    expect(codingTutorResponse(challenge, challenge.starter, 5).stage).toBe("full");
+    expect(codingTutorResponse(challenge, challenge.starter, 5).message).toContain("rebuild");
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {
