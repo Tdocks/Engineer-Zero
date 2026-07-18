@@ -25,6 +25,8 @@ export type CodingSource = {
   revalidateBy?: string;
   sourceType?: "official_documentation" | "government_guidance" | "peer_reviewed_research";
   deprecationStatus?: "current" | "deprecated";
+  /** Author verification is not a substitute for independent technical review. */
+  reviewStatus?: "author-verified" | "technical-review-required" | "technical-approved";
   /** Required only when a source or worked pattern is formally deprecated. */
   replacementLessonId?: string;
   supportedClaim: string;
@@ -340,6 +342,7 @@ for (const [key, source] of Object.entries(codingSources)) {
     : key === "dunloskyPractice" || key === "freemanActiveLearning"
       ? "peer_reviewed_research"
       : "official_documentation";
+  source.reviewStatus ??= "author-verified";
 }
 
 /**
@@ -786,6 +789,7 @@ export function validateCodingProgram() {
     if (!source.revalidateBy) issues.push(`Source lacks a revalidation date: ${source.id}`);
     if (!source.sourceType) issues.push(`Source lacks a hierarchy type: ${source.id}`);
     if (!source.deprecationStatus) issues.push(`Source lacks a deprecation status: ${source.id}`);
+    if (!source.reviewStatus) issues.push(`Source lacks an independent-review status: ${source.id}`);
     if (source.deprecationStatus === "deprecated" && !source.replacementLessonId) issues.push(`Deprecated source lacks a replacement lesson: ${source.id}`);
   }
   for (const concept of codingConcepts) {

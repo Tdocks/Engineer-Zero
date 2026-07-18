@@ -23,18 +23,18 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 | AI Systems Lab | Structured-output comparison, injection decision, Debug Bay | Partial: no real model-cost/latency telemetry until a controlled provider is configured. |
 | Interview Arena | Timed prompts, guided/limited/no-hint mode, follow-up pressure question | Partial: no voice transcription or dynamic live coach. |
 | Review Board | Five reviewer perspectives and saved local responses | Partial: no human or qualified-reviewer approval workflow. |
-| Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records | Partial: response review is deterministic and should not certify independent coding skill. |
+| Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records; Code Lab and Interview Arena require distinct evidence segments and reject repeated keyword padding | Partial: deterministic study review still cannot certify independent coding skill or runtime correctness. |
 | Assessment weights | Functional, decomposition, defense, debugging, data, security categories exist in challenge/interview mappings | Partial: no trusted aggregate graduation calculation yet. |
 | Gamification | Six XP categories, evidence milestones, five boss battles, targeted recovery drills, and delayed-recall prompts | Partial: daily streak and cross-device recovery routing require trusted learner records. |
 | One-month continuation | Four sequenced continuation modules with artifacts, defense prompts, SQLite Issue Tracker, knowledge assistant, and handoff capstone | Partial: reviewer-approved artifacts and collaborative hosted Git evidence are still absent. |
-| Versioned source-of-truth | Source registry includes publisher, canonical URL, version, locator, claim, verified/revalidation dates, hierarchy type, deprecation status/replacement metadata, and individually authored per-concept definition/application/limitation/assessment mappings | Partial: automatic source-revalidation jobs remain to be added. |
+| Versioned source-of-truth | Source registry includes publisher, canonical URL, version, locator, claim, verified/revalidation dates, hierarchy type, deprecation status/replacement metadata, review status, individually authored per-concept definition/application/limitation/assessment mappings, and a source-health publication report | Partial: automatic scheduled revalidation and independent technical approval remain to be added. |
 | Isolated code execution | Server-side `ExecutionProvider` contract validates bounded requests; unconfigured provider refuses execution | Partial by design: no sandbox provider is configured and the main web process never executes learner code. |
 | AI tutor | Deterministic progressive tutor follows prediction → failing region → concept → pseudocode → partial correction → complete-pattern hierarchy | Partial: no live provider-backed tutor or code/error-aware sandbox context yet. |
 | Guardrails | No production/safety-critical claims; fictional data; provider failures degrade safely | Implemented in current local product. |
 
 ## Verified implementation evidence
 
-- `npm test`: 26 tests pass after the instructional engine, source-record, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, learner-draft, and terminal-simulation work.
+- `npm test`: 29 tests pass after the instructional engine, source-record/governance, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, anti-padding, learner-draft, and terminal-simulation work.
 - `npm run build`: succeeds and includes protected assessment and execution routes.
 - Local projects remain separate from the web process and use only fictional training data. Their independent test suites pass from their own folders (4 CLI, 4 API, 3 AI-triage, 5 approval-workflow, 4 handoff-capstone tests); they intentionally must not be collected as one Python package.
 
@@ -45,3 +45,9 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 3. Add an automated source-revalidation job and reviewer workflow for source changes.
 4. Derive a verified weighted readiness calculation from server-owned coding attempts rather than local-study records.
 5. Require qualified human review for any credential or portfolio-readiness claim.
+
+## Latest integrity controls
+
+- Code Lab gives only a **local study review**. It must observe the required non-comment code structures, reject prohibited patterns, and find every activity-specific evidence claim in distinct explanatory segments. A string of checklist words or headings cannot mark the lab reviewed.
+- Interview Arena uses the same evidence-segment and repetition checks. It remains a preparation tool rather than an authority on a learner's job performance.
+- The source-health report makes overdue or deprecated materials block publication. All current records are still only author-verified; an independent technical reviewer must mark them approved before a commercial credential claim is defensible.

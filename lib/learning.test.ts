@@ -20,6 +20,7 @@ import {
   codingChallenges,
   codingDayPlans,
   codingDeveloperProgram,
+  codingSources,
   codingBadges,
   codingConcepts,
   codingConceptRecords,
@@ -39,6 +40,7 @@ import { codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts, reviewCodingInterview } from "./coding-interviews";
 import { reviewCodingChallenge } from "./coding-challenge-review";
+import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -165,6 +167,16 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingChallenge(challenge, visibleButEmpty, stuffed).status).toBe("needs-revision");
     const evidenceRich = "The input is a temperature value and the function returns NORMAL, REVIEW, or URGENT for the calling CLI. I would test the exact 90-degree threshold boundary because a temperature of 89 and 90 must deliberately take different branches. This remains a deterministic rule rather than an AI task because the explicit threshold must be repeatable and easy to audit. I would add an assertion for 90 plus an invalid text-value check that raises a visible validation error instead of quietly returning NORMAL. Before expanding the prototype, I would run those tests and document the rule assumptions for the operations owner.";
     expect(reviewCodingChallenge(challenge, visibleButEmpty, evidenceRich).status).toBe("reviewed");
+  });
+
+  it("keeps dated sources visible and blocks commercial publication when review is due", () => {
+    const report = codingSourceReviewReport(undefined, new Date("2026-07-18T12:00:00.000Z"));
+    expect(report).toHaveLength(Object.keys(codingSources).length);
+    expect(report.every((source) => source.disposition === "current" && Boolean(source.reviewStatus))).toBe(true);
+    const overdue = codingCatalogPublicationStatus(undefined, new Date("2027-02-01T12:00:00.000Z"));
+    expect(overdue.publishable).toBe(false);
+    expect(overdue.stale.length).toBeGreaterThan(0);
+    expect(codingCatalogPublicationStatus().awaitingTechnicalReview.length).toBeGreaterThan(0);
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {
