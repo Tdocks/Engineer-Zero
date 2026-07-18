@@ -172,8 +172,8 @@ function lessonBlocksFor(item: CourseItem): CourseBlock[] {
     blocks.push({ type: "evidenceAsset", name: asset.name, content: asset.content, kind: asset.kind });
   }
   if (item.misconceptions?.length) blocks.push({ type: "misconception", heading: "Common mistaken assumptions", items: item.misconceptions });
-  if (!blocks.length && (item.outcome ?? item.task ?? item.briefing)) {
-    blocks.push({ type: "prose", body: item.outcome ?? item.task ?? item.briefing ?? "" });
+  if (!blocks.length && (item.outcome ?? item.task)) {
+    blocks.push({ type: "prose", body: item.outcome ?? item.task ?? "" });
   }
   return blocks;
 }

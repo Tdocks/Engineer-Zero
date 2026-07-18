@@ -14,7 +14,7 @@ import { gradeCourseAttempt } from "./aio-grade";
 import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
-import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
+import { itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import { itSupportPublicCatalog } from "./it-support-public-catalog";
 import { gradeItSupportCourseAttempt } from "./it-support-grade";
 import { aioPublicCatalog } from "./aio-public-catalog";
@@ -456,6 +456,16 @@ describe("Engineer Zero track engine", () => {
       new Set(["Solo", "Pair Programming", "AI Builder", "Production Incident"]),
     );
     expect(itSupportLabs.every((lab) => lab.assets.length >= 3 && lab.evidence.requireEvidenceReference && lab.rules.length >= 3 && Boolean(lab.debrief && lab.revisionPrompt))).toBe(true);
+  });
+
+  it("ships stateful IT Support missions with safe and unsafe operational consequences", () => {
+    expect(itSupportMissions).toHaveLength(2);
+    for (const mission of itSupportMissions) {
+      const decisions = mission.steps.filter((step) => step.id !== "outcome");
+      expect(decisions).toHaveLength(3);
+      expect(decisions.every((step) => step.options.some((option) => option.safe) && step.options.some((option) => !option.safe))).toBe(true);
+      expect(mission.rules?.length).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it("does not expose AIO baseline answer keys or a fixed answer position", () => {

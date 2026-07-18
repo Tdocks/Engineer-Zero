@@ -4,7 +4,7 @@ import {
   aioMissions,
   aioModules,
 } from "./aio-content";
-import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
+import { itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import { isReleaseApproved } from "./course-types";
 
 type Validation = { id: string; message: string };
@@ -202,10 +202,25 @@ export function validateItSupportContent(
     if (options.requireReleaseApproval && !isReleaseApproved(lab.review))
       errors.push({ id: lab.id, message: "Lab lacks qualified release approval." });
   }
+  for (const mission of itSupportMissions) {
+    add(mission.id);
+    if (mission.steps.length < 4 || mission.steps.some((step) => step.options.length < 1))
+      errors.push({ id: mission.id, message: "Mission needs a persisted decision path and outcome." });
+    const decisionSteps = mission.steps.filter((step) => step.id !== "outcome");
+    if (decisionSteps.some((step) => step.options.length < 3 || !step.options.some((option) => option.safe) || !step.options.some((option) => !option.safe)))
+      errors.push({ id: mission.id, message: "Each decision needs plausible safe and unsafe outcomes." });
+    if (!mission.artifact.requiredFields?.length || (mission.rules?.length ?? 0) < 3 || !mission.debrief)
+      errors.push({ id: mission.id, message: "Mission needs structured evidence, deterministic rules, and debrief." });
+    if (!mission.sources.length || mission.sources.some((record) => !record.version || !record.locator || !record.supportedClaim || !record.revalidateBy))
+      errors.push({ id: mission.id, message: "Mission needs versioned, claim-mapped source records." });
+    if (options.requireReleaseApproval && !isReleaseApproved(mission.review))
+      errors.push({ id: mission.id, message: "Mission lacks qualified release approval." });
+  }
   return errors;
 }
 
 export const itSupportContentCounts = {
   sprintModules: itSupportSprintModules.length,
   labs: itSupportLabs.length,
+  missions: itSupportMissions.length,
 };

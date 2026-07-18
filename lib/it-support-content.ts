@@ -6,6 +6,7 @@ import {
   type CourseModule,
   type EvidenceFieldKey,
   type LabDefinition,
+  type MissionDefinition,
 } from "./course-types";
 import { itSupportBaselineSources } from "./it-support-baseline";
 import type { CompetencyKey } from "./types";
@@ -508,6 +509,124 @@ export const itSupportLabs: LabDefinition[] = [
     ],
     debrief: "A printer that is online can still fail at media, calibration, template, queue, driver, port, or device. The best recovery avoids uncontrolled reprints, protects the required label format, verifies the scan path, and leaves a prevention owner.",
     revisionPrompt: "Make the recovery specific to the known media change and line impact. Add the approved fallback constraint, an observable scan test, and a named follow-up owner.",
+    sources: source("printing", "incidentResponse"),
+    review: draftReview,
+  },
+];
+
+const missionArtifact = (required: string[]) => ({
+  type: "decision-record" as const,
+  required,
+  minimumWords: 110,
+  requiredFields,
+});
+
+/** Stateful fictional missions. Choices alter the path and the submitted
+ * decision record must still demonstrate a safe, accountable recovery. */
+export const itSupportMissions: MissionDefinition[] = [
+  {
+    id: "it-mission-01-metrology-connectivity",
+    title: "Mission: restore a restricted metrology endpoint",
+    phaseId: "master-track",
+    competencies: { architecture: 1, security: 0.9, communication: 0.6, production: 0.7 },
+    briefing: "Fictional metrology device M-27 was moved to Bay 4 and cannot resolve the approved data-service hostname. The test lead wants it connected before the next run. You are the support technician coordinating a safe recovery, not the network owner.",
+    startStepId: "step-intake",
+    steps: [
+      {
+        id: "step-intake",
+        title: "Scope the failure",
+        prompt: "M-27 has link, an assigned address, and gateway replies, but the hostname lookup times out. What do you do first?",
+        requiredChoiceId: "scope-evidence",
+        options: [
+          { id: "static-workaround", text: "Assign an unused-looking static address and an unrestricted resolver so the test lead can continue immediately.", safe: false, disposition: "unsafe", consequence: "This hides the address and segmentation question, bypasses network ownership, and creates an unsupported state." },
+          { id: "scope-evidence", text: "Record device identity, Bay 4 location, expected restricted network, address/gateway/DNS behavior, timestamps, affected workflow, and nearby-device comparison.", safe: true, disposition: "conventional", consequence: "You create an escalation-ready packet without changing protected infrastructure.", nextStepId: "step-boundary" },
+          { id: "broad-reimage", text: "Reimage the device before collecting network evidence because an endpoint reset is required before a port can be reviewed.", safe: false, disposition: "unsafe", consequence: "The reimage consumes time and can destroy useful scope evidence without testing the leading hypothesis." },
+        ],
+      },
+      {
+        id: "step-boundary",
+        title: "Choose the recovery boundary",
+        prompt: "Network engineering confirms that the Bay 4 port is currently assigned to a different approved segment. What is the safest next decision?",
+        requiredChoiceId: "approved-segmentation",
+        options: [
+          { id: "approved-segmentation", text: "Request the accountable network owner apply the approved restricted path for M-27, then keep the test lead informed of the recovery checkpoint.", safe: true, disposition: "human-approved", consequence: "The segment change remains attributable while support coordinates user impact and verification.", nextStepId: "step-verify" },
+          { id: "open-segment", text: "Ask for a broad network segment because it is faster and the device only needs temporary access for this run.", safe: false, disposition: "unsafe", consequence: "A broad segment may violate the device’s intended boundary and makes later recovery less controlled." },
+          { id: "personal-hotspot", text: "Use an unapproved alternate connection so M-27 can bypass organizational network controls until the port is fixed.", safe: false, disposition: "unsafe", consequence: "The workaround bypasses the required path and creates a new operational and security concern." },
+        ],
+      },
+      {
+        id: "step-verify",
+        title: "Verify and prevent recurrence",
+        prompt: "The authorized change has completed. What closes the support portion responsibly?",
+        requiredChoiceId: "workflow-verification",
+        options: [
+          { id: "workflow-verification", text: "Confirm approved name resolution and the actual metrology workflow with the test lead, document the port/context, and assign a move-process follow-up owner.", safe: true, disposition: "conventional", consequence: "Recovery is tied to the required operation and produces a prevention path.", nextStepId: "outcome" },
+          { id: "ping-close", text: "Close the ticket after one gateway ping because link and an address prove that the metrology service is available.", safe: false, disposition: "unsafe", consequence: "A gateway ping does not verify DNS or the required service workflow." },
+          { id: "silent-close", text: "Leave the incident open with no update because the network team made the change and owns every remaining communication task.", safe: false, disposition: "unsafe", consequence: "Support still owns a clear user update, verification, and handoff record for the work it coordinated." },
+        ],
+      },
+      { id: "outcome", title: "Controlled recovery", prompt: "The fictional metrology endpoint is restored through the approved path. Save a decision record that shows the evidence, boundary, verification, owner, and prevention follow-up.", requiredChoiceId: "record", options: [{ id: "record", text: "Prepare the evidence-backed support record.", safe: true, consequence: "Your operational decision is ready for review." }] },
+    ],
+    artifact: missionArtifact(["State endpoint-side evidence", "Describe approved segmentation decision", "Name network ownership boundary", "Verify required metrology workflow", "Assign prevention owner"]),
+    rules: [
+      { id: "dns-evidence", label: "Differentiate DNS from gateway or address evidence", requiredTerms: ["dns", "hostname", "gateway", "address"], minimumMatches: 3 },
+      { id: "segmentation", label: "Keep segmentation with the accountable network owner", requiredTerms: ["network", "owner", "approved", "segment"], minimumMatches: 3 },
+      { id: "workflow", label: "Verify the actual metrology work and follow-up", requiredTerms: ["metrology", "workflow", "verify", "follow-up"], minimumMatches: 3 },
+    ],
+    debrief: "The correct outcome is conventional, controlled network recovery—not a static-address, broad-segment, or bypass workaround. Endpoint support supplies the evidence, coordinates the user, and verifies the actual work while the accountable team owns segmentation.",
+    sources: source("windowsTroubleshooting", "vlan", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-mission-02-label-printing-outage",
+    title: "Mission: contain a compliant-label outage",
+    phaseId: "master-track",
+    competencies: { production: 1, roleJudgment: 0.8, communication: 0.8, foundations: 0.7 },
+    briefing: "Fictional shipping line 4 produces blank labels after a media change. The queue is growing, a backup printer exists, and compliance requires the correct approved template and a scannable output. You must protect the line without inventing a risky fix.",
+    startStepId: "step-contain",
+    steps: [
+      {
+        id: "step-contain",
+        title: "Contain the impact",
+        prompt: "LINE4-ZT411 is online with 86 queued jobs; blank labels began after direct-thermal media replaced thermal-transfer stock while a ribbon remained installed. What is your first action?",
+        requiredChoiceId: "contain-and-scope",
+        options: [
+          { id: "mass-reprint", text: "Retry every queued job until a visible label appears, then investigate only if the same job fails repeatedly.", safe: false, disposition: "unsafe", consequence: "Uncontrolled reprints can create incorrect or duplicate labels and add confusion to the recovery." },
+          { id: "contain-and-scope", text: "Pause uncontrolled reprints, capture queue/media/ribbon/template facts, acknowledge line impact, and define a short recovery checkpoint.", safe: true, disposition: "conventional", consequence: "You protect the operation while preserving the evidence needed for a controlled test.", nextStepId: "step-recover" },
+          { id: "delete-queue", text: "Delete the shared queue and reinstall all drivers before checking whether media, calibration, or template selection is the immediate fault.", safe: false, disposition: "unsafe", consequence: "A broad shared-service change erases useful state without testing the known media-change evidence." },
+        ],
+      },
+      {
+        id: "step-recover",
+        title: "Choose a safe recovery path",
+        prompt: "The backup printer can print, but it uses a different approved template. How do you proceed?",
+        requiredChoiceId: "controlled-fallback",
+        options: [
+          { id: "controlled-fallback", text: "Test the correct media/ribbon/calibration/template path on one controlled label; use the backup only after its approved template and scan outcome are validated.", safe: true, disposition: "human-approved", consequence: "The fallback protects compliance instead of merely producing paper.", nextStepId: "step-verify" },
+          { id: "unvalidated-backup", text: "Route all 86 jobs to the backup immediately because any visible label is better than stopping the line.", safe: false, disposition: "unsafe", consequence: "Visible output does not prove the required template or scan behavior is compliant." },
+          { id: "firmware-first", text: "Update printer firmware during the outage because a media change proves the existing driver and calibration path cannot be relevant.", safe: false, disposition: "unsafe", consequence: "Firmware work expands risk and delay before the locally relevant media/configuration path is tested." },
+        ],
+      },
+      {
+        id: "step-verify",
+        title: "Verify the operational outcome",
+        prompt: "A controlled label now prints visibly. What evidence is required before you close or resume the queue?",
+        requiredChoiceId: "scan-and-document",
+        options: [
+          { id: "scan-and-document", text: "Scan the label through the required workflow, confirm correct template and data with the operator, communicate recovery, and assign calibration/media prevention follow-up.", safe: true, disposition: "conventional", consequence: "The user-facing workflow, not just ink on paper, proves recovery.", nextStepId: "outcome" },
+          { id: "visible-only", text: "Resume the queue because visible text proves the label will scan and meet the approved template requirement.", safe: false, disposition: "unsafe", consequence: "A visible label can still be unreadable, use the wrong format, or carry the wrong data." },
+          { id: "quiet-recovery", text: "Keep recovery internal because operators only need the printer available; communication and prevention can wait for the next audit.", safe: false, disposition: "unsafe", consequence: "High-impact support requires an honest status, verified outcome, and an accountable prevention record." },
+        ],
+      },
+      { id: "outcome", title: "Compliant recovery", prompt: "Save a concise incident record showing containment, controlled fallback, scan verification, communication, and prevention ownership.", requiredChoiceId: "record", options: [{ id: "record", text: "Prepare the evidence-backed incident record.", safe: true, consequence: "Your recovery is ready for review." }] },
+    ],
+    artifact: missionArtifact(["State media and queue facts", "Describe containment and controlled fallback", "Name template or compliance boundary", "Verify scan workflow", "Assign prevention owner and communication checkpoint"]),
+    rules: [
+      { id: "media", label: "Address media, ribbon, calibration, or template evidence", requiredTerms: ["media", "ribbon", "calibrat", "template"], minimumMatches: 3 },
+      { id: "contain", label: "Contain uncontrolled reprints and preserve a safe fallback", requiredTerms: ["contain", "reprint", "fallback", "approved"], minimumMatches: 3 },
+      { id: "scan", label: "Verify through scan workflow and prevention follow-up", requiredTerms: ["scan", "workflow", "verify", "follow-up"], minimumMatches: 3 },
+    ],
+    debrief: "The correct outcome may be a controlled conventional recovery, not a flashy automation. Compliance depends on the correct physical media, configuration, template, scan result, and operator workflow. A backup path must prove those conditions before it is used at scale.",
     sources: source("printing", "incidentResponse"),
     review: draftReview,
   },

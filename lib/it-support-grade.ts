@@ -1,7 +1,7 @@
 import "server-only";
 
-import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
-import type { ArtifactSchema, EvidenceFieldKey, StructuredEvidence } from "./course-types";
+import { itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
+import type { ArtifactSchema, EvidenceFieldKey, MissionStep, StructuredEvidence } from "./course-types";
 
 const evidenceKeys: EvidenceFieldKey[] = ["scenarioFact", "decision", "boundary", "verification", "owner", "escalation"];
 const labels: Record<EvidenceFieldKey, string> = {
@@ -82,10 +82,11 @@ function gradeRules(
 /** Scores only authored IT Support Sprint modules. Unsupported activity kinds
  * deliberately receive no completion result until their own simulations exist. */
 export function gradeItSupportCourseAttempt(input: {
-  kind: "module" | "lab";
+  kind: "module" | "lab" | "mission";
   itemId: string;
   answers: Record<string, string>;
   evidence: StructuredEvidence;
+  missionChoices?: Record<string, string>;
 }) {
   const module = input.kind === "module"
     ? itSupportSprintModules.find((candidate) => candidate.id === input.itemId)
@@ -93,7 +94,10 @@ export function gradeItSupportCourseAttempt(input: {
   const lab = input.kind === "lab"
     ? itSupportLabs.find((candidate) => candidate.id === input.itemId)
     : undefined;
-  const item = module ?? lab;
+  const mission = input.kind === "mission"
+    ? itSupportMissions.find((candidate) => candidate.id === input.itemId)
+    : undefined;
+  const item = module ?? lab ?? mission;
   if (!item) return null;
   const questions = module?.knowledgeChecks ?? [];
   let correct = 0;
@@ -106,21 +110,44 @@ export function gradeItSupportCourseAttempt(input: {
       explanation: isCorrect ? question.explanation : `Revisit this misconception: ${question.misconception}. ${question.explanation}`,
     };
   });
-  const schema = module ? module.artifact : lab!.evidence;
+  let missionChecks: Array<{ id: string; correct: boolean; explanation: string }> = [];
+  let missionComplete = true;
+  if (mission) {
+    const byId = new Map<string, MissionStep>(mission.steps.map((step) => [step.id, step]));
+    const visited: MissionStep[] = [];
+    let nextId: string | undefined = mission.startStepId;
+    while (nextId && byId.has(nextId) && visited.length < mission.steps.length) {
+      const step: MissionStep = byId.get(nextId)!;
+      visited.push(step);
+      const selected = step.options.find((option) => option.id === input.missionChoices?.[step.id]);
+      if (!selected) {
+        missionComplete = false;
+        break;
+      }
+      missionChecks.push({ id: step.id, correct: selected.safe, explanation: selected.consequence });
+      nextId = selected.nextStepId;
+    }
+    if (missionChecks.some((check) => !check.correct)) missionComplete = false;
+  }
+  const schema = module ? module.artifact : lab ? lab.evidence : mission!.artifact;
   const baseRubric = gradeEvidence(input.evidence, schema);
   const rubric = {
     ...baseRubric,
-    checks: [...baseRubric.checks, ...gradeRules(input.evidence, item.rules)],
+    checks: [...baseRubric.checks, ...gradeRules(input.evidence, item.rules ?? [])],
   };
-  const checkScore = questions.length ? (correct / questions.length) * 40 : 40;
+  const checkScore = questions.length
+    ? (correct / questions.length) * 40
+    : missionChecks.length
+      ? (missionChecks.filter((check) => check.correct).length / missionChecks.length) * 40
+      : 40;
   const evidenceScore = (rubric.checks.filter((check) => check.passed).length / rubric.checks.length) * 60;
   const score = Math.round(checkScore + evidenceScore);
-  const complete = correct === questions.length && rubric.checks.every((check) => check.passed) && score >= 75;
+  const complete = correct === questions.length && missionComplete && rubric.checks.every((check) => check.passed) && score >= 75;
   return {
     itemId: item.id,
     score,
     complete,
-    checks,
+    checks: [...checks, ...missionChecks],
     rubric,
     feedback: complete
       ? "Evidence saved. Your incident reasoning includes a specific decision, boundary, verification, owner, and escalation path."

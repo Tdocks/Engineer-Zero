@@ -1,6 +1,6 @@
 import "server-only";
 
-import { itSupportContentVersion, itSupportLabs, itSupportSprintModules } from "./it-support-content";
+import { itSupportContentVersion, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 
 function shuffle<T>(items: T[], seed: string) {
   const result = [...items];
@@ -31,6 +31,17 @@ export function itSupportPublicCatalog(seed: string) {
       ),
     })),
     labs: itSupportLabs.map(({ rules: _rules, review: _review, ...lab }) => lab),
-    missions: [],
+    missions: itSupportMissions.map(({ rules: _rules, review: _review, ...mission }) => ({
+      ...mission,
+      steps: mission.steps.map(
+        ({ requiredChoiceId: _key, acceptableChoiceIds: _acceptable, ...step }) => ({
+          ...step,
+          options: shuffle(
+            step.options.map(({ id, text, consequence, disposition, nextStepId }) => ({ id, text, consequence, disposition, nextStepId })),
+            seed + step.id,
+          ),
+        }),
+      ),
+    })),
   };
 }

@@ -158,6 +158,7 @@ export type MissionDefinition = {
   startStepId: string;
   steps: MissionStep[];
   artifact: ArtifactSchema;
+  rules?: DeterministicRule[];
   debrief: string;
   sources: SourceReference[];
   review: ReviewStatus;

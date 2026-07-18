@@ -1143,7 +1143,7 @@ function Activities({
   const [open, setOpen] = useState<Activity | null>(null);
   if (
     trackId === "applied-ai-operations" ||
-    (trackId === "it-support-technician" && (type === "lesson" || type === "lab"))
+    (trackId === "it-support-technician" && (type === "lesson" || type === "lab" || type === "mission"))
   )
     return (
             <AioCourseSurface
