@@ -10,15 +10,15 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 | Master-plan requirement | Current evidence | Status |
 | --- | --- | --- |
-| Python, FastAPI, Git/GitHub, pytest, SQL, hosted-model progression | Four-day curriculum, local CLI/API/AI projects, continuation modules | Partial: SQL and team workflow are authored as continuation evidence, not yet runnable starter repositories. |
+| Python, FastAPI, Git/GitHub, pytest, SQL, hosted-model progression | Four-day curriculum, local CLI/API/AI projects, SQLite Issue Tracker, and Mission Operations Handoff capstone with optional local OpenAI adapter | Partial: team Git workflow is guided and simulated; it is not yet verified through a hosted collaborative repository. |
 | Honest four-day outcome | Shared-program promise and graduation language explicitly limit claims | Implemented. |
 | Observe → explain → modify → complete → repair → build → defend | Lesson modes, safe terminal, Code Lab, systems labs, comprehension gates, Review Board | Partial: individual lesson completion remains local/self-recorded. |
 | Retrieval, spacing, interleaving, self-explanation, specific feedback | Protected 12-prompt mixed retrieval forms, five persisted recall returns per completed lesson, comprehension gates, targeted responses | Partial: delayed-review notifications and adaptive sequencing are not yet implemented. |
 | Ten competency categories and Level 0 start | Eleven source-mapped coding competencies and zero-evidence mastery calculation | Implemented for local pilot. |
-| Four days of instruction and capstones | 24 authored lessons, six challenges, three runnable starter projects, Day 4 handoff prototype | Implemented for local pilot. |
+| Four days of instruction and capstones | 24 authored lessons, six challenges, four runnable starter projects, and a Day 4 handoff capstone | Implemented for local pilot. |
 | Mission Map | Course map, daily cadence, local-project paths, mastery targets | Implemented. |
-| Terminal Simulator | Safe virtual command flow and wrong-folder recovery | Partial: no graphical path map or replay timeline yet. |
-| Code Lab | Editor, structural review, comprehension record, persisted drafts/snapshots, local-project handoff | Partial: execution/test output remains local by design. |
+| Terminal Simulator | Persisted fictional filesystem; guided/unguided mode; navigation, file operations, command history, recovery, replay, and path map | Implemented as a safe training simulator; it deliberately is not the learner's host terminal. |
+| Code Lab | Editor, structural review, comprehension record, persisted drafts/snapshots, local-project handoff, and protected isolated-runner UI | Partial: execution output remains unavailable until an isolated provider is configured. |
 | API Simulator | Factual request builder, validation and failure paths | Implemented as deterministic browser simulation. |
 | AI Systems Lab | Structured-output comparison, injection decision, Debug Bay | Partial: no real model-cost/latency telemetry until a controlled provider is configured. |
 | Interview Arena | Timed prompts, guided/limited/no-hint mode, follow-up pressure question | Partial: no voice transcription or dynamic live coach. |
@@ -26,17 +26,17 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 | Assessment engine | Server-only answer keys, per-attempt mixed forms, balanced correct-answer positions, response feedback, local attempt records | Partial: response review is deterministic and should not certify independent coding skill. |
 | Assessment weights | Functional, decomposition, defense, debugging, data, security categories exist in challenge/interview mappings | Partial: no trusted aggregate graduation calculation yet. |
 | Gamification | Six XP categories, evidence milestones, five boss battles, targeted recovery drills, and delayed-recall prompts | Partial: daily streak and cross-device recovery routing require trusted learner records. |
-| One-month continuation | Four sequenced continuation modules with artifacts and defense prompts | Partial: no all-week runnable repositories or reviewer-approved artifacts. |
-| Versioned source-of-truth | Source registry includes publisher, canonical URL, version, locator, claim, verified/revalidation dates, hierarchy type, and individually authored per-concept definition/application/limitation/assessment mappings | Partial: automatic source-revalidation jobs remain to be added. |
+| One-month continuation | Four sequenced continuation modules with artifacts, defense prompts, SQLite Issue Tracker, knowledge assistant, and handoff capstone | Partial: reviewer-approved artifacts and collaborative hosted Git evidence are still absent. |
+| Versioned source-of-truth | Source registry includes publisher, canonical URL, version, locator, claim, verified/revalidation dates, hierarchy type, deprecation status/replacement metadata, and individually authored per-concept definition/application/limitation/assessment mappings | Partial: automatic source-revalidation jobs remain to be added. |
 | Isolated code execution | Server-side `ExecutionProvider` contract validates bounded requests; unconfigured provider refuses execution | Partial by design: no sandbox provider is configured and the main web process never executes learner code. |
 | AI tutor | Deterministic progressive tutor follows prediction → failing region → concept → pseudocode → partial correction → complete-pattern hierarchy | Partial: no live provider-backed tutor or code/error-aware sandbox context yet. |
 | Guardrails | No production/safety-critical claims; fictional data; provider failures degrade safely | Implemented in current local product. |
 
 ## Verified implementation evidence
 
-- `npm test`: 25 tests pass after the instructional engine, source-record, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, and learner-draft work.
+- `npm test`: 26 tests pass after the instructional engine, source-record, boss-battle, tutor, continuation, recovery, execution-boundary, answer-integrity, learner-draft, and terminal-simulation work.
 - `npm run build`: succeeds and includes protected assessment and execution routes.
-- Local projects remain separate from the web process and use only fictional training data. Their independent test suites pass from their own folders (4 CLI, 4 API, 3 AI-triage, 5 approval-workflow tests); they intentionally must not be collected as one Python package.
+- Local projects remain separate from the web process and use only fictional training data. Their independent test suites pass from their own folders (4 CLI, 4 API, 3 AI-triage, 5 approval-workflow, 4 handoff-capstone tests); they intentionally must not be collected as one Python package.
 
 ## Mandatory next gates before any commercial claim
 
