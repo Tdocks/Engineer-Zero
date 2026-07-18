@@ -69,6 +69,9 @@ describe("Engineer Zero track engine", () => {
     expect(new Set(codingLessons.map((lesson) => lesson.day))).toEqual(
       new Set([1, 2, 3, 4]),
     );
+    expect(new Set(codingLessons.map((lesson) => lesson.mode))).toEqual(
+      new Set(["observe", "modify", "complete", "repair", "build", "defend"]),
+    );
     expect(validateCodingProgram()).toEqual([]);
     expect(codingConcepts.every((concept) => concept.sourceIds.length > 0 && Boolean(concept.escalation))).toBe(true);
     expect(codingConceptRecords.every((record) => record.officialSources.length > 0 && record.assessmentIds.length > 0 && Boolean(record.knownLimitations))).toBe(true);

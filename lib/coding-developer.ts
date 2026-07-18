@@ -64,7 +64,7 @@ export type CodingLesson = {
   practicePrompt: string;
   defensePrompt: string;
   sourceIds: string[];
-  mode: "observe" | "modify" | "repair" | "build" | "defend";
+  mode: "observe" | "modify" | "complete" | "repair" | "build" | "defend";
 };
 
 export type CodingChallenge = {
@@ -516,7 +516,7 @@ export const codingLessons: CodingLesson[] = [
   lesson(1, 2, "terminal", "Safe terminal navigation", "Create and recover a small project folder without affecting a real system.", "Paths describe locations. Relative paths begin from the current folder; absolute paths begin from a known root. Use `pwd`, `ls`, `cd`, `mkdir`, and `touch` deliberately.", "mkdir ai_prototype → cd ai_prototype → touch main.py", "Recover after creating main.py in the wrong folder.", "Why check your location before removing or moving a file?", ["pythonTutorial"], "modify"),
   lesson(1, 3, "python", "Values, variables, and first execution", "Run a Python file and name the values it transforms.", "A value has a type. A variable gives a value a useful name. `print()` makes output visible; a traceback explains the path to an error.", "remaining_minutes = launch_time - current_time\nprint(remaining_minutes)", "Change a countdown calculation to include a hold duration.", "What does the variable name add that a raw number does not?", ["pythonTutorial"], "modify"),
   lesson(1, 4, "python", "Decisions and functions", "Put repeatable triage logic in a small function with a clear return value.", "A function gives behavior a name, keeps inputs narrow, and makes the result easier to test. Conditions select a branch based on explicit rules.", "def risk_level(temp: float) -> str:\n    return \"URGENT\" if temp >= 90 else \"NORMAL\"", "Add a REVIEW branch for temperatures from 80 through 89.", "Why is a function safer than duplicating the same condition in three places?", ["pythonTutorial"], "build"),
-  lesson(1, 5, "dataInterfaces", "Lists, dictionaries, and JSON-shaped data", "Choose a data structure that matches the question being asked.", "Use a list when order or repeated items matter. Use a dictionary when named fields need lookup. JSON objects map naturally to dictionaries in Python.", "reading = {\"equipment\": \"pump-7\", \"temperature\": 94, \"status\": \"REVIEW\"}", "Represent three sensor readings and select only urgent ones.", "Why is the equipment reading a dictionary instead of a list?", ["pythonTutorial"], "build"),
+  lesson(1, 5, "dataInterfaces", "Lists, dictionaries, and JSON-shaped data", "Complete a partially written data transformation with the structure that matches the question.", "Use a list when order or repeated items matter. Use a dictionary when named fields need lookup. JSON objects map naturally to dictionaries in Python. Before a blank-slate build, complete a known pattern and explain why each structure fits.", "readings = [{\"equipment\": \"pump-7\", \"temperature\": 94}]\nurgent = [reading for reading in readings if reading[\"temperature\"] >= 90]", "Complete the missing filter that selects urgent readings from three sensor dictionaries.", "Why is one equipment reading a dictionary while the collection of readings is a list?", ["pythonTutorial"], "complete"),
   lesson(1, 6, "testingDebugging", "Errors and defensive input", "Classify a failure and make invalid input visible rather than silently ignoring it.", "Syntax, runtime, and logic errors need different responses. Validate before processing; catch only exceptions you understand well enough to handle.", "try:\n    temperature = float(raw_temperature)\nexcept ValueError:\n    raise ValueError(\"Temperature must be a number\")", "Repair a handler that turns every error into NORMAL.", "Why is broad exception swallowing dangerous in an operations prototype?", ["pythonTutorial"], "repair"),
   lesson(2, 1, "terminal", "Cold rebuild and environments", "Recreate the Day 1 startup path from memory using an isolated environment.", "A virtual environment holds a project’s dependencies separately from global Python. It makes a setup more reproducible and prevents unrelated package conflicts.", "python -m venv .venv\nsource .venv/bin/activate\npython main.py", "Write the environment setup commands without notes, then identify the activation command for your operating system.", "Why not install every project package globally?", ["pythonVenv"], "repair"),
   lesson(2, 2, "dataInterfaces", "Requests, responses, and JSON", "Describe the contract between a client and a service.", "A client sends a request to a route. The service validates the method, path, headers, and body, then sends a status code and response body. JSON carries structured data; it is not a substitute for validation.", "POST /triage with {\"temperature\": 94} returns a typed JSON result.", "Build a request for a missing equipment name and predict the response category.", "Why is an invalid request a client error rather than a normal triage result?", ["fastapiBody"], "observe"),
@@ -701,6 +701,9 @@ export function validateCodingProgram() {
     if (!item.sourceIds.length || item.sourceIds.some((id) => !codingSources[id])) {
       issues.push(`Lesson lacks valid source mapping: ${item.id}`);
     }
+  }
+  for (const requiredMode of ["observe", "modify", "complete", "repair", "build", "defend"] as const) {
+    if (!codingLessons.some((item) => item.mode === requiredMode)) issues.push(`Instructional sequence is missing ${requiredMode}.`);
   }
   const seenChallenges = new Set<string>();
   for (const item of codingChallenges) {
