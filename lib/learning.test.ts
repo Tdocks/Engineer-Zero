@@ -30,7 +30,7 @@ import {
   validateCodingProgram,
 } from "./coding-developer";
 import { codingAssessmentBank, gradeCodingAssessment, publicCodingAssessment } from "./coding-assessment";
-import { validateExecutionRequest } from "./coding-execution";
+import { createCodingExecutionProvider, validateExecutionRequest } from "./coding-execution";
 import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
 
@@ -125,6 +125,11 @@ describe("Engineer Zero track engine", () => {
     expect(validateExecutionRequest({ language: "python", exerciseId: "safe", command: "python main.py", files: [{ path: "main.py", content: "print('fictional training')" }] })).toBeNull();
     expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "rm -rf /", files: [{ path: "main.py", content: "print('no')" }] })).toContain("documented exercise commands");
     expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "python main.py", files: [{ path: "../outside.py", content: "print('no')" }] })).toContain("relative Python files");
+    const unconfigured = createCodingExecutionProvider({} as NodeJS.ProcessEnv);
+    expect(unconfigured.policy).toBeNull();
+    const configured = createCodingExecutionProvider({ CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv);
+    expect(configured.policy?.network).toBe("denied");
+    expect(configured.policy?.readOnlyBaseImage).toBe(true);
   });
 
   it("uses 24 distinct protected AIO baseline decisions", () => {

@@ -21,8 +21,19 @@ export type ExecutionResult = {
   message: string;
 };
 
+export type SandboxPolicy = {
+  network: "denied";
+  readOnlyBaseImage: true;
+  maxCpuMs: number;
+  maxMemoryMb: number;
+  maxOutputBytes: number;
+  maxWorkspaceBytes: number;
+};
+
 export type ExecutionProvider = {
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
+  policy: SandboxPolicy | null;
+  name: string;
 };
 
 const maxFiles = 12;
@@ -46,6 +57,8 @@ export function validateExecutionRequest(request: ExecutionRequest): string | nu
 }
 
 export class UnconfiguredExecutionProvider implements ExecutionProvider {
+  name = "unconfigured";
+  policy = null;
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const invalid = validateExecutionRequest(request);
     if (invalid) return { status: "rejected", stdout: "", stderr: "", exitCode: null, durationMs: null, message: invalid };
@@ -60,4 +73,47 @@ export class UnconfiguredExecutionProvider implements ExecutionProvider {
   }
 }
 
-export const codingExecutionProvider: ExecutionProvider = new UnconfiguredExecutionProvider();
+type RemoteSandboxResponse = Pick<ExecutionResult, "stdout" | "stderr" | "exitCode" | "durationMs"> & { status: "completed" | "rejected" };
+
+/**
+ * A narrow adapter for a separately operated sandbox service. The caller must
+ * configure an endpoint that enforces this policy; it is never an endpoint in
+ * the Next process and it never receives learner secrets. This keeps a future
+ * E2B/firecracker/Kubernetes runner replaceable without teaching an unsafe
+ * in-process execution pattern.
+ */
+export class RemoteSandboxExecutionProvider implements ExecutionProvider {
+  name = "remote-isolated-sandbox";
+  policy: SandboxPolicy = { network: "denied", readOnlyBaseImage: true, maxCpuMs: 10_000, maxMemoryMb: 256, maxOutputBytes: 32_000, maxWorkspaceBytes: maxSourceBytes };
+  constructor(private endpoint: string, private token: string) {}
+
+  async execute(request: ExecutionRequest): Promise<ExecutionResult> {
+    const invalid = validateExecutionRequest(request);
+    if (invalid) return { status: "rejected", stdout: "", stderr: "", exitCode: null, durationMs: null, message: invalid };
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${this.token}` },
+        body: JSON.stringify({ request, policy: this.policy }),
+        signal: AbortSignal.timeout(this.policy.maxCpuMs + 2_000),
+      });
+      const body = (await response.json().catch(() => null)) as RemoteSandboxResponse | null;
+      if (!response.ok || !body || !["completed", "rejected"].includes(body.status) || typeof body.stdout !== "string" || typeof body.stderr !== "string" || (body.exitCode !== null && typeof body.exitCode !== "number") || (body.durationMs !== null && typeof body.durationMs !== "number")) {
+        return { status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated sandbox did not return a valid bounded execution result. No learner code was run by the web application." };
+      }
+      const stdout = body.stdout.slice(0, this.policy.maxOutputBytes);
+      const stderr = body.stderr.slice(0, this.policy.maxOutputBytes);
+      return { status: body.status, stdout, stderr, exitCode: body.exitCode, durationMs: body.durationMs, message: body.status === "completed" ? "Completed in an isolated, network-denied workspace." : "The sandbox rejected this bounded exercise request." };
+    } catch {
+      return { status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated sandbox is unavailable. Keep the local project unchanged and retry later; no code ran in the web application." };
+    }
+  }
+}
+
+export function createCodingExecutionProvider(environment = process.env): ExecutionProvider {
+  const endpoint = environment.CODING_SANDBOX_ENDPOINT;
+  const token = environment.CODING_SANDBOX_TOKEN;
+  return endpoint && token ? new RemoteSandboxExecutionProvider(endpoint, token) : new UnconfiguredExecutionProvider();
+}
+
+export const codingExecutionProvider = createCodingExecutionProvider();
