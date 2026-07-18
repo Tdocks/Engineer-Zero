@@ -62,6 +62,7 @@ import { reviewCodingContinuation } from "./coding-continuation-rubric";
 import { codingSourceHealthRecords } from "./coding-source-health";
 import { productReleaseScorecard } from "./release-scorecard";
 import { courseContentRegistry, findRegistryItem, registrySummary } from "./course-content-registry";
+import { commerceConfiguration, configuredPriceFor, isPurchasableTrack } from "./commerce";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -117,6 +118,14 @@ describe("Engineer Zero track engine", () => {
     expect(registrySummary("it-support-technician").modules).toBe(itSupportSprintModules.length);
     expect(findRegistryItem("it-support-technician", "it-sprint-01-service-reality", "it-support-v1-interview-sprint-draft")?.kind).toBe("module");
     expect(findRegistryItem("it-support-technician", "it-sprint-01-service-reality", "wrong-version")).toBeUndefined();
+  });
+
+  it("keeps commercial enrollment configuration server-side and explicitly gated", () => {
+    expect(isPurchasableTrack("applied-ai-operations")).toBe(true);
+    expect(isPurchasableTrack("coding-developer")).toBe(false);
+    expect(configuredPriceFor("it-support-technician", { STRIPE_PRICE_IT_SUPPORT: "price_it" } as NodeJS.ProcessEnv)).toBe("price_it");
+    expect(commerceConfiguration({})).toBe(false);
+    expect(commerceConfiguration({ STRIPE_SECRET_KEY: "secret", STRIPE_WEBHOOK_SECRET: "whsec", STRIPE_PRICE_APPLIED_AI_OPERATIONS: "price_aio", STRIPE_PRICE_IT_SUPPORT: "price_it", APP_URL: "https://engineerzero.test" })).toBe(true);
   });
 
   it("ships a source-mapped shared coding program rather than a third career track", () => {
