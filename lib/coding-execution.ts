@@ -1,7 +1,7 @@
 import "server-only";
 
 /**
- * Contract for a future isolated code-execution service. The Next.js process
+ * Contract for an isolated code-execution service. The Next.js process
  * never executes learner input. A provider must run in an ephemeral, network-
  * denied sandbox with a read-only base image and explicit resource limits.
  */
@@ -34,12 +34,14 @@ export type ExecutionProvider = {
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
   policy: SandboxPolicy | null;
   name: string;
+  personal: boolean;
 };
 
 export type SandboxConfiguration = {
   endpoint: string;
   token: string;
   approved: true;
+  personal: boolean;
 };
 
 const maxFiles = 12;
@@ -47,30 +49,51 @@ const maxFileBytes = 30_000;
 const maxSourceBytes = 100_000;
 const safePath = /^[a-zA-Z0-9_./-]+\.py$/;
 
+function isLoopbackHttpEndpoint(endpoint: string) {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "http:") return false;
+    if (url.username || url.password || url.search || url.hash) return false;
+    return url.hostname === "127.0.0.1" || url.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+function isRemoteHttpsEndpoint(endpoint: string) {
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === "https:" && !url.username && !url.password && !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Enabling a remote runner is a security decision, not a convenience flag.
- * The explicit approval marker prevents a copied endpoint/token pair from
- * silently changing the product from its safe, local-project handoff mode.
+ * Personal mode additionally allows loopback HTTP for the local Docker runner.
  */
 export function sandboxConfiguration(
   environment = process.env,
 ): SandboxConfiguration | null {
   const endpoint = environment.CODING_SANDBOX_ENDPOINT?.trim();
   const token = environment.CODING_SANDBOX_TOKEN?.trim();
+  const personal = environment.CODING_SANDBOX_PERSONAL === "true";
   if (!endpoint || !token || environment.CODING_SANDBOX_APPROVED !== "true") {
     return null;
   }
 
-  try {
-    const url = new URL(endpoint);
-    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
-      return null;
-    }
-  } catch {
+  if (personal) {
+    if (!isLoopbackHttpEndpoint(endpoint) && !isRemoteHttpsEndpoint(endpoint)) return null;
+  } else if (!isRemoteHttpsEndpoint(endpoint)) {
     return null;
   }
 
-  return { endpoint, token, approved: true };
+  return { endpoint, token, approved: true, personal };
+}
+
+export function isPersonalSandboxMode(environment = process.env) {
+  return sandboxConfiguration(environment)?.personal === true;
 }
 
 export function validateExecutionRequest(request: ExecutionRequest): string | null {
@@ -91,6 +114,7 @@ export function validateExecutionRequest(request: ExecutionRequest): string | nu
 export class UnconfiguredExecutionProvider implements ExecutionProvider {
   name = "unconfigured";
   policy = null;
+  personal = false;
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const invalid = validateExecutionRequest(request);
     if (invalid) return { status: "rejected", stdout: "", stderr: "", exitCode: null, durationMs: null, message: invalid };
@@ -108,16 +132,17 @@ export class UnconfiguredExecutionProvider implements ExecutionProvider {
 type RemoteSandboxResponse = Pick<ExecutionResult, "stdout" | "stderr" | "exitCode" | "durationMs"> & { status: "completed" | "rejected" };
 
 /**
- * A narrow adapter for a separately operated sandbox service. The caller must
- * configure an endpoint that enforces this policy; it is never an endpoint in
- * the Next process and it never receives learner secrets. This keeps a future
- * E2B/firecracker/Kubernetes runner replaceable without teaching an unsafe
- * in-process execution pattern.
+ * Adapter for a separately operated sandbox service. Personal mode talks to the
+ * local Docker runner over loopback HTTP; hosted mode requires HTTPS.
  */
 export class RemoteSandboxExecutionProvider implements ExecutionProvider {
   name = "remote-isolated-sandbox";
+  personal: boolean;
   policy: SandboxPolicy = { network: "denied", readOnlyBaseImage: true, maxCpuMs: 10_000, maxMemoryMb: 256, maxOutputBytes: 32_000, maxWorkspaceBytes: maxSourceBytes };
-  constructor(private endpoint: string, private token: string) {}
+  constructor(private endpoint: string, private token: string, personal = false) {
+    this.personal = personal;
+    this.name = personal ? "personal-local-sandbox" : "remote-isolated-sandbox";
+  }
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const invalid = validateExecutionRequest(request);
@@ -137,7 +162,19 @@ export class RemoteSandboxExecutionProvider implements ExecutionProvider {
       }
       const stdout = body.stdout.slice(0, this.policy.maxOutputBytes);
       const stderr = body.stderr.slice(0, this.policy.maxOutputBytes);
-      return { status: body.status, stdout, stderr, exitCode: body.exitCode, durationMs: body.durationMs, message: body.status === "completed" ? "Completed in an isolated, network-denied workspace." : "The sandbox rejected this bounded exercise request." };
+      const practiceNote = this.personal
+        ? " Local practice run only—not commercial credential evidence."
+        : "";
+      return {
+        status: body.status,
+        stdout,
+        stderr,
+        exitCode: body.exitCode,
+        durationMs: body.durationMs,
+        message: body.status === "completed"
+          ? `Completed in an isolated, network-denied workspace.${practiceNote}`
+          : "The sandbox rejected this bounded exercise request.",
+      };
     } catch {
       return { status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated sandbox is unavailable. Keep the local project unchanged and retry later; no code ran in the web application." };
     }
@@ -147,7 +184,7 @@ export class RemoteSandboxExecutionProvider implements ExecutionProvider {
 export function createCodingExecutionProvider(environment = process.env): ExecutionProvider {
   const configuration = sandboxConfiguration(environment);
   return configuration
-    ? new RemoteSandboxExecutionProvider(configuration.endpoint, configuration.token)
+    ? new RemoteSandboxExecutionProvider(configuration.endpoint, configuration.token, configuration.personal)
     : new UnconfiguredExecutionProvider();
 }
 

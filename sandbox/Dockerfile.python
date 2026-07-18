@@ -1,0 +1,15 @@
+FROM python:3.12.8-slim-bookworm
+
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin sandbox \
+  && pip install --no-cache-dir pytest==8.3.5 \
+  && mkdir -p /workspace \
+  && chown sandbox:sandbox /workspace
+
+USER sandbox
+WORKDIR /workspace
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/home/sandbox
+
+# Default is overridden per request. Keep a safe no-op for image smoke checks.
+CMD ["python", "-c", "print('engineer-zero-sandbox-python ready')"]

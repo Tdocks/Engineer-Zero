@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser, serviceSupabase } from "@/lib/server-supabase";
-import { commerceConfiguration, configuredPriceFor, isPurchasableTrack, stripeClient } from "@/lib/commerce";
+import { commerceConfiguration, configuredPriceFor, isPurchasableTrack } from "@/lib/commerce-enrollment";
+import { stripeClient } from "@/lib/commerce";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as { trackId?: unknown } | null;

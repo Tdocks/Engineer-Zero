@@ -35,14 +35,52 @@ export function CodingExecutionPanel({ challenge, files }: { challenge: CodingCh
       if (body && "status" in body) setResult(body);
       else setResult({ status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: body && "error" in body && body.error ? body.error : "The isolated runner did not return a usable result. No code was run in the web application." });
     } catch {
-      setResult({ status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated runner could not be reached. Keep the local project unchanged and retry later; no code was run in the browser or web server." });
+      setResult({ status: "unavailable", stdout: "", stderr: "", exitCode: null, durationMs: null, message: "The isolated runner could not be reached. Start the local sandbox (`npm run sandbox:start`) or keep using the starter repo locally; no code was run in the browser or web server." });
     } finally {
       setRunning(false);
     }
   };
-  return <section className="execution-panel" aria-label="Isolated code execution">
-    <header><div><span><ShieldCheck size={15} /> Isolated-runner boundary</span><p>Only a separately configured, network-denied runner may execute this fictional exercise. The web application never runs learner code.</p></div><button className="coding-secondary" onClick={requestRun} disabled={running}>{running ? "Requesting…" : <><Play size={15} /> Run visible tests</>}</button></header>
-    <div className="execution-panel-meta"><span><TestTube2 size={14} /> Visible tests inspect exercise structure. A configured runner may apply hidden checks by exercise ID without exposing them here.</span></div>
-    {result && <section className={`execution-result ${result.status}`} aria-live="polite"><header><b>{result.status === "completed" ? "Isolated run returned" : result.status === "rejected" ? "Run rejected safely" : "Runner unavailable"}</b><span>{result.durationMs !== null ? `${result.durationMs}ms · exit ${result.exitCode ?? "—"}` : "No execution evidence"}</span></header><p>{result.message}</p>{(result.stdout || result.stderr) && <pre>{result.stdout}{result.stderr ? `\n${result.stderr}` : ""}</pre>}</section>}
-  </section>;
+  return (
+    <section className="execution-panel" aria-label="Isolated code execution">
+      <header>
+        <div>
+          <span><ShieldCheck size={15} /> Isolated-runner boundary</span>
+          <p>
+            Only a separately configured, network-denied runner may execute this fictional exercise.
+            The web application never runs learner code. Personal pilot runs are local practice evidence—not a commercial credential.
+          </p>
+        </div>
+        <button className="coding-secondary" onClick={requestRun} disabled={running}>
+          {running ? "Requesting…" : <><Play size={15} /> Run visible tests</>}
+        </button>
+      </header>
+      <div className="execution-panel-meta">
+        <span>
+          <TestTube2 size={14} /> Visible tests inspect exercise structure.
+          With the personal Docker sandbox running, results appear below. Without it, use the local starter project tests.
+        </span>
+      </div>
+      {result && (
+        <section className={`execution-result ${result.status}`} aria-live="polite">
+          <header>
+            <b>
+              {result.status === "completed"
+                ? "Isolated run returned"
+                : result.status === "rejected"
+                  ? "Run rejected safely"
+                  : "Runner unavailable"}
+            </b>
+            <span>{result.durationMs !== null ? `${result.durationMs}ms · exit ${result.exitCode ?? "—"}` : "No execution evidence"}</span>
+          </header>
+          <p>{result.message}</p>
+          {(result.stdout || result.stderr) && (
+            <pre>{result.stdout}{result.stderr ? `\n${result.stderr}` : ""}</pre>
+          )}
+          {result.status === "completed" && (
+            <p className="execution-practice-note">Local practice only. Human credential review is Coming soon (backlog)—this run does not issue a certificate.</p>
+          )}
+        </section>
+      )}
+    </section>
+  );
 }

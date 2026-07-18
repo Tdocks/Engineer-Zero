@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { isPurchasableTrack, stripeClient } from "@/lib/commerce";
+import { enrollmentIntentFromCheckout, isPurchasableTrack } from "@/lib/commerce-enrollment";
+import { stripeClient } from "@/lib/commerce";
 import { serviceSupabase } from "@/lib/server-supabase";
 
 export async function POST(request: NextRequest) {
@@ -19,14 +20,17 @@ export async function POST(request: NextRequest) {
 
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.engineer_zero_user_id ?? session.client_reference_id;
-      const trackId = session.metadata?.engineer_zero_track_id;
-      if (!userId || !isPurchasableTrack(trackId)) throw new Error("Checkout metadata is incomplete.");
+      const intent = enrollmentIntentFromCheckout({
+        userId: session.metadata?.engineer_zero_user_id ?? session.client_reference_id,
+        trackId: session.metadata?.engineer_zero_track_id,
+        sessionId: session.id,
+      });
+      if (!intent.ok) throw new Error(intent.reason);
       const { error } = await supabase.from("enrollments").upsert({
-        user_id: userId,
-        track_id: trackId,
+        user_id: intent.userId,
+        track_id: intent.trackId,
         status: "active",
-        stripe_checkout_session_id: session.id,
+        stripe_checkout_session_id: intent.sessionId,
       }, { onConflict: "user_id,track_id" });
       if (error) throw error;
     }

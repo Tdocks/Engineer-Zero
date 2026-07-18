@@ -7,10 +7,13 @@ qualified reviewers or grant approval automatically.
 
 ## Apply the schema
 
-Apply migrations `0001` through `0005` in order. Migration `0005` makes the
+Apply migrations `0001` through `0008` in order. Migration `0005` makes the
 older learner-data tables read-only to browser clients and adds an immutable
-release-review log. Test with two learner users and one reviewer user before
-enabling any hosted claim.
+release-review log. Later migrations add coding reviewer decisions and course
+source reviews. Test with two learner users and one reviewer user before
+enabling any hosted claim. Keep `npm run prove:trust` green, and complete the
+live checklist in `TRUST_BOUNDARY_PROOF.md`. Coding Developer is the IRC
+program — see `IRC_PROGRAM_DECISION.md` and `CODING_DEVELOPER_HUMAN_REVIEW_PACKET.md`.
 
 ## Grant reviewer roles deliberately
 

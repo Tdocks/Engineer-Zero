@@ -1,0 +1,18 @@
+services:
+  sandbox:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["node", "server.mjs"]
+    volumes:
+      - ./:/app:ro
+      # Share host /tmp so docker.sock bind-mounts resolve to the same workspace paths.
+      - /tmp:/tmp
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      SANDBOX_PORT: "8787"
+      SANDBOX_BIND: "0.0.0.0"
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-dev-local-sandbox-token}
+      SANDBOX_PYTHON_IMAGE: engineer-zero-sandbox-python:local
+    ports:
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped

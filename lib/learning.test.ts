@@ -62,7 +62,7 @@ import { reviewCodingContinuation } from "./coding-continuation-rubric";
 import { codingSourceHealthRecords } from "./coding-source-health";
 import { productReleaseScorecard } from "./release-scorecard";
 import { courseContentRegistry, findRegistryItem, registrySummary } from "./course-content-registry";
-import { commerceConfiguration, configuredPriceFor, isPurchasableTrack } from "./commerce";
+import { commerceConfiguration, configuredPriceFor, isPurchasableTrack } from "./commerce-enrollment";
 import { courseSourceHealthRecords, courseSourceUrls } from "./course-source-health";
 
 describe("Engineer Zero track engine", () => {
@@ -440,11 +440,27 @@ describe("Engineer Zero track engine", () => {
     expect(validateExecutionRequest({ language: "python", exerciseId: "unsafe", command: "python main.py", files: [{ path: "../outside.py", content: "print('no')" }] })).toContain("relative Python files");
     const unconfigured = createCodingExecutionProvider({} as NodeJS.ProcessEnv);
     expect(unconfigured.policy).toBeNull();
+    expect(unconfigured.personal).toBe(false);
     expect(sandboxConfiguration({ CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv)).toBeNull();
     expect(sandboxConfiguration({ CODING_SANDBOX_APPROVED: "true", CODING_SANDBOX_ENDPOINT: "http://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv)).toBeNull();
+    expect(sandboxConfiguration({
+      CODING_SANDBOX_PERSONAL: "true",
+      CODING_SANDBOX_APPROVED: "true",
+      CODING_SANDBOX_ENDPOINT: "http://evil.example/run",
+      CODING_SANDBOX_TOKEN: "test",
+    } as NodeJS.ProcessEnv)).toBeNull();
+    const personal = createCodingExecutionProvider({
+      CODING_SANDBOX_PERSONAL: "true",
+      CODING_SANDBOX_APPROVED: "true",
+      CODING_SANDBOX_ENDPOINT: "http://127.0.0.1:8787/run",
+      CODING_SANDBOX_TOKEN: "dev-local-sandbox-token",
+    } as NodeJS.ProcessEnv);
+    expect(personal.personal).toBe(true);
+    expect(personal.policy?.network).toBe("denied");
     const configured = createCodingExecutionProvider({ CODING_SANDBOX_APPROVED: "true", CODING_SANDBOX_ENDPOINT: "https://sandbox.invalid/run", CODING_SANDBOX_TOKEN: "test" } as NodeJS.ProcessEnv);
     expect(configured.policy?.network).toBe("denied");
     expect(configured.policy?.readOnlyBaseImage).toBe(true);
+    expect(configured.personal).toBe(false);
   });
 
   it("uses 24 distinct protected AIO baseline decisions", () => {

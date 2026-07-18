@@ -2,7 +2,10 @@ import "server-only";
 
 import { validateAioContent, validateItSupportContent } from "./content-validation";
 import { codingCatalogPublicationStatus } from "./coding-source-governance";
+import { codingDeveloperReviewSummary } from "./coding-human-review";
+import { ircProgramDecision } from "./irc-program";
 import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions } from "./it-support-content";
+import { trustBoundaryReport } from "./trust-boundary";
 
 export type QualityCategory =
   | "instructional-quality"
@@ -57,6 +60,8 @@ export function productReleaseScorecard(
   const aioValidation = validateAioContent();
   const itValidation = validateItSupportContent();
   const codingSources = codingCatalogPublicationStatus(undefined, now);
+  const codingReview = codingDeveloperReviewSummary(now);
+  const trustProof = trustBoundaryReport(process.cwd(), env);
   const authenticatedStore = Boolean(
     env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY,
   );
@@ -66,6 +71,7 @@ export function productReleaseScorecard(
   const runnerConfigured = Boolean(
     env.CODING_SANDBOX_APPROVED === "true" && env.CODING_SANDBOX_ENDPOINT && env.CODING_SANDBOX_TOKEN,
   );
+  const personalSandbox = env.CODING_SANDBOX_PERSONAL === "true" && runnerConfigured;
 
   const programs = [
     {
@@ -104,7 +110,7 @@ export function productReleaseScorecard(
       id: "coding-developer" as const,
       title: "Coding Developer",
       signals: [
-        signal("instructional-quality", "partial", "The four-day sequence, continuation modules, source records, local prototypes, repair exercises, and deterministic reviews are implemented.", pendingHumanReview),
+        signal("instructional-quality", codingReview.blocked.some((item) => item.area === "instructional_design") ? "blocked" : "partial", `IRC target (${ircProgramDecision.decidedAt}): four-day sequence, continuation modules, source records, local prototypes, and deterministic reviews are implemented; automated instructional pre-review ${codingReview.readyForHumanSignOff ? "is clear of blockers" : "has blockers"}.`, pendingHumanReview),
         signal("role-accuracy", "partial", "The program explicitly limits outcomes to bounded prototypes and avoids production or safety-critical competence claims.", "Technical and instructional reviewers validate the complete curriculum and evidence thresholds."),
         signal("assessment-integrity", "partial", "Server-owned answer keys, mixed forms, anti-padding checks, and deterministic exercise rubrics are implemented.", "Managed runtime results and reviewer calibration confirm independent implementation and repair claims."),
         signal("simulation-authenticity", "partial", "Terminal, API, test, evaluation, review, and incident simulations are distinct and fictional.", "Configured isolated sandbox evidence and learner-pilot observation confirm transfer to local work."),
@@ -113,15 +119,15 @@ export function productReleaseScorecard(
         signal("ux-accessibility", "partial", "The coding workspace has focused local-study affordances and safe fallback messaging.", "Full component, mobile, keyboard-only, and screen-reader QA passes."),
         signal("source-governance", codingSources.publishable ? "strong" : "partial", codingSources.publishable ? "All coding sources are current and technically approved." : `${codingSources.awaitingTechnicalReview.length} source record(s) still require independent technical approval or revalidation.`, "Scheduled source health checks and qualified technical review remain current for every published claim."),
         signal("privacy-security", "partial", "The main web process never executes learner code, and the sandbox boundary refuses activation without security approval.", "Sandbox isolation, GitHub App permissions, RLS, and data-retention controls pass independent review."),
-        signal("operational-reliability", runnerConfigured ? "partial" : "blocked", runnerConfigured ? "An approved sandbox configuration is present, but still requires independent isolation validation." : "Sandbox execution is intentionally inactive until a separately operated runner is approved.", "Sandbox, GitHub, source-health, reviewer, and service failure paths are deployed, observed, and rehearsed."),
+        signal("operational-reliability", runnerConfigured ? "partial" : "blocked", runnerConfigured ? (personalSandbox ? "Personal local Docker sandbox configuration is present for solo practice; commercial isolation review remains Coming soon." : "An approved sandbox configuration is present, but still requires independent isolation validation.") : "Sandbox execution is intentionally inactive until a separately operated runner is approved.", "Sandbox, GitHub, source-health, reviewer, and service failure paths are deployed, observed, and rehearsed."),
       ],
     },
   ];
 
   const shared = [
-    signal("privacy-security", authenticatedStore ? "partial" : "blocked", authenticatedStore ? "Supabase credentials are present; RLS and cross-user isolation still require deployed integration tests." : "No hosted learner-data configuration is present; browser storage remains a local draft cache only.", "Magic-link auth, migration execution, RLS tests, export/delete controls, and protected server-owned evidence are verified."),
-    signal("operational-reliability", commerceConfigured ? "partial" : "blocked", commerceConfigured ? "Stripe environment values are present; verified webhook and refund/revocation flows still require integration testing." : "Checkout and webhook are intentionally inactive without server credentials.", "Verified enrollment, refund/revocation, email, monitoring, support operations, and disaster/recovery checks pass."),
-    signal("ux-accessibility", "partial", "The quiet academic AIO workspace exists and the shared shell supports themes and local resume state.", "All learner routes pass keyboard, contrast, mobile, focus, error, reset, resume, and reduced-motion QA."),
+    signal("privacy-security", authenticatedStore ? "partial" : "blocked", authenticatedStore ? "Supabase credentials are present; RLS and cross-user isolation still require deployed integration tests." : "No hosted learner-data configuration is present; browser storage remains a local draft cache only. Static RLS invariants " + (trustProof.ok ? "pass in CI." : "are failing."), "Magic-link auth, migration execution, live two-learner RLS proof, export/delete controls, and protected server-owned evidence are verified."),
+    signal("operational-reliability", commerceConfigured ? "partial" : "blocked", commerceConfigured ? "Stripe environment values are present; verified webhook and refund/revocation flows still require integration testing." : "Checkout and webhook are intentionally inactive without server credentials. Static enrollment gates " + (trustProof.ok ? "pass in CI." : "are failing.") + ` IRC program: ${ircProgramDecision.title}.`, "Verified enrollment, refund/revocation, email, monitoring, support operations, and disaster/recovery checks pass."),
+    signal("ux-accessibility", "partial", "The quiet academic AIO workspace exists and the shared shell supports themes and local resume state. Coding Developer a11y walkthrough remains a human gate.", "All learner routes pass keyboard, contrast, mobile, focus, error, reset, resume, and reduced-motion QA."),
   ];
   const allSignals = [...programs.flatMap((program) => program.signals), ...shared];
   const disposition = allSignals.some((item) => item.status === "blocked")

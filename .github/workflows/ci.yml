@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests (includes trust boundary + Coding Developer review gates)
+        run: npm test
+      - name: Trust boundary proof
+        run: npm run prove:trust
+      - name: Production build
+        run: npm run build
+        env:
+          CODING_SANDBOX_APPROVED: "false"
+      - name: Sandbox validation tests
+        run: npm run sandbox:test
+      - name: Build sandbox Python image
+        run: npm run sandbox:build
+      - name: Sandbox Docker contract tests
+        run: npm run sandbox:test

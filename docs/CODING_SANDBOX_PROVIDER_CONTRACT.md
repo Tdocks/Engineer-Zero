@@ -1,6 +1,23 @@
 # Coding Developer sandbox-provider contract
 
-The main Engineer Zero application must never execute learner code. A sandbox is optional and remains disabled unless all three deployment values are configured:
+The main Engineer Zero application must never execute learner code. A sandbox is optional and remains disabled unless approval + endpoint + token are configured.
+
+## Personal local mode
+
+For solo practice, set:
+
+- `CODING_SANDBOX_PERSONAL=true`
+- `CODING_SANDBOX_APPROVED=true`
+- `CODING_SANDBOX_ENDPOINT=http://127.0.0.1:8787/run` (loopback HTTP only)
+- `CODING_SANDBOX_TOKEN=…`
+
+The in-repo runner lives under [`sandbox/`](../sandbox/). Loopback HTTP is rejected unless `CODING_SANDBOX_PERSONAL=true`. Non-loopback hosts still require HTTPS.
+
+Personal runs are local practice evidence only—not commercial credentials. Human credential review is Coming soon.
+
+## Hosted mode
+
+Without personal mode, all three values are required and the endpoint must be HTTPS:
 
 - `CODING_SANDBOX_APPROVED=true`
 - `CODING_SANDBOX_ENDPOINT` — an HTTPS endpoint without credentials, a query string, or a fragment
@@ -14,7 +31,7 @@ The separately operated provider must enforce all of these controls, rather than
 
 - Temporary workspace per request; delete it after completion.
 - Read-only base image and non-root process.
-- No outbound network, host mounts, Docker socket, privileged access, or sibling-container visibility.
+- No outbound network, host mounts, Docker socket, privileged access, or sibling-container visibility **inside the learner container**.
 - Maximum 10 seconds CPU/wall execution, 256 MB memory, and 32 KB each of stdout/stderr.
 - A dependency allowlist for introductory Python work.
 - Process-tree termination after timeout and audit events that exclude source-code contents and credentials.

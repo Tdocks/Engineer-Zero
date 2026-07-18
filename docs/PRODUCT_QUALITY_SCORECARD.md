@@ -29,9 +29,10 @@ The runtime scorecard in `lib/release-scorecard.ts` is intentionally conservativ
 
 ## Current release truth
 
+- **IRC program decision (2026-07-18):** Coding Developer is the first program pushed toward an internal release candidate. See [IRC_PROGRAM_DECISION.md](IRC_PROGRAM_DECISION.md). Applied AI Operations and IT Support remain active pilots; their Fast/Master catalogs stay off commercial claims.
 - **Applied AI Operations:** structurally advanced and assessment-hardened, but still needs full content review, authenticated evidence, source-health automation, and learner-pilot validation.
 - **IT Support:** Reality Check, the eight-block 48-hour Sprint, four evidence-led labs, and two stateful missions are protected, source-backed, and structurally validated. The remaining Fast/Master catalog and interview bank are still generated scaffolding and cannot be marketed as complete course content.
-- **Coding Developer:** the strongest local pilot; it still needs configured isolated execution, authenticated evidence, GitHub App verification, reviewer operations, and independent approvals before credential claims.
+- **Coding Developer:** personal pilot target with a local Docker sandbox. Human credential gates are Coming soon ([BACKLOG_HUMAN_REVIEW.md](BACKLOG_HUMAN_REVIEW.md)); solo practice does not require them.
 
 ## Commercial release gate
 

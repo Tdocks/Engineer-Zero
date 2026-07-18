@@ -2179,17 +2179,15 @@ function Readiness({
         className={`graduation-gate ${graduation.eligible ? "eligible" : ""}`}
       >
         <div>
-          <span className="eyebrow amber">{trackId === "applied-ai-operations" ? "CREDENTIAL REVIEW STANDARD" : "TRACK GRADUATION STANDARD"}</span>
+          <span className="eyebrow amber">{trackId === "applied-ai-operations" ? "LOCAL READINESS SIGNAL" : "LOCAL TRACK READINESS"}</span>
           <h2>
             {graduation.eligible
-              ? "Ready for certificate review."
-              : trackId === "applied-ai-operations"
-                ? "Build evidence; verified review remains unavailable in this local pilot."
-                : "Earn your evidence before the credential."}
+              ? "Local evidence looks complete — certificate review is Coming soon."
+              : "Build practice evidence in this local pilot."}
           </h2>
           <p>
-            A certificate represents verified demonstrated role readiness—not
-            a collection of watched lessons or browser-stored scores.
+            Human credential review and public certificates are Coming soon (backlog).
+            This screen tracks local practice evidence only—not a commercial certificate.
           </p>
         </div>
         <div className="graduation-checks">

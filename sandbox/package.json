@@ -1,0 +1,12 @@
+{
+  "name": "engineer-zero-sandbox",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated local coding sandbox for Engineer Zero personal pilot",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "build:image": "docker build -f Dockerfile.python -t engineer-zero-sandbox-python:local ."
+  }
+}
