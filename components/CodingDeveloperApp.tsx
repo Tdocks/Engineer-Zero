@@ -12,6 +12,7 @@ import { CodingBossBattles } from "@/components/CodingBossBattles";
 import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
+import { CodingRecallPractice } from "@/components/CodingRecallPractice";
 import { reviewCodingChallenge } from "@/lib/coding-challenge-review";
 import {
   codingChallenges,
@@ -34,7 +35,7 @@ import {
   type CodingLesson,
 } from "@/lib/coding-developer";
 
-type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "boss" | "interview" | "continuation" | "review";
+type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "boss" | "interview" | "continuation" | "review" | "recall";
 
 function updateDate() {
   return new Date().toISOString();
@@ -50,6 +51,7 @@ export function CodingDeveloperApp() {
   const [explanation, setExplanation] = useState("");
   const [localRunConfirmed, setLocalRunConfirmed] = useState(false);
   const [testConfirmed, setTestConfirmed] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.preferences.theme;
@@ -96,6 +98,22 @@ export function CodingDeveloperApp() {
   const selectLesson = (item: CodingLesson) => {
     setSelectedLessonId(item.id);
     setWorkspace("lesson");
+  };
+  const selectRecall = (reviewId: string) => {
+    const review = progress.reviewSchedule.find((item) => item.id === reviewId);
+    if (!review) return;
+    setSelectedLessonId(review.lessonId);
+    setSelectedReviewId(review.id);
+    setWorkspace("recall");
+  };
+  const completeRecall = (reviewId: string, response: string) => {
+    setProgress({
+      ...progress,
+      reviewSchedule: progress.reviewSchedule.map((review) => review.id === reviewId ? { ...review, completedAt: updateDate() } : review),
+      recallResponses: { ...(progress.recallResponses ?? {}), [reviewId]: { response, completedAt: updateDate() } },
+      xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + 5 },
+    });
+    setWorkspace("map");
   };
   const selectChallenge = (item: CodingChallenge) => {
     setSelectedChallengeId(item.id);
@@ -249,7 +267,7 @@ export function CodingDeveloperApp() {
             <header><p className="coding-kicker">SPACED RETRIEVAL</p><h2>Return to ideas before they fade.</h2><p>Opening a review is not completion. Recall the idea first, then check it against the lesson or retrieval checks.</p></header>
             {upcomingReviews.length ? <ul>{upcomingReviews.map((review) => {
               const item = codingLessons.find((lesson) => lesson.id === review.lessonId);
-              return <li key={review.id}><div><b>{item?.title ?? "Learning review"}</b><span>{review.interval.replace("-", " ")} · {new Date(review.dueAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div><button onClick={() => item && selectLesson(item)}>Open recall prompt →</button></li>;
+              return <li key={review.id}><div><b>{item?.title ?? "Learning review"}</b><span>{review.interval.replace("-", " ")} · {new Date(review.dueAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></div><button onClick={() => selectRecall(review.id)}>Open recall prompt →</button></li>;
             })}</ul> : <p className="coding-review-empty">Finish one learning session to schedule five short recall returns across the next week.</p>}
           </section>
           <section className="coding-badges" aria-label="Learning milestones">
@@ -282,6 +300,11 @@ export function CodingDeveloperApp() {
           </article>
         </section>
       )}
+
+      {workspace === "recall" && (() => {
+        const review = progress.reviewSchedule.find((item) => item.id === selectedReviewId) ?? progress.reviewSchedule.find((item) => item.lessonId === lesson.id && !item.completedAt);
+        return review ? <CodingRecallPractice lesson={lesson} review={review} initialResponse={progress.recallResponses?.[review.id]?.response} onComplete={(response) => completeRecall(review.id, response)} /> : <section className="coding-assessment-start"><p className="coding-kicker">RECALL COMPLETE</p><h2>Select a scheduled review from the Mission Map.</h2><button className="coding-primary" onClick={() => setWorkspace("map")}>Return to Mission Map</button></section>;
+      })()}
 
       {workspace === "assessment" && <CodingAssessment onComplete={recordAssessment} priorAttempts={progress.assessmentAttempts ?? []} />}
 

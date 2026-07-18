@@ -148,6 +148,8 @@ export type CodingProgramProgress = {
     interval: "20-minutes" | "end-of-day" | "next-morning" | "three-days" | "one-week";
     completedAt?: string;
   }>;
+  /** Learner-owned recall responses support spaced practice but are not scored as proof. */
+  recallResponses: Record<string, { response: string; completedAt: string }>;
   /** Browser-only drafts and snapshots preserve study work without claiming it ran. */
   workbenchDrafts: Record<string, CodingWorkbenchFile[]>;
   workbenchSnapshots: Record<string, CodingWorkbenchSnapshot[]>;
@@ -629,7 +631,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], workbenchDrafts: {}, workbenchSnapshots: {} };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], bossBattleAttempts: {}, challengeAttempts: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
 }
 
 export function reviewScheduleForLesson(lessonId: string, from = new Date()) {

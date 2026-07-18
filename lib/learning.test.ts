@@ -113,6 +113,7 @@ describe("Engineer Zero track engine", () => {
   it("migrates earlier Coding Developer progress to durable drafts and snapshots", () => {
     const legacyCoding = { ...emptyCodingProgress() } as Record<string, unknown>;
     delete legacyCoding.reviewSchedule;
+    delete legacyCoding.recallResponses;
     delete legacyCoding.workbenchDrafts;
     delete legacyCoding.workbenchSnapshots;
     const migrated = normalizeLearnerState({
@@ -120,6 +121,7 @@ describe("Engineer Zero track engine", () => {
     });
     const coding = migrated.programProgress["coding-developer"]!;
     expect(coding.reviewSchedule).toEqual([]);
+    expect(coding.recallResponses).toEqual({});
     expect(coding.workbenchDrafts).toEqual({});
     expect(coding.workbenchSnapshots).toEqual({});
   });
