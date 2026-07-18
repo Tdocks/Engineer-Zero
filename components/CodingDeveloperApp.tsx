@@ -34,6 +34,7 @@ import {
   type CodingCompetencyKey,
   type CodingLesson,
 } from "@/lib/coding-developer";
+import type { CodingContinuationSubmission } from "@/lib/coding-continuation";
 
 type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "boss" | "interview" | "continuation" | "review" | "recall";
 
@@ -148,11 +149,12 @@ export function CodingDeveloperApp() {
     notes: { ...progress.notes, [key]: value },
     xp: { ...progress.xp, systems: (progress.xp.systems ?? 0) + 12 },
   });
-  const recordContinuationEvidence = (id: string, reflection: string) => setProgress({
+  const recordContinuationEvidence = (id: string, attempt: { submission: CodingContinuationSubmission; score: number; status: "needs-revision" | "reviewed"; feedback: string; missing: string[]; updatedAt: string }) => setProgress({
     ...progress,
-    completedContinuationIds: [...new Set([...(progress.completedContinuationIds ?? []), id])],
-    notes: { ...progress.notes, [`continuation-${id}`]: reflection },
-    xp: { ...progress.xp, communication: (progress.xp.communication ?? 0) + 30 },
+    completedContinuationIds: attempt.status === "reviewed" ? [...new Set([...(progress.completedContinuationIds ?? []), id])] : (progress.completedContinuationIds ?? []).filter((item) => item !== id),
+    continuationAttempts: { ...(progress.continuationAttempts ?? {}), [id]: attempt },
+    notes: { ...progress.notes, [`continuation-${id}`]: Object.values(attempt.submission).join("\n\n") },
+    xp: attempt.status === "reviewed" ? { ...progress.xp, communication: (progress.xp.communication ?? 0) + 30 } : progress.xp,
   });
   const recordInterviewEvidence = (attempt: Omit<typeof progress.interviewAttempts[number], "id" | "completedAt">) => setProgress({
     ...progress,
@@ -347,7 +349,7 @@ export function CodingDeveloperApp() {
 
       {workspace === "interview" && <CodingInterviewArena attempts={progress.interviewAttempts ?? []} onComplete={recordInterviewEvidence} />}
 
-      {workspace === "continuation" && <CodingContinuation completedIds={progress.completedContinuationIds ?? []} onComplete={recordContinuationEvidence} />}
+      {workspace === "continuation" && <CodingContinuation completedIds={progress.completedContinuationIds ?? []} attempts={progress.continuationAttempts ?? {}} onComplete={recordContinuationEvidence} />}
 
       {workspace === "lab" && (
         <section className="coding-lab-layout">

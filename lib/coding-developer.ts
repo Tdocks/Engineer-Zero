@@ -102,6 +102,14 @@ export type CodingProgramProgress = {
   activeDay: 1 | 2 | 3 | 4;
   completedLessonIds: string[];
   completedContinuationIds: string[];
+  continuationAttempts: Record<string, {
+    submission: import("./coding-continuation").CodingContinuationSubmission;
+    score: number;
+    status: "needs-revision" | "reviewed";
+    feedback: string;
+    missing: string[];
+    updatedAt: string;
+  }>;
   bossBattleAttempts: Record<string, {
     score: number;
     response: string;
@@ -619,7 +627,7 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
 };
 
 export function emptyCodingProgress(): CodingProgramProgress {
-  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], assessmentAttempts: [], interviewAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, challengeAttemptHistory: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
+  return { activeDay: 1, completedLessonIds: [], completedContinuationIds: [], continuationAttempts: {}, assessmentAttempts: [], interviewAttempts: [], bossBattleAttempts: {}, reviewBoardAttempts: {}, challengeAttempts: {}, challengeAttemptHistory: {}, notes: {}, xp: {}, spacedReviewDue: [], reviewSchedule: [], recallResponses: {}, workbenchDrafts: {}, workbenchSnapshots: {} };
 }
 
 export function reviewScheduleForLesson(lessonId: string, from = new Date()) {
@@ -668,7 +676,23 @@ function codingCompetencyEvidence(progress: CodingProgramProgress, key: CodingCo
   const challengeEvidence = reviewed.length ? reviewed.reduce((sum, attempt) => sum + attempt!.score, 0) / (reviewed.length * 100) : 0;
   const assessments = (progress.assessmentAttempts ?? []).map((attempt) => attempt.competencyScores[key]).filter((score): score is number => typeof score === "number");
   const assessmentEvidence = assessments.length ? Math.max(...assessments) / 100 : 0;
-  return Math.round((lessonEvidence * .3 + challengeEvidence * .5 + assessmentEvidence * .2) * 100);
+  const continuation = codingContinuationEvidence(progress, key);
+  return Math.round((lessonEvidence * .25 + challengeEvidence * .45 + assessmentEvidence * .2 + continuation * .1) * 100);
+}
+
+function codingContinuationEvidence(progress: CodingProgramProgress, key: CodingCompetencyKey) {
+  // Dynamic import would complicate the static curriculum bundle; keep this
+  // mapping local and award evidence only to reviewed continuation work.
+  const weights: Record<string, Partial<Record<CodingCompetencyKey, number>>> = {
+    "continuation-week-1-stabilize": { python: 1, testingDebugging: 1, git: .7, defense: .8 },
+    "continuation-week-2-data": { dataInterfaces: 1, api: .8, architecture: .8, testingDebugging: .7, securityReliability: .4 },
+    "continuation-week-3-retrieval": { aiApplications: 1, securityReliability: .9, testingDebugging: .8, architecture: .7, defense: .8 },
+    "continuation-week-4-team": { git: 1, defense: 1, architecture: .9, securityReliability: .8 },
+  };
+  const reviewed = Object.entries(progress.continuationAttempts ?? {}).filter(([, attempt]) => attempt.status === "reviewed");
+  const relevant = reviewed.filter(([id]) => Boolean(weights[id]?.[key]));
+  if (!relevant.length) return 0;
+  return relevant.reduce((sum, [, attempt]) => sum + (attempt.score / 100), 0) / relevant.length;
 }
 
 /** Mirrors the course score weights. It is a local study signal until evidence

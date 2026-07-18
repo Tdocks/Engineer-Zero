@@ -54,6 +54,7 @@ import { codingToolWorkflowCases, toolWorkflowOptionsFor } from "./coding-tool-w
 import { reviewToolWorkflow } from "./coding-tool-workflow-review";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "./coding-context-window";
 import { reviewCodingContextWindow } from "./coding-context-window-review";
+import { reviewCodingContinuation } from "./coding-continuation-rubric";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -248,6 +249,23 @@ describe("Engineer Zero track engine", () => {
     const allCorrect = Object.fromEntries(codingEvaluationCases.map((item) => [item.id, accepted.has(item.id) ? "accept" : escalated.has(item.id) ? "escalate" : "reject"]));
     expect(reviewCodingEvaluation(allCorrect)).toMatchObject({ correct: 20, total: 20, complete: true, score: 100 });
     expect(reviewCodingEvaluation({ injection: "accept" })).toMatchObject({ correct: 0, total: 20, complete: false, score: 0 });
+  });
+
+  it("requires distinct continuation artifact, verification, limitation, and next-decision evidence", () => {
+    const weak = reviewCodingContinuation("continuation-week-2-data", {
+      artifact: "SQLite CRUD repository service.",
+      verification: "CRUD test passed.",
+      limitation: "SQLite limitation.",
+      nextDecision: "Next database decision.",
+    });
+    expect(weak?.status).toBe("needs-revision");
+    const strong = reviewCodingContinuation("continuation-week-2-data", {
+      artifact: "I modeled an issues table with an id, owner, status, and created timestamp. The FastAPI route delegates create, read, update, and delete operations to a SQLite repository so the service boundary remains testable.",
+      verification: "The integration test created an issue through POST /issues, read it by id, updated its status to RESOLVED, then deleted it and asserted that the next GET response was 404. This verifies the CRUD response contract.",
+      limitation: "SQLite is a local prototype choice and does not solve concurrent writers, managed backups, authorization, or production retention requirements.",
+      nextDecision: "If approved users and concurrent work justify a managed database, the service owner should select it, migrate the schema, and add rollback evidence before a pilot expands.",
+    });
+    expect(strong).toMatchObject({ status: "reviewed", missing: [] });
   });
 
   it("keeps tool workflow answer keys server-side while varying client option positions", () => {
