@@ -10,3 +10,13 @@ def test_temperature_boundary_is_urgent():
 def test_normal_reading_stays_normal():
     result = evaluate_reading(ReadingIn(equipment="pump-7", temperature=72, vibration=1))
     assert result.priority == "NORMAL"
+
+
+def test_vibration_boundary_is_urgent():
+    result = evaluate_reading(ReadingIn(equipment="pump-7", temperature=72, vibration=8))
+    assert result.priority == "URGENT"
+
+
+def test_review_temperature_boundary_stays_review():
+    result = evaluate_reading(ReadingIn(equipment="pump-7", temperature=80, vibration=1))
+    assert result.priority == "REVIEW"

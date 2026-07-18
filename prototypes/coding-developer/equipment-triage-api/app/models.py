@@ -12,3 +12,16 @@ class TriageOut(BaseModel):
     equipment: str
     priority: str
     rationale: str
+
+
+class HealthOut(BaseModel):
+    status: str
+    service: str
+
+
+class RulesOut(BaseModel):
+    review_temperature: float
+    urgent_temperature: float
+    review_vibration: float
+    urgent_vibration: float
+    policy_note: str
