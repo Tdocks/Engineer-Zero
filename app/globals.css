@@ -4253,6 +4253,7 @@ html[data-theme="dark"] {
 .course-workspace .course-question button.selected { border-bottom-color: var(--ez-primary); font-weight: 650; }
 .course-workspace .structured-evidence h3, .course-workspace .feedback b { color: var(--ez-reader-ink); }
 .course-workspace .verification-note { display:block; margin-top:12px; color:var(--ez-reader-muted); font:12px/1.55 "Source Sans 3", sans-serif; }
+.course-workspace .verification-note.verified { color:var(--ez-primary-strong); }
 .course-workspace .structured-evidence p, .course-workspace .write-answer span { color: var(--ez-reader-muted); }
 .course-workspace .write-answer textarea,
 .course-workspace .evidence-references { border-color: var(--ez-reader-rule); background: var(--ez-reader); color: var(--ez-reader-ink); }

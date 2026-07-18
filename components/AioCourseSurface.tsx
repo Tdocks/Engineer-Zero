@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CapabilityLevel, CourseAttemptRecord, CourseDraft, CourseStage, LearnerState, TrackId } from "@/lib/types";
 import type { StructuredEvidence } from "@/lib/course-types";
 import { recommendAioFoundationStart } from "@/lib/aio-foundation-path";
+import { browserSupabase } from "@/lib/browser-supabase";
 
 export type CourseKind = "module" | "lab" | "mission";
 export type CourseBlock =
@@ -431,6 +432,8 @@ export function CourseRunner({
   const [grade, setGrade] = useState<Grade | null>(null);
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("Saved as local study evidence in this browser. It is not a verified credential record.");
+  const [savedVerificationLevel, setSavedVerificationLevel] = useState<CourseAttemptRecord["verificationLevel"]>("local-study");
   const isIncident = item.mode === "Production Incident";
   const lessonBlocks = useMemo(() => lessonBlocksFor(item), [item]);
   const stages = ["learn", "check", "practice", "debrief", "revision"] as const;
@@ -509,6 +512,32 @@ export function CourseRunner({
         setSubmitError(result.error ?? "Scoring is temporarily unavailable. Your draft remains here.");
         return;
       }
+      let verificationLevel: CourseAttemptRecord["verificationLevel"] = "local-study";
+      const supabase = browserSupabase();
+      if (supabase) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.access_token) {
+            const verified = await fetch("/api/course/verified-attempt", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${sessionData.session.access_token}`,
+              },
+              body: JSON.stringify({ trackId, kind, itemId: item.id, answers, evidence, missionChoices, revisionOf: previous?.id }),
+            });
+            if (verified.ok) {
+              verificationLevel = "server-scored";
+              setVerificationMessage("Verified server evidence saved for this enrolled track.");
+            } else {
+              setVerificationMessage("Saved as local study evidence. Hosted verification needs an active enrollment and available service.");
+            }
+          }
+        } catch {
+          setVerificationMessage("Saved as local study evidence. Hosted verification was unavailable, so no credential record was created.");
+        }
+      }
+      setSavedVerificationLevel(verificationLevel);
       setGrade(result);
       onSaved({
         id: crypto.randomUUID(), itemId: item.id, version, kind, score: result.score,
@@ -516,7 +545,7 @@ export function CourseRunner({
         missionChoices, hintCount, revisionOf: previous?.id, createdAt: new Date().toISOString(),
         competencies: item.competencies,
         capabilityLevel: item.capabilityLevel ?? "prove",
-        verificationLevel: "local-study",
+        verificationLevel,
         evidenceDimension: item.capabilityLevel === "know" ? "understands" : item.capabilityLevel === "practice" ? (item.mode === "Production Incident" ? "troubleshoots" : "aiCollaboration") : kind === "module" ? "builds" : kind === "mission" ? "defends" : item.mode === "Production Incident" ? "troubleshoots" : item.mode === "AI Builder" ? "aiCollaboration" : "builds",
       });
       onDraftChange?.(null);
@@ -720,7 +749,7 @@ export function CourseRunner({
                   </b>
                   <br />
                   {grade.feedback}
-                  <small className="verification-note">Saved as local study evidence in this browser. It is not a verified credential record.</small>
+                  <small className={`verification-note ${savedVerificationLevel === "server-scored" ? "verified" : ""}`}>{verificationMessage}</small>
                 </div>
                 {grade.checks.map((check) => (
                   <div

@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { LogIn, LogOut, Mail, ShieldCheck } from "lucide-react";
-
-function configuredClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return url && anonKey ? createClient(url, anonKey) : null;
-}
+import { browserSupabase } from "@/lib/browser-supabase";
 
 /**
  * Account controls are intentionally optional for the personal pilot. When a
@@ -25,7 +20,7 @@ export function AccountControls() {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    client.current = configuredClient();
+    client.current = browserSupabase();
     setSupabase(client.current);
     setConfigurationChecked(true);
     if (!client.current) return;
