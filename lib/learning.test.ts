@@ -38,6 +38,7 @@ import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts, reviewCodingInterview } from "./coding-interviews";
+import { reviewCodingChallenge } from "./coding-challenge-review";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -155,6 +156,15 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingInterview(prompt, stuffed).complete).toBe(false);
     const evidenceRich = "The operations team needs a bounded way to replace manual reading of fictional sensor reports, so I would scope the prototype to triage only. The POST request uses a typed input schema and validation before returning a structured response. The route delegates deterministic threshold policy to a pure service function, keeping the business boundary easy to test. I would assert the exact 90-degree boundary and one invalid reading so a rule change has regression evidence. This is a prototype limitation: it has no identity or production monitoring, so my next decision would be a controlled pilot with those owners involved. I would document that decision, retain the test output, and ask the operations owner whether the proposed workflow actually reduces manual review time.";
     expect(reviewCodingInterview(prompt, evidenceRich).complete).toBe(true);
+  });
+
+  it("does not let visible syntax or repeated labels become Code Lab evidence", () => {
+    const challenge = codingChallenges.find((item) => item.id === "coding-triage-cli")!;
+    const visibleButEmpty = "def evaluate_reading(temperature: float):\n    if temperature:\n        return 'NORMAL'\n    elif temperature:\n        return 'REVIEW'";
+    const stuffed = "input output threshold deterministic test ".repeat(35);
+    expect(reviewCodingChallenge(challenge, visibleButEmpty, stuffed).status).toBe("needs-revision");
+    const evidenceRich = "The input is a temperature value and the function returns NORMAL, REVIEW, or URGENT for the calling CLI. I would test the exact 90-degree threshold boundary because a temperature of 89 and 90 must deliberately take different branches. This remains a deterministic rule rather than an AI task because the explicit threshold must be repeatable and easy to audit. I would add an assertion for 90 plus an invalid text-value check that raises a visible validation error instead of quietly returning NORMAL. Before expanding the prototype, I would run those tests and document the rule assumptions for the operations owner.";
+    expect(reviewCodingChallenge(challenge, visibleButEmpty, evidenceRich).status).toBe("reviewed");
   });
 
   it("keeps Coding Developer assessment keys private while grading mixed evidence server-side", () => {

@@ -12,6 +12,7 @@ import { CodingBossBattles } from "@/components/CodingBossBattles";
 import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
+import { reviewCodingChallenge } from "@/lib/coding-challenge-review";
 import {
   codingChallenges,
   codingDayPlans,
@@ -34,27 +35,6 @@ import {
 } from "@/lib/coding-developer";
 
 type Workspace = "map" | "lesson" | "assessment" | "lab" | "systems" | "boss" | "interview" | "continuation" | "review";
-
-function scoreChallenge(challenge: CodingChallenge, code: string, explanation: string) {
-  const normalized = code.toLowerCase();
-  const found = challenge.requiredSignals.filter((signal) => normalized.includes(signal.toLowerCase()));
-  const unsafe = (challenge.antiPatterns ?? []).filter((signal) => normalized.includes(signal.toLowerCase()));
-  const hasExplanation = explanation.trim().length >= 160;
-  const score = Math.max(0, Math.min(100, Math.round((found.length / challenge.requiredSignals.length) * 80) - unsafe.length * 20 + (hasExplanation ? 20 : 0)));
-  const missing = challenge.requiredSignals.filter((signal) => !found.includes(signal));
-  const status: "needs-revision" | "reviewed" = !unsafe.length && !missing.length && hasExplanation ? "reviewed" : "needs-revision";
-  return {
-    score,
-    status,
-    feedback: unsafe.length
-      ? `Pause before continuing: remove or explain ${unsafe.join(", ")}. It is not appropriate for this exercise.`
-      : missing.length
-        ? `You have a start. Add or explain: ${missing.join(", ")}. Then re-check the work.`
-        : !hasExplanation
-          ? "The visible design signals are present. Add a specific self-explanation before recording the review; a running snippet alone is not comprehension evidence."
-          : "The structural signals and self-explanation are recorded. This is still not execution proof—run the project locally, inspect the tests, and defend each boundary before claiming independent capability.",
-  };
-}
 
 function updateDate() {
   return new Date().toISOString();
@@ -166,7 +146,7 @@ export function CodingDeveloperApp() {
     const submittedDesign = challenge.kind === "terminal"
       ? (progress.terminalSession?.transcript.map((entry) => `${entry.command}\n${entry.output}`).join("\n") ?? "")
       : code;
-    const result = scoreChallenge(challenge, submittedDesign, explanation);
+    const result = reviewCodingChallenge(challenge, submittedDesign, explanation);
     setProgress({
       ...progress,
       challengeAttempts: {
@@ -335,14 +315,14 @@ export function CodingDeveloperApp() {
               /><button className="coding-primary coding-workbench-review" onClick={submitChallenge}>Review visible design <Braces size={16} /></button></>
             )}
             {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
-            <section className="coding-checklist"><h3>What the reviewer looks for</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
+            <section className="coding-checklist"><h3>Visible design checks</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
             <section className="coding-comprehension">
-              <header><span>Comprehension gate</span><h3>{challenge.comprehensionPrompt}</h3><p>Address the points below in your own words. This records an explanation for review; it is not an automated claim of independent coding ability.</p></header>
+              <header><span>Comprehension gate</span><h3>{challenge.comprehensionPrompt}</h3><p>Address the points below in separate, concrete sentences. The study review checks for distinct claims and rejects repeated labels or keyword padding; it is not an automated claim of independent coding ability.</p></header>
               <ul>{challenge.comprehensionRequirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul>
               <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder="Explain the behavior, the boundary, and how you would verify it…" aria-label={`${challenge.title} comprehension explanation`} />
               <label><input type="checkbox" checked={localRunConfirmed} onChange={(event) => setLocalRunConfirmed(event.target.checked)} /> I ran or will run the corresponding project locally; this is a self-attestation, not verified execution.</label>
               {challenge.day >= 2 && <label><input type="checkbox" checked={testConfirmed} onChange={(event) => setTestConfirmed(event.target.checked)} /> I inspected the relevant test output or can name the test I still need to add.</label>}
-              <button className="coding-primary" onClick={submitChallenge}>Record structural review <Braces size={16} /></button>
+              <button className="coding-primary" onClick={submitChallenge}>Review design and explanation <Braces size={16} /></button>
             </section>
             {progress.challengeAttempts[challenge.id] && <section className="coding-feedback"><b>{progress.challengeAttempts[challenge.id].status === "reviewed" ? "Review recorded" : "Revision needed"} · {progress.challengeAttempts[challenge.id].score}% evidence completeness</b><p>{progress.challengeAttempts[challenge.id].feedback}</p></section>}
             <section className="coding-local-handoff"><h3>Run it for real</h3><p>This lab deliberately does not execute arbitrary learner code. Build the corresponding local starter project, run its tests in your own isolated environment, then return to defend the result.</p><code>python -m venv .venv && source .venv/bin/activate</code></section>
