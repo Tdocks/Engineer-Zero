@@ -13,7 +13,7 @@ import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
 import { CodingRecallPractice } from "@/components/CodingRecallPractice";
-import { codingReviewBoardPrompts, reviewCodingBoardResponse } from "@/lib/coding-review-board";
+import { codingReviewBoardPrompts } from "@/lib/coding-review-board-prompts";
 import {
   codingChallenges,
   codingDayPlans,
@@ -53,6 +53,8 @@ export function CodingDeveloperApp() {
   const [testConfirmed, setTestConfirmed] = useState(false);
   const [reviewingChallenge, setReviewingChallenge] = useState(false);
   const [challengeReviewError, setChallengeReviewError] = useState("");
+  const [reviewingBoardId, setReviewingBoardId] = useState<string | null>(null);
+  const [boardReviewError, setBoardReviewError] = useState("");
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -162,16 +164,16 @@ export function CodingDeveloperApp() {
     bossBattleAttempts: { ...(progress.bossBattleAttempts ?? {}), [id]: { ...result, updatedAt: updateDate() } },
     xp: result.status === "reviewed" ? { ...progress.xp, reliability: (progress.xp.reliability ?? 0) + 20, debugger: (progress.xp.debugger ?? 0) + 12 } : progress.xp,
   });
-  const reviewBoardResponse = (id: string) => {
-    const prompt = codingReviewBoardPrompts.find((item) => item.id === id);
-    if (!prompt) return;
+  const reviewBoardResponse = async (id: string) => {
     const response = progress.reviewBoardAttempts?.[id]?.response ?? "";
-    const result = reviewCodingBoardResponse(prompt, response);
-    setProgress({
-      ...progress,
-      reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [id]: { response, ...result, updatedAt: updateDate() } },
-      xp: result.status === "reviewed" ? { ...progress.xp, communication: (progress.xp.communication ?? 0) + 15 } : progress.xp,
-    });
+    setReviewingBoardId(id); setBoardReviewError("");
+    try {
+      const request = await fetch("/api/coding/review-board", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reviewerId: id, response }) });
+      const result = await request.json() as { score?: number; status?: "needs-revision" | "reviewed"; feedback?: string; error?: string };
+      if (!request.ok || typeof result.score !== "number" || !result.status || !result.feedback) throw new Error(result.error ?? "The review response could not be scored.");
+      setProgress({ ...progress, reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [id]: { response, score: result.score, status: result.status, updatedAt: updateDate() } }, xp: result.status === "reviewed" ? { ...progress.xp, communication: (progress.xp.communication ?? 0) + 15 } : progress.xp });
+    } catch (error) { setBoardReviewError(error instanceof Error ? error.message : "The review response could not be scored."); }
+    finally { setReviewingBoardId(null); }
   };
   const submitChallenge = async () => {
     const submittedDesign = challenge.kind === "terminal"
@@ -386,8 +388,9 @@ export function CodingDeveloperApp() {
           <header><p className="coding-kicker">ENGINEERING REVIEW BOARD</p><h2>Defend the Mission Operations Handoff Assistant.</h2><p>Answer in order: user outcome, system boundary, data contract, tests, failure behavior, and next production decision.</p></header>
           <div>{codingReviewBoardPrompts.map((reviewer) => {
             const attempt = progress.reviewBoardAttempts?.[reviewer.id];
-            return <article key={reviewer.id}><span>{reviewer.role}</span><p>{reviewer.prompt}</p><textarea value={attempt?.response ?? ""} onChange={(event) => setProgress({ ...progress, reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [reviewer.id]: { response: event.target.value, score: attempt?.score ?? 0, status: attempt?.status ?? "needs-revision", updatedAt: attempt?.updatedAt ?? updateDate() } } })} placeholder="State a specific decision, evidence, and remaining limitation in separate sentences…" /><button className="coding-secondary" onClick={() => reviewBoardResponse(reviewer.id)}>Review this response</button>{attempt && <aside><b>{attempt.status === "reviewed" ? "Review recorded" : "Revision needed"} · {attempt.score}% evidence completeness</b><p>{reviewCodingBoardResponse(reviewer, attempt.response).feedback}</p></aside>}</article>;
+            return <article key={reviewer.id}><span>{reviewer.role}</span><p>{reviewer.prompt}</p><textarea value={attempt?.response ?? ""} onChange={(event) => setProgress({ ...progress, reviewBoardAttempts: { ...(progress.reviewBoardAttempts ?? {}), [reviewer.id]: { response: event.target.value, score: attempt?.score ?? 0, status: attempt?.status ?? "needs-revision", updatedAt: attempt?.updatedAt ?? updateDate() } } })} placeholder="State a specific decision, evidence, and remaining limitation in separate sentences…" /><button className="coding-secondary" disabled={reviewingBoardId === reviewer.id} onClick={() => reviewBoardResponse(reviewer.id)}>{reviewingBoardId === reviewer.id ? "Reviewing…" : "Review this response"}</button>{attempt && <aside><b>{attempt.status === "reviewed" ? "Review recorded" : "Revision needed"} · {attempt.score}% evidence completeness</b><p>{attempt.status === "reviewed" ? "The server-side rubric found distinct role-specific evidence. This is local preparation evidence, not an approval decision." : "Revise with specific role-relevant evidence, separate decisions, and a concrete limitation before re-submitting."}</p></aside>}</article>;
           })}</div>
+          {boardReviewError && <p className="coding-form-error" role="alert">{boardReviewError}</p>}
           <section className="coding-graduation"><h3>Four-day graduation standard</h3><p>Completion means you can navigate a project, build a typed FastAPI prototype, validate input, test key behavior, use AI only at a defensible boundary, explain failure behavior, and disclose what you built or reviewed. It does not represent production or safety-critical software certification.</p><ul>{graduation.checks.map((check) => <li key={check.id} className={check.passed ? "done" : ""}>{check.passed ? <Check size={15} /> : <span />} {check.label}</li>)}</ul><b>{graduation.readyForReviewer ? "Ready for qualified review — certification is still not automatic." : `${graduation.readiness}% local evidence signal — continue building the missing evidence above.`}</b></section>
         </section>
       )}

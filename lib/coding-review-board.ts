@@ -1,3 +1,5 @@
+import "server-only";
+
 type EvidenceRequirement = {
   id: string;
   label: string;
@@ -66,7 +68,9 @@ function words(value: string) {
   return value.toLowerCase().match(/[a-z0-9][a-z0-9'-]*/g) ?? [];
 }
 
-export function reviewCodingBoardResponse(prompt: CodingReviewBoardPrompt, response: string) {
+export function reviewCodingBoardResponse(promptId: string, response: string) {
+  const prompt = codingReviewBoardPrompts.find((item) => item.id === promptId);
+  if (!prompt) return null;
   const segments = response.toLowerCase().split(/[\n.!?]+/).map((segment) => segment.trim()).filter(Boolean);
   const responseWords = words(response);
   const uniqueRatio = responseWords.length ? new Set(responseWords).size / responseWords.length : 0;
