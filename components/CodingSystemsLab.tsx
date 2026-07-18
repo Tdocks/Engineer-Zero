@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Braces, Bug, Check, FlaskConical, Gauge, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
+import { BarChart3, Braces, Bug, Check, FlaskConical, Gauge, GitPullRequest, Layers3, Network, ShieldCheck, Waypoints, Workflow } from "lucide-react";
 import { codingEvaluationCases, scoreCodingEvaluation, type EvaluationDisposition } from "@/lib/coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowDispositionLabels, toolWorkflowOptionsFor, type ToolWorkflowDisposition } from "@/lib/coding-tool-workflow";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "@/lib/coding-context-window";
 import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-git-review";
 import { codingTestReviewCases, testReviewDispositionLabels, testReviewOptionsFor, type TestReviewDisposition } from "@/lib/coding-test-review";
 import { codingModelStrategyScenario, type ModelStrategyId } from "@/lib/coding-model-strategy";
+import { codingMachineFlowChoices, codingMachineFlowSteps } from "@/lib/coding-machine-flow";
 
-type Mode = "api" | "ai" | "context" | "strategy" | "tools" | "evaluate" | "tests" | "git" | "debug";
+type Mode = "machine" | "api" | "ai" | "context" | "strategy" | "tools" | "evaluate" | "tests" | "git" | "debug";
 
 const debugCases = [
   {
@@ -126,7 +127,7 @@ const debugClassifications = [
 ] as const;
 
 export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, value: string) => void }) {
-  const [mode, setMode] = useState<Mode>("api");
+  const [mode, setMode] = useState<Mode>("machine");
   const [method, setMethod] = useState("POST");
   const [route, setRoute] = useState("/triage");
   const [payload, setPayload] = useState('{"equipment":"pump-7","temperature":82,"vibration":1}');
@@ -161,6 +162,11 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [modelReview, setModelReview] = useState<{ complete: boolean; missingClaims: string[]; feedback: string } | null>(null);
   const [reviewingModel, setReviewingModel] = useState(false);
   const [modelReviewError, setModelReviewError] = useState("");
+  const [machineOrder, setMachineOrder] = useState<string[]>([...codingMachineFlowChoices]);
+  const [machineExplanation, setMachineExplanation] = useState("");
+  const [machineReview, setMachineReview] = useState<{ complete: boolean; correctOrder: boolean; missingClaims: string[]; feedback: string } | null>(null);
+  const [reviewingMachine, setReviewingMachine] = useState(false);
+  const [machineReviewError, setMachineReviewError] = useState("");
 
   const runApi = () => {
     if (method !== "POST" || route !== "/triage") return setApiResult({ status: 404, body: '{"detail":"No matching training route"}' });
@@ -237,6 +243,23 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
     } catch (error) { setModelReviewError(error instanceof Error ? error.message : "The model-strategy decision could not be reviewed. Keep your work and retry."); }
     finally { setReviewingModel(false); }
   };
+  const moveMachineStep = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= machineOrder.length) return;
+    setMachineOrder((current) => { const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next; });
+    setMachineReview(null);
+  };
+  const reviewMachineFlow = async () => {
+    setReviewingMachine(true); setMachineReviewError("");
+    try {
+      const response = await fetch("/api/coding/machine-flow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: machineOrder, explanation: machineExplanation }) });
+      const result = await response.json() as { error?: string; complete?: boolean; correctOrder?: boolean; missingClaims?: string[]; feedback?: string };
+      if (!response.ok || typeof result.complete !== "boolean" || typeof result.correctOrder !== "boolean" || !Array.isArray(result.missingClaims) || !result.feedback) throw new Error(result.error ?? "The machine-flow review did not return a valid result.");
+      setMachineReview(result as NonNullable<typeof machineReview>);
+      if (result.complete) onEvidence("machine-flow", "Reconstructed how a command travels from keyboard through shell, operating system, Python, program, and output.");
+    } catch (error) { setMachineReviewError(error instanceof Error ? error.message : "The machine-flow exercise could not be reviewed. Keep your work and retry."); }
+    finally { setReviewingMachine(false); }
+  };
   const reviewContextSelection = async () => {
     setReviewingContext(true);
     setContextReviewError("");
@@ -262,6 +285,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   return <section className="coding-systems-lab">
     <header><p className="coding-kicker">SYSTEMS PRACTICE</p><h2>See the boundary before you write the code.</h2><p>These are deterministic fictional simulations. They teach how to inspect inputs, outputs, failures, and model behavior—not how to operate real infrastructure.</p></header>
     <nav aria-label="Systems practice activity">
+      <button className={mode === "machine" ? "active" : ""} onClick={() => setMode("machine")}><Waypoints size={16} /> Inside the machine</button>
       <button className={mode === "api" ? "active" : ""} onClick={() => setMode("api")}><Network size={16} /> API simulator</button>
       <button className={mode === "ai" ? "active" : ""} onClick={() => setMode("ai")}><Braces size={16} /> AI systems lab</button>
       <button className={mode === "context" ? "active" : ""} onClick={() => setMode("context")}><Layers3 size={16} /> Context window</button>
@@ -272,6 +296,14 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <button className={mode === "git" ? "active" : ""} onClick={() => setMode("git")}><GitPullRequest size={16} /> Change review</button>
       <button className={mode === "debug" ? "active" : ""} onClick={() => setMode("debug")}><Bug size={16} /> Debug Bay</button>
     </nav>
+
+    {mode === "machine" && <article className="coding-machine-flow">
+      <header><p className="coding-kicker">FOUNDATION · COMMAND PATH</p><h3>What happens after you press Enter?</h3><p>Arrange the components in the order a command takes from the keyboard to visible output. Use the arrows to adjust the sequence, then explain the handoff in your own words.</p></header>
+      <ol>{machineOrder.map((id, index) => { const step = codingMachineFlowSteps.find((item) => item.id === id)!; return <li key={id}><span>{String(index + 1).padStart(2, "0")}</span><div><b>{step.label}</b><p>{step.description}</p></div><aside><button onClick={() => moveMachineStep(index, -1)} disabled={index === 0} aria-label={`Move ${step.label} earlier`}>↑</button><button onClick={() => moveMachineStep(index, 1)} disabled={index === machineOrder.length - 1} aria-label={`Move ${step.label} later`}>↓</button></aside></li>; })}</ol>
+      <label>Explain the handoff<textarea value={machineExplanation} onChange={(event) => { setMachineExplanation(event.target.value); setMachineReview(null); }} placeholder="Explain what the shell does, what the operating system does, how Python runs the file, and where output appears…" aria-label="Machine flow explanation" /></label>
+      <footer><div><b>{machineReview?.complete ? "Command path reconstructed" : "Order the path, then explain it."}</b><p>{machineReview ? machineReview.feedback : "This is a mental model, not a terminal command. It helps you locate whether a problem belongs to the shell, environment, Python runtime, or your application."}</p>{machineReview && !machineReview.complete && machineReview.missingClaims.length > 0 && <small>Add: {machineReview.missingClaims.join(", ")}.</small>}</div><button className="coding-primary" disabled={!machineExplanation.trim() || reviewingMachine} onClick={reviewMachineFlow}>{reviewingMachine ? "Reviewing path…" : "Review command path"} <Waypoints size={16} /></button></footer>
+      {machineReviewError && <p className="coding-form-error">{machineReviewError}</p>}
+    </article>}
 
     {mode === "api" && <article className="coding-system-workspace">
       <div><p className="coding-kicker">HUMAN API · REQUEST BUILDER</p><h3>Send a typed request through a fictional route.</h3><p>A route matches method and path. A request model validates JSON before a pure service function applies the deterministic rule.</p><div className="api-controls"><select value={method} onChange={(event) => setMethod(event.target.value)} aria-label="HTTP method"><option>POST</option><option>GET</option><option>PUT</option></select><input value={route} onChange={(event) => setRoute(event.target.value)} aria-label="API route" /></div><textarea value={payload} onChange={(event) => setPayload(event.target.value)} aria-label="JSON request body" spellCheck={false} /><button className="coding-primary" onClick={runApi}>Send fictional request <Network size={16} /></button></div>

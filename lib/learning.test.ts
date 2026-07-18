@@ -40,6 +40,7 @@ import { classifyTutorError, codingTutorResponse } from "./coding-tutor";
 import { reviewCodingGitChange } from "./coding-git-review-rubric";
 import { reviewCodingTests } from "./coding-test-review-rubric";
 import { reviewCodingModelStrategy } from "./coding-model-strategy-rubric";
+import { reviewCodingMachineFlow } from "./coding-machine-flow-rubric";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts } from "./coding-interview-prompts";
 import { reviewCodingInterview, reviewRequirementChangeInterview } from "./coding-interviews";
@@ -195,6 +196,13 @@ describe("Engineer Zero track engine", () => {
     expect(reviewCodingModelStrategy("freeform-large", "It writes fluent summaries.").complete).toBe(false);
     const reviewed = reviewCodingModelStrategy("structured-fast", "The strategy meets the latency and cost budget, validates a schema, preserves human review, and has a degraded fallback when a provider fails.");
     expect(reviewed.complete).toBe(true);
+  });
+
+  it("requires the beginner command-path sequence and an explanatory mental model", () => {
+    const wrong = reviewCodingMachineFlow(["shell", "keyboard", "operating-system", "python", "program", "output"], "The shell starts Python.");
+    expect(wrong.complete).toBe(false);
+    const right = reviewCodingMachineFlow(["keyboard", "shell", "operating-system", "python", "program", "output"], "The keyboard sends a command to the shell. The shell asks the operating system to start Python, which runs the program and sends output back to the terminal.");
+    expect(right.complete).toBe(true);
   });
 
   it("does not let keyword stuffing pass coding interview evidence review", () => {
