@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, FileCode2, FileText, FolderTree, RotateCcw, Save, SearchCheck } from "lucide-react";
+import { Check, FileCode2, FileText, FolderTree, GitCompareArrows, RotateCcw, Save, SearchCheck } from "lucide-react";
 import type { CodingChallenge, CodingWorkbenchSnapshot } from "@/lib/coding-developer";
 import { starterWorkbenchFiles, visibleCheckStatus, type WorkbenchFile } from "@/lib/coding-workbench";
 import { CodingExecutionPanel } from "@/components/CodingExecutionPanel";
@@ -18,7 +18,10 @@ export function CodingFileWorkbench({ challenge, initialFiles, initialSnapshots,
   const [selectedPath, setSelectedPath] = useState(() => (initialFiles?.length ? initialFiles : starterWorkbenchFiles(challenge))[0].path);
   const [snapshots, setSnapshots] = useState<CodingWorkbenchSnapshot[]>(() => initialSnapshots ?? []);
   const [showChecks, setShowChecks] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
   const selected = files.find((file) => file.path === selectedPath) ?? files[0];
+  const starterFiles = useMemo(() => starterWorkbenchFiles(challenge), [challenge]);
+  const starter = starterFiles.find((file) => file.path === selected.path);
   const checks = useMemo(() => visibleCheckStatus(challenge, files), [challenge, files]);
   const updateFile = (content: string) => {
     const next = files.map((file) => file.path === selected.path ? { ...file, content } : file);
@@ -26,7 +29,7 @@ export function CodingFileWorkbench({ challenge, initialFiles, initialSnapshots,
     onFilesChange(next);
     onCodeChange(next.filter((file) => file.role === "source").map((file) => file.content).join("\n"));
   };
-  const reset = () => { const next = starterWorkbenchFiles(challenge); setFiles(next); onFilesChange(next); setSelectedPath(next[0].path); setShowChecks(false); onCodeChange(next[0].content); };
+  const reset = () => { const next = starterWorkbenchFiles(challenge); setFiles(next); onFilesChange(next); setSelectedPath(next[0].path); setShowChecks(false); setShowDiff(false); onCodeChange(next[0].content); };
   const snapshot = () => {
     const count = snapshots.length + 1;
     const next = { id: crypto.randomUUID(), label: `Snapshot ${count}`, createdAt: new Date().toISOString(), files: files.map((file) => ({ ...file })) };
@@ -41,9 +44,17 @@ export function CodingFileWorkbench({ challenge, initialFiles, initialSnapshots,
     setSelectedPath(next[0].path);
     onCodeChange(next.filter((file) => file.role === "source").map((file) => file.content).join("\n"));
   };
+  const diff = useMemo(() => {
+    if (!starter || !selected.editable) return [];
+    const original = starter.content.split("\n");
+    const current = selected.content.split("\n");
+    const length = Math.max(original.length, current.length);
+    return Array.from({ length }, (_, index) => ({ index: index + 1, before: original[index], after: current[index], changed: original[index] !== current[index] }));
+  }, [starter, selected]);
   return <section className="coding-file-workbench" aria-label="Code lab workbench">
     <header><div><span><FolderTree size={15} /> Fictional local workspace</span><small>Browser preparation only · execution evidence comes from the isolated runner or the supplied local project.</small></div><div><button className="coding-secondary" onClick={snapshot}><Save size={15} /> Save snapshot {snapshots.length ? `(${snapshots.length})` : ""}</button><button className="coding-secondary" onClick={reset}><RotateCcw size={15} /> Reset files</button></div></header>
-    <div className="workbench-body"><aside><span>Project files</span>{files.map((file) => <button key={file.path} className={selected.path === file.path ? "active" : ""} onClick={() => setSelectedPath(file.path)}>{file.role === "source" ? <FileCode2 size={15} /> : <FileText size={15} />} {file.path}</button>)}</aside><div><header><span><FileCode2 size={15} /> {selected.path}</span><small>{selected.editable ? "Editable source" : selected.role === "test" ? "Visible learning checks" : "Project note"}</small></header>{selected.editable ? <textarea value={selected.content} onChange={(event) => updateFile(event.target.value)} spellCheck={false} aria-label={`${selected.path} editor`} /> : <pre>{selected.content}</pre>}<footer><span>{selected.editable ? "Draft changes stay in this local study session." : "Read-only supporting material."}</span><button className="coding-secondary" onClick={() => setShowChecks((value) => !value)}><SearchCheck size={15} /> {showChecks ? "Hide" : "Preview"} visible checks</button></footer></div></div>
+    <div className="workbench-body"><aside><span>Project files</span>{files.map((file) => <button key={file.path} className={selected.path === file.path ? "active" : ""} onClick={() => setSelectedPath(file.path)}>{file.role === "source" ? <FileCode2 size={15} /> : <FileText size={15} />} {file.path}</button>)}</aside><div><header><span><FileCode2 size={15} /> {selected.path}</span><small>{selected.editable ? "Editable source" : selected.role === "test" ? "Visible learning checks" : "Project note"}</small></header>{selected.editable ? <textarea value={selected.content} onChange={(event) => updateFile(event.target.value)} spellCheck={false} aria-label={`${selected.path} editor`} /> : <pre>{selected.content}</pre>}<footer><span>{selected.editable ? "Draft changes stay in this local study session." : "Read-only supporting material."}</span><div><button className="coding-secondary" onClick={() => setShowChecks((value) => !value)}><SearchCheck size={15} /> {showChecks ? "Hide" : "Preview"} visible checks</button>{selected.editable && <button className="coding-secondary" onClick={() => setShowDiff((value) => !value)}><GitCompareArrows size={15} /> {showDiff ? "Hide" : "Review"} edits</button>}</div></footer></div></div>
+    {showDiff && <section className="workbench-diff" aria-label="Draft changes compared with starter file"><header><b>Draft compared with starter</b><span>Review changes before asking for help or claiming a result.</span></header>{diff.some((line) => line.changed) ? <pre>{diff.map((line) => line.changed ? <span key={line.index}><i>- {line.before ?? ""}</i><b>+ {line.after ?? ""}</b></span> : <span key={line.index}>  {line.after ?? ""}</span>)}</pre> : <p>No edits in this file yet. Change one narrow behavior, then use this view to explain the difference.</p>}</section>}
     {showChecks && <section className="workbench-checks"><header><b>Visible structural checks</b><span>{checks.passed.length}/{challenge.requiredSignals.length} detected</span></header><ul>{challenge.requiredSignals.map((signal) => <li key={signal} className={checks.passed.includes(signal) ? "pass" : ""}>{checks.passed.includes(signal) ? <Check size={14} /> : <span />} {signal}</li>)}</ul><p>These checks confirm only visible exercise structure. Run the local project’s tests or an approved isolated runner before treating behavior as verified.</p></section>}
     <CodingExecutionPanel challenge={challenge} files={files} />
     {snapshots.length > 0 && <section className="workbench-snapshots"><span>Local snapshot history</span>{snapshots.map((snapshot) => <button key={snapshot.id} onClick={() => restoreSnapshot(snapshot)}><Save size={14} /> Restore {snapshot.label}</button>)}</section>}
