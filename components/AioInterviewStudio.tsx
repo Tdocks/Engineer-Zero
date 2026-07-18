@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LearnerState } from "@/lib/types";
+import type { LearnerState, TrackId } from "@/lib/types";
 
 type Prompt = {
   id: string;
@@ -13,9 +13,11 @@ type Prompt = {
 export function AioInterviewStudio({
   state,
   setState,
+  trackId = "applied-ai-operations",
 }: {
   state: LearnerState;
   setState: React.Dispatch<React.SetStateAction<LearnerState>>;
+  trackId?: TrackId;
 }) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selected, setSelected] = useState<Prompt | null>(null);
@@ -31,7 +33,7 @@ export function AioInterviewStudio({
   const [practiceMode, setPracticeMode] = useState<"guided" | "rapid" | "defense">("guided");
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   useEffect(() => {
-    fetch("/api/course/interviews")
+    fetch(`/api/course/interviews?track=${trackId}`)
       .then((response) => response.json())
       .then((data: { prompts: Prompt[] }) => {
         setPrompts(data.prompts);
@@ -42,7 +44,7 @@ export function AioInterviewStudio({
           "The interview bank could not be loaded. Refresh to retry.",
         ),
       );
-  }, []);
+  }, [trackId]);
   const filtered =
     category === "All"
       ? prompts
@@ -67,7 +69,7 @@ export function AioInterviewStudio({
     const response = await fetch("/api/course/interviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ promptId: selected.id, response: answer }),
+      body: JSON.stringify({ track: trackId, promptId: selected.id, response: answer }),
     });
     const result = await response.json() as {
       score?: number; feedback?: string; followUp?: string; examinerGuidance?: { strongAnswer: string; commonMiss: string; rubric: string[] }; error?: string;
@@ -121,12 +123,11 @@ export function AioInterviewStudio({
       </div>
       <section className="crash-plan">
         <div>
-          <span className="eyebrow amber">48-HOUR INTERVIEW SPRINT</span>
-          <h3>Eight blocks. Eight artifacts. One honest packet.</h3>
+          <span className="eyebrow amber">{trackId === "it-support-technician" ? "48-HOUR IT SUPPORT CRASH COURSE" : "48-HOUR INTERVIEW SPRINT"}</span>
+          <h3>{trackId === "it-support-technician" ? "Technical triage, calm communication, and an honest interview packet." : "Eight blocks. Eight artifacts. One honest packet."}</h3>
           <p>
             Use Academy for the full sprint instruction, then return here for
-            rapid technical, system-design, leadership, and project-defense
-            rounds.
+            rapid technical, operational-scenario, leadership, and project-defense rounds.
           </p>
         </div>
       </section>

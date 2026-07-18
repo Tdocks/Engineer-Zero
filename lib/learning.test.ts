@@ -11,10 +11,10 @@ import {
 import { tracks } from "./tracks";
 import { aioContentCounts, validateAioContent, validateItSupportContent } from "./content-validation";
 import { gradeCourseAttempt } from "./aio-grade";
-import { aioMissions, aioModules } from "./aio-content";
+import { aioInterviewPrompts, aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
-import { itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
+import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import { itSupportPublicCatalog } from "./it-support-public-catalog";
 import { gradeItSupportCourseAttempt } from "./it-support-grade";
 import { aioPublicCatalog } from "./aio-public-catalog";
@@ -104,14 +104,24 @@ describe("Engineer Zero track engine", () => {
     expect(readiness.overall).toBeGreaterThan(30);
   });
 
-  it("ships both active tracks with full interview banks", () => {
+  it("ships both active tracks with full protected interview banks", () => {
     expect(Object.keys(tracks)).toHaveLength(2);
-    expect(tracks["applied-ai-operations"].interviewQuestions).toHaveLength(
-      150,
-    );
-    expect(tracks["it-support-technician"].interviewQuestions).toHaveLength(
-      150,
-    );
+    expect(aioInterviewPrompts).toHaveLength(150);
+    expect(itSupportInterviewPrompts).toHaveLength(150);
+  });
+
+  it("uses a complete authored IT Support Interview Studio bank rather than repeated prompt variations", () => {
+    expect(itSupportInterviewPrompts).toHaveLength(150);
+    expect(new Set(itSupportInterviewPrompts.map((prompt) => prompt.prompt)).size).toBe(150);
+    expect(new Set(itSupportInterviewPrompts.map((prompt) => prompt.category))).toEqual(new Set([
+      "Endpoint and Windows",
+      "Networking and connected devices",
+      "Identity, Microsoft, and managed devices",
+      "Printing, AV, mobile, and asset lifecycle",
+      "Incident operations and technical judgment",
+      "Behavioral and project defense",
+    ]));
+    expect(itSupportInterviewPrompts.every((prompt) => prompt.rubric.length === 3 && prompt.followUp.length > 30)).toBe(true);
   });
 
   it("keeps release-reviewable content in one versioned server registry", () => {

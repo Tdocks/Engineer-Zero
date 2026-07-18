@@ -290,12 +290,13 @@ export function LearningApp({
           />
         )}
         {view === "projects" && <Projects state={state} setState={setState} />}
-        {view === "interview" &&
-          (state.activeTrack === "applied-ai-operations" ? (
-            <AioInterviewStudio state={state} setState={setState} />
-          ) : (
-            <Interview state={state} setState={setState} mark={mark} />
-          ))}
+        {view === "interview" && (
+          <AioInterviewStudio
+            state={state}
+            setState={setState}
+            trackId={state.activeTrack}
+          />
+        )}
         {view === "launchpad" && (
           <Launchpad state={state} setState={setState} />
         )}
