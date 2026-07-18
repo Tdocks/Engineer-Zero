@@ -14,6 +14,7 @@ import { gradeCourseAttempt } from "./aio-grade";
 import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
+import { itSupportSprintModules } from "./it-support-content";
 import { aioPublicCatalog } from "./aio-public-catalog";
 import { aioFoundationModules, aioRoleConcepts } from "./aio-foundation";
 import { recommendAioFoundationStart } from "./aio-foundation-path";
@@ -387,6 +388,28 @@ describe("Engineer Zero track engine", () => {
     });
     expect(new Set(answerPositions)).toEqual(new Set([0, 1, 2, 3]));
     expect(Object.values(itSupportBaselineSources).every((source) => Boolean(source.url && source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
+  });
+
+  it("has a complete authored IT Support 48-hour Sprint with nontrivial learner evidence", () => {
+    expect(itSupportSprintModules).toHaveLength(8);
+    expect(new Set(itSupportSprintModules.map((module) => module.id)).size).toBe(8);
+    for (const module of itSupportSprintModules) {
+      expect(module.phaseId).toBe("crash-course");
+      expect(module.blocks?.length).toBeGreaterThanOrEqual(4);
+      expect(module.knowledgeChecks).toHaveLength(3);
+      expect(module.artifact.requiredFields).toEqual([
+        "scenarioFact",
+        "decision",
+        "boundary",
+        "verification",
+        "owner",
+        "escalation",
+      ]);
+      expect(module.rules.length).toBeGreaterThanOrEqual(3);
+      expect(module.sources.every((source) => Boolean(source.url && source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
+      expect(module.review.fictionalData).toBe("approved");
+      expect(module.review.versionApproved).toBe("pending");
+    }
   });
 
   it("does not expose AIO baseline answer keys or a fixed answer position", () => {
