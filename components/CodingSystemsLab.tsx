@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BarChart3, Braces, Bug, Check, FlaskConical, Gauge, GitPullRequest, Layers3, Network, ShieldCheck, Waypoints, Workflow } from "lucide-react";
-import { codingEvaluationCases, scoreCodingEvaluation, type EvaluationDisposition } from "@/lib/coding-evaluation";
+import { codingEvaluationCases, type EvaluationDisposition } from "@/lib/coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowDispositionLabels, toolWorkflowOptionsFor, type ToolWorkflowDisposition } from "@/lib/coding-tool-workflow";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "@/lib/coding-context-window";
 import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-git-review";
@@ -152,7 +152,9 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [classification, setClassification] = useState("");
   const [repair, setRepair] = useState("");
   const [evaluationChoices, setEvaluationChoices] = useState<Record<string, EvaluationDisposition>>({});
-  const [evaluationResult, setEvaluationResult] = useState<{ correct: number; total: number } | null>(null);
+  const [evaluationResult, setEvaluationResult] = useState<{ correct: number; total: number; score: number; entries: { id: string; correct: boolean; reason: string }[] } | null>(null);
+  const [reviewingEvaluation, setReviewingEvaluation] = useState(false);
+  const [evaluationReviewError, setEvaluationReviewError] = useState("");
   const [toolChoices, setToolChoices] = useState<Record<string, ToolWorkflowDisposition>>({});
   const [toolResult, setToolResult] = useState<{ correct: number; total: number; entries: { id: string; correct: boolean; reason: string }[] } | null>(null);
   const [reviewingTools, setReviewingTools] = useState(false);
@@ -222,6 +224,28 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       setToolReviewError(error instanceof Error ? error.message : "The review service is unavailable. Keep your choices and retry when ready.");
     } finally {
       setReviewingTools(false);
+    }
+  };
+  const reviewEvaluationChoices = async () => {
+    setReviewingEvaluation(true);
+    setEvaluationReviewError("");
+    try {
+      const response = await fetch("/api/coding/evaluation-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choices: evaluationChoices }),
+      });
+      const result = await response.json() as { error?: string; correct?: number; total?: number; score?: number; entries?: { id: string; correct: boolean; reason: string }[] };
+      if (!response.ok || typeof result.correct !== "number" || typeof result.total !== "number" || typeof result.score !== "number" || !result.entries) {
+        throw new Error(result.error ?? "The evaluation review did not return a valid result.");
+      }
+      const reviewed = result as NonNullable<typeof evaluationResult>;
+      setEvaluationResult(reviewed);
+      if (reviewed.correct === reviewed.total) onEvidence("evaluation-set", "Classified all 20 fictional evaluation cases with a safe accept, escalate, or reject disposition.");
+    } catch (error) {
+      setEvaluationReviewError(error instanceof Error ? error.message : "The evaluation review is unavailable. Keep your choices and retry.");
+    } finally {
+      setReviewingEvaluation(false);
     }
   };
   const contextTokens = selectedContextTokens(selectedContext);
@@ -365,8 +389,9 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
 
     {mode === "evaluate" && <article className="coding-evaluation-lab">
       <header><p className="coding-kicker">EVALUATION SET · FICTIONAL CASES</p><h3>Decide what the workflow should do before calling a model successful.</h3><p>Choose whether each case can proceed to trusted policy, needs human clarification, or must be rejected. These are intentionally small training cases; a production evaluation set requires representative data and accountable quality thresholds.</p></header>
-      <div className="evaluation-grid">{codingEvaluationCases.map((item, index) => <section key={item.id}><span>Case {String(index + 1).padStart(2, "0")}</span><p>{item.note}</p><fieldset><legend className="sr-only">Disposition for case {index + 1}</legend>{(["accept", "escalate", "reject"] as const).map((choice) => <label key={choice}><input type="radio" name={item.id} checked={evaluationChoices[item.id] === choice} onChange={() => setEvaluationChoices((current) => ({ ...current, [item.id]: choice }))} /> {choice === "accept" ? "Accept structured facts" : choice === "escalate" ? "Escalate for human clarification" : "Reject as unsupported or unsafe"}</label>)}</fieldset>{evaluationResult && <aside className={evaluationChoices[item.id] === item.expected ? "correct" : "incorrect"}><b>{evaluationChoices[item.id] === item.expected ? "Appropriate disposition" : "Reconsider this boundary"}</b><p>{item.reason}</p></aside>}</section>)}</div>
-      <footer><div><span>Fictional evaluation dashboard</span><p>{evaluationResult ? `${evaluationResult.correct}/${evaluationResult.total} correct disposition decisions` : "Complete each case to inspect the learning dashboard."}</p><small>Illustrative run estimate: {codingEvaluationCases.length * 350} ms total latency · $0.03 synthetic cost. These values are teaching inputs, not provider telemetry.</small></div><button className="coding-primary" disabled={Object.keys(evaluationChoices).length !== codingEvaluationCases.length} onClick={() => { const result = scoreCodingEvaluation(evaluationChoices); setEvaluationResult(result); if (result.correct === result.total) onEvidence("evaluation-set", "Classified all six fictional evaluation cases with a safe accept, escalate, or reject disposition."); }}>Score evaluation choices <Check size={16} /></button></footer>
+      <div className="evaluation-grid">{codingEvaluationCases.map((item, index) => { const entry = evaluationResult?.entries.find((candidate) => candidate.id === item.id); return <section key={item.id}><span>Case {String(index + 1).padStart(2, "0")} · {item.focus}</span><p>{item.note}</p><fieldset><legend className="sr-only">Disposition for case {index + 1}</legend>{(["accept", "escalate", "reject"] as const).map((choice) => <label key={choice}><input type="radio" name={item.id} checked={evaluationChoices[item.id] === choice} onChange={() => { setEvaluationChoices((current) => ({ ...current, [item.id]: choice })); setEvaluationResult(null); }} /> {choice === "accept" ? "Accept structured facts" : choice === "escalate" ? "Escalate for human clarification" : "Reject as unsupported or unsafe"}</label>)}</fieldset>{entry && <aside className={entry.correct ? "correct" : "incorrect"}><b>{entry.correct ? "Appropriate disposition" : "Reconsider this boundary"}</b><p>{entry.reason}</p></aside>}</section>; })}</div>
+      <footer><div><span>Fictional evaluation dashboard</span><p>{evaluationResult ? `${evaluationResult.correct}/${evaluationResult.total} correct disposition decisions · ${evaluationResult.score}%` : "Complete each case to inspect the learning dashboard."}</p><small>Illustrative run estimate: {codingEvaluationCases.length * 350} ms total latency · $0.10 synthetic cost. These values are teaching inputs, not provider telemetry.</small></div><button className="coding-primary" disabled={Object.keys(evaluationChoices).length !== codingEvaluationCases.length || reviewingEvaluation} onClick={reviewEvaluationChoices}>{reviewingEvaluation ? "Reviewing decisions…" : <>Score evaluation choices <Check size={16} /></>}</button></footer>
+      {evaluationReviewError && <p className="coding-form-error">{evaluationReviewError}</p>}
     </article>}
 
     {mode === "tests" && <article className="coding-test-review">

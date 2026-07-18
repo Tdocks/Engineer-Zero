@@ -48,7 +48,8 @@ import { reviewCodingChallenge, validateCodingChallengeRubrics } from "./coding-
 import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
 import { codingReviewBoardPrompts } from "./coding-review-board-prompts";
 import { reviewCodingBoardResponse } from "./coding-review-board";
-import { codingEvaluationCases, scoreCodingEvaluation } from "./coding-evaluation";
+import { codingEvaluationCases } from "./coding-evaluation";
+import { reviewCodingEvaluation } from "./coding-evaluation-rubric";
 import { codingToolWorkflowCases, toolWorkflowOptionsFor } from "./coding-tool-workflow";
 import { reviewToolWorkflow } from "./coding-tool-workflow-review";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "./coding-context-window";
@@ -234,10 +235,13 @@ describe("Engineer Zero track engine", () => {
   });
 
   it("uses an evaluation set that rewards bounded accept, escalate, and reject decisions", () => {
-    expect(codingEvaluationCases).toHaveLength(6);
-    const allCorrect = Object.fromEntries(codingEvaluationCases.map((item) => [item.id, item.expected]));
-    expect(scoreCodingEvaluation(allCorrect)).toMatchObject({ correct: 6, total: 6, complete: true, score: 100 });
-    expect(scoreCodingEvaluation({ injection: "accept" })).toMatchObject({ correct: 0, total: 6, complete: false, score: 0 });
+    expect(codingEvaluationCases).toHaveLength(20);
+    expect(codingEvaluationCases.every((item) => !("expected" in item) && Boolean(item.focus))).toBe(true);
+    const accepted = new Set(["straightforward", "clear-observation", "clear-low-risk", "bounded-draft"]);
+    const escalated = new Set(["missing-unit", "contradictory", "ambiguous-equipment", "missing-owner", "unsupported-procedure", "stale-reference", "partial-sensor", "conflicting-owners"]);
+    const allCorrect = Object.fromEntries(codingEvaluationCases.map((item) => [item.id, accepted.has(item.id) ? "accept" : escalated.has(item.id) ? "escalate" : "reject"]));
+    expect(reviewCodingEvaluation(allCorrect)).toMatchObject({ correct: 20, total: 20, complete: true, score: 100 });
+    expect(reviewCodingEvaluation({ injection: "accept" })).toMatchObject({ correct: 0, total: 20, complete: false, score: 0 });
   });
 
   it("keeps tool workflow answer keys server-side while varying client option positions", () => {
