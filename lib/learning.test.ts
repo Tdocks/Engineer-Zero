@@ -9,7 +9,7 @@ import {
   trackReadiness,
 } from "./learning";
 import { tracks } from "./tracks";
-import { aioContentCounts, validateAioContent } from "./content-validation";
+import { aioContentCounts, validateAioContent, validateItSupportContent } from "./content-validation";
 import { gradeCourseAttempt } from "./aio-grade";
 import { aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
@@ -333,7 +333,7 @@ describe("Engineer Zero track engine", () => {
     const scorecard = productReleaseScorecard(new Date("2026-07-18T12:00:00.000Z"), {});
     expect(scorecard.disposition).toBe("internal-draft");
     expect(scorecard.programs).toHaveLength(3);
-    expect(scorecard.programs.find((program) => program.id === "it-support-technician")?.signals.find((item) => item.category === "instructional-quality")?.status).toBe("blocked");
+    expect(scorecard.programs.find((program) => program.id === "it-support-technician")?.signals.find((item) => item.category === "instructional-quality")?.status).toBe("partial");
     expect(scorecard.programs.find((program) => program.id === "applied-ai-operations")?.signals.find((item) => item.category === "assessment-integrity")?.status).toBe("strong");
     expect(scorecard.shared.some((item) => item.status === "blocked")).toBe(true);
   });
@@ -412,6 +412,11 @@ describe("Engineer Zero track engine", () => {
       expect(module.review.fictionalData).toBe("approved");
       expect(module.review.versionApproved).toBe("pending");
     }
+  });
+
+  it("validates authored IT Support content without treating generated catalog scaffolding as release content", () => {
+    expect(validateItSupportContent()).toEqual([]);
+    expect(validateItSupportContent({ requireReleaseApproval: true }).length).toBeGreaterThan(0);
   });
 
   it("keeps IT Support Sprint answer keys and private rubric rules off the public catalog", () => {

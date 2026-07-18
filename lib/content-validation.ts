@@ -4,6 +4,7 @@ import {
   aioMissions,
   aioModules,
 } from "./aio-content";
+import { itSupportLabs, itSupportSprintModules } from "./it-support-content";
 import { isReleaseApproved } from "./course-types";
 
 type Validation = { id: string; message: string };
@@ -154,4 +155,57 @@ export const aioContentCounts = {
   labs: aioLabs.length,
   missions: aioMissions.length,
   interviews: aioInterviewPrompts.length,
+};
+
+/** Structural release gate for authored IT Support content. Generated catalog
+ * scaffolding is deliberately excluded: it cannot pass this validator. */
+export function validateItSupportContent(
+  options: { requireReleaseApproval?: boolean } = {},
+) {
+  const errors: Validation[] = [];
+  const ids = new Set<string>();
+  const add = (id: string) => {
+    if (ids.has(id)) errors.push({ id, message: "Duplicate stable ID." });
+    ids.add(id);
+  };
+  for (const module of itSupportSprintModules) {
+    add(module.id);
+    if (!module.outcome || !module.overview || (module.blocks?.length ?? 0) < 4)
+      errors.push({ id: module.id, message: "Module needs authored instruction and a multi-block lesson." });
+    if (module.knowledgeChecks.length !== 3)
+      errors.push({ id: module.id, message: "Sprint module needs exactly three authored knowledge checks." });
+    if (!module.artifact.required.length || !module.artifact.requiredFields?.length || module.rules.length < 3)
+      errors.push({ id: module.id, message: "Module needs structured evidence and at least three deterministic rules." });
+    if (!module.roleBoundary || !module.specialistEscalationGuidance || !module.performanceExpectation)
+      errors.push({ id: module.id, message: "Module needs explicit performance, boundary, and escalation guidance." });
+    if (!module.sources.length || module.sources.some((record) => !record.version || !record.locator || !record.supportedClaim || !record.revalidateBy))
+      errors.push({ id: module.id, message: "Module needs versioned, claim-mapped source records." });
+    if (!module.instructionalDesign?.sources.length)
+      errors.push({ id: module.id, message: "Module needs a documented instructional-design basis." });
+    for (const question of module.knowledgeChecks) {
+      if (question.choices.length !== 4 || !question.choices.some((choice) => choice.id === question.correctChoiceId))
+        errors.push({ id: question.id, message: "Knowledge check answer structure is invalid." });
+      if (question.choices.some((choice) => choice.text.trim().length < 55))
+        errors.push({ id: question.id, message: "Knowledge check contains a weak distractor." });
+    }
+    if (options.requireReleaseApproval && !isReleaseApproved(module.review))
+      errors.push({ id: module.id, message: "Module lacks qualified release approval." });
+  }
+  for (const lab of itSupportLabs) {
+    add(lab.id);
+    if (!lab.scenario || !lab.task || lab.assets.length < 3 || !lab.debrief || !lab.revisionPrompt)
+      errors.push({ id: lab.id, message: "Lab needs scenario, distinct evidence assets, task, debrief, and revision path." });
+    if (!lab.evidence.requiredFields?.length || !lab.evidence.requireEvidenceReference || lab.rules.length < 3)
+      errors.push({ id: lab.id, message: "Lab needs linked structured evidence and activity-specific rules." });
+    if (!lab.sources.length || lab.sources.some((record) => !record.version || !record.locator || !record.supportedClaim || !record.revalidateBy))
+      errors.push({ id: lab.id, message: "Lab needs versioned, claim-mapped source records." });
+    if (options.requireReleaseApproval && !isReleaseApproved(lab.review))
+      errors.push({ id: lab.id, message: "Lab lacks qualified release approval." });
+  }
+  return errors;
+}
+
+export const itSupportContentCounts = {
+  sprintModules: itSupportSprintModules.length,
+  labs: itSupportLabs.length,
 };
