@@ -39,6 +39,7 @@ import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { classifyTutorError, codingTutorResponse } from "./coding-tutor";
 import { reviewCodingGitChange } from "./coding-git-review-rubric";
 import { reviewCodingTests } from "./coding-test-review-rubric";
+import { reviewCodingModelStrategy } from "./coding-model-strategy-rubric";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts } from "./coding-interview-prompts";
 import { reviewCodingInterview, reviewRequirementChangeInterview } from "./coding-interviews";
@@ -188,6 +189,12 @@ describe("Engineer Zero track engine", () => {
     expect(weak.correct).toBe(0);
     const strong = reviewCodingTests({ "empty-assertion": "no-behavior", "wrong-expectation": "wrong-requirement", "clock-coupling": "flaky-dependency", "private-helper": "implementation-coupling", "boundary-gap": "missing-boundary" });
     expect(strong.correct).toBe(5);
+  });
+
+  it("requires a model strategy to satisfy constraints and name the safe boundary", () => {
+    expect(reviewCodingModelStrategy("freeform-large", "It writes fluent summaries.").complete).toBe(false);
+    const reviewed = reviewCodingModelStrategy("structured-fast", "The strategy meets the latency and cost budget, validates a schema, preserves human review, and has a degraded fallback when a provider fails.");
+    expect(reviewed.complete).toBe(true);
   });
 
   it("does not let keyword stuffing pass coding interview evidence review", () => {

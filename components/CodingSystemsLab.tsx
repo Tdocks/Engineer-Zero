@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Braces, Bug, Check, FlaskConical, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
+import { BarChart3, Braces, Bug, Check, FlaskConical, Gauge, GitPullRequest, Layers3, Network, ShieldCheck, Workflow } from "lucide-react";
 import { codingEvaluationCases, scoreCodingEvaluation, type EvaluationDisposition } from "@/lib/coding-evaluation";
 import { codingToolWorkflowCases, toolWorkflowDispositionLabels, toolWorkflowOptionsFor, type ToolWorkflowDisposition } from "@/lib/coding-tool-workflow";
 import { codingContextBudget, codingContextChunks, selectedContextTokens } from "@/lib/coding-context-window";
 import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-git-review";
 import { codingTestReviewCases, testReviewDispositionLabels, testReviewOptionsFor, type TestReviewDisposition } from "@/lib/coding-test-review";
+import { codingModelStrategyScenario, type ModelStrategyId } from "@/lib/coding-model-strategy";
 
-type Mode = "api" | "ai" | "context" | "tools" | "evaluate" | "tests" | "git" | "debug";
+type Mode = "api" | "ai" | "context" | "strategy" | "tools" | "evaluate" | "tests" | "git" | "debug";
 
 const debugCases = [
   {
@@ -155,6 +156,11 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [testResult, setTestResult] = useState<{ correct: number; total: number; entries: { id: string; correct: boolean; reason: string }[] } | null>(null);
   const [reviewingTests, setReviewingTests] = useState(false);
   const [testReviewError, setTestReviewError] = useState("");
+  const [modelStrategy, setModelStrategy] = useState<ModelStrategyId | "">("");
+  const [modelRationale, setModelRationale] = useState("");
+  const [modelReview, setModelReview] = useState<{ complete: boolean; missingClaims: string[]; feedback: string } | null>(null);
+  const [reviewingModel, setReviewingModel] = useState(false);
+  const [modelReviewError, setModelReviewError] = useState("");
 
   const runApi = () => {
     if (method !== "POST" || route !== "/triage") return setApiResult({ status: 404, body: '{"detail":"No matching training route"}' });
@@ -220,6 +226,17 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
     } catch (error) { setTestReviewError(error instanceof Error ? error.message : "The test review could not be scored. Keep your choices and retry."); }
     finally { setReviewingTests(false); }
   };
+  const reviewModelStrategy = async () => {
+    setReviewingModel(true); setModelReviewError("");
+    try {
+      const response = await fetch("/api/coding/model-strategy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ strategy: modelStrategy, rationale: modelRationale }) });
+      const result = await response.json() as { error?: string; complete?: boolean; missingClaims?: string[]; feedback?: string };
+      if (!response.ok || typeof result.complete !== "boolean" || !Array.isArray(result.missingClaims) || !result.feedback) throw new Error(result.error ?? "The model-strategy review did not return a valid result.");
+      setModelReview(result as NonNullable<typeof modelReview>);
+      if (result.complete) onEvidence("model-strategy", "Selected a structured extraction strategy that meets fictional latency and cost constraints and preserves validation, human review, and degraded fallback.");
+    } catch (error) { setModelReviewError(error instanceof Error ? error.message : "The model-strategy decision could not be reviewed. Keep your work and retry."); }
+    finally { setReviewingModel(false); }
+  };
   const reviewContextSelection = async () => {
     setReviewingContext(true);
     setContextReviewError("");
@@ -248,6 +265,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <button className={mode === "api" ? "active" : ""} onClick={() => setMode("api")}><Network size={16} /> API simulator</button>
       <button className={mode === "ai" ? "active" : ""} onClick={() => setMode("ai")}><Braces size={16} /> AI systems lab</button>
       <button className={mode === "context" ? "active" : ""} onClick={() => setMode("context")}><Layers3 size={16} /> Context window</button>
+      <button className={mode === "strategy" ? "active" : ""} onClick={() => setMode("strategy")}><Gauge size={16} /> Model strategy</button>
       <button className={mode === "tools" ? "active" : ""} onClick={() => setMode("tools")}><Workflow size={16} /> Tool workflow</button>
       <button className={mode === "evaluate" ? "active" : ""} onClick={() => setMode("evaluate")}><BarChart3 size={16} /> Evaluation set</button>
       <button className={mode === "tests" ? "active" : ""} onClick={() => setMode("tests")}><FlaskConical size={16} /> Test review</button>
@@ -271,6 +289,14 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <div className="context-chunk-list">{codingContextChunks.map((chunk) => <label key={chunk.id}><input type="checkbox" checked={selectedContext.includes(chunk.id)} onChange={() => { setSelectedContext((current) => current.includes(chunk.id) ? current.filter((id) => id !== chunk.id) : [...current, chunk.id]); setContextReview(null); }} /><section><div><b>{chunk.label}</b><small>{chunk.source}</small></div><span>{chunk.estimatedTokens} tokens</span><p>{chunk.content}</p></section></label>)}</div>
       <footer><div><b>{contextReview ? contextReview.complete ? "Bounded context assembled" : "Context needs revision" : "Select the evidence before asking a model to interpret it."}</b><p>{contextReview ? contextReview.feedback : "The same report can be relevant but unauthorized, current but stale, or safe-looking but adversarial. Inspect each source before inclusion."}</p>{contextReview && !contextReview.complete && <small>{contextReview.missing.length > 0 ? `Missing essential evidence: ${contextReview.missing.join(", ")}. ` : ""}{contextReview.unsafe.length > 0 ? `Remove unsafe context: ${contextReview.unsafe.join(", ")}. ` : ""}{!contextReview.withinBudget ? "Reduce the context to stay within the selected budget." : ""}</small>}</div><button className="coding-primary" disabled={selectedContext.length === 0 || reviewingContext} onClick={reviewContextSelection}>{reviewingContext ? "Reviewing context…" : "Review context boundary"} <ShieldCheck size={16} /></button></footer>
       {contextReviewError && <p className="coding-form-error">{contextReviewError}</p>}
+    </article>}
+
+    {mode === "strategy" && <article className="coding-model-strategy">
+      <header><p className="coding-kicker">MODEL STRATEGY · CONSTRAINTS BEFORE PREFERENCE</p><h3>{codingModelStrategyScenario.title}</h3><p>{codingModelStrategyScenario.task}</p><ul>{codingModelStrategyScenario.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul></header>
+      <div>{codingModelStrategyScenario.options.map((option) => <label key={option.id} className={modelStrategy === option.id ? "selected" : ""}><input type="radio" name="model-strategy" checked={modelStrategy === option.id} onChange={() => { setModelStrategy(option.id); setModelReview(null); }} /><section><header><h4>{option.title}</h4><span>{option.p95Latency} p95 · {option.estimatedCost} / report</span></header><dl><div><dt>Contract</dt><dd>{option.schemaSupport}</dd></div><div><dt>Unavailable provider</dt><dd>{option.fallback}</dd></div></dl><p>{option.tradeoff}</p></section></label>)}</div>
+      <section className="coding-model-rationale"><label>Decision rationale<textarea value={modelRationale} onChange={(event) => { setModelRationale(event.target.value); setModelReview(null); }} placeholder="Defend your selection using latency, cost, schema validation, human review, and fallback behavior…" aria-label="Model strategy rationale" /></label></section>
+      <footer><div><b>{modelReview?.complete ? "Bounded strategy defended" : "Choose the strategy, then defend its constraints."}</b><p>{modelReview ? modelReview.feedback : "Model choice is a system decision. The right prototype must meet the user outcome and operational limits, not simply produce the most fluent text."}</p>{modelReview && !modelReview.complete && modelReview.missingClaims.length > 0 && <small>Add: {modelReview.missingClaims.join(", ")}.</small>}</div><button className="coding-primary" disabled={!modelStrategy || !modelRationale.trim() || reviewingModel} onClick={reviewModelStrategy}>{reviewingModel ? "Reviewing strategy…" : "Review model strategy"} <Gauge size={16} /></button></footer>
+      {modelReviewError && <p className="coding-form-error">{modelReviewError}</p>}
     </article>}
 
     {mode === "tools" && <article className="coding-tool-workflow">
