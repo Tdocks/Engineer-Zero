@@ -9,8 +9,22 @@ import { codingGitCommitOptions, codingGitReviewScenario } from "@/lib/coding-gi
 import { codingTestReviewCases, testReviewDispositionLabels, testReviewOptionsFor, type TestReviewDisposition } from "@/lib/coding-test-review";
 import { codingModelStrategyScenario, type ModelStrategyId } from "@/lib/coding-model-strategy";
 import { codingMachineFlowChoices, codingMachineFlowSteps } from "@/lib/coding-machine-flow";
+import { codingSourceList } from "@/lib/coding-developer";
 
 type Mode = "machine" | "api" | "ai" | "context" | "strategy" | "tools" | "evaluate" | "tests" | "git" | "debug";
+
+const sourceIdsForMode: Record<Mode, string[]> = {
+  machine: ["bashManual", "pythonTutorial"],
+  api: ["fastapiBody", "fastapiResponse"],
+  ai: ["openaiStructured", "nistAiRmf", "owaspGenAi"],
+  context: ["nistAiRmf", "owaspGenAi"],
+  strategy: ["openaiStructured", "nistAiRmf"],
+  tools: ["openaiStructured", "nistAiRmf", "owaspGenAi"],
+  evaluate: ["nistAiRmf", "pytest"],
+  tests: ["pytest", "nistSsdf"],
+  git: ["githubPr"],
+  debug: ["pythonTutorial", "pytest"],
+};
 
 const debugCases = [
   {
@@ -167,6 +181,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
   const [machineReview, setMachineReview] = useState<{ complete: boolean; correctOrder: boolean; missingClaims: string[]; feedback: string } | null>(null);
   const [reviewingMachine, setReviewingMachine] = useState(false);
   const [machineReviewError, setMachineReviewError] = useState("");
+  const sourceRecords = codingSourceList(sourceIdsForMode[mode]);
 
   const runApi = () => {
     if (method !== "POST" || route !== "/triage") return setApiResult({ status: 404, body: '{"detail":"No matching training route"}' });
@@ -373,5 +388,7 @@ export function CodingSystemsLab({ onEvidence }: { onEvidence: (key: string, val
       <div><p className="coding-kicker">DEBUG BAY · HYPOTHESIS BEFORE FIX</p><h3>Classify the failure before you change code.</h3><select value={currentDebug.id} onChange={(event) => { setCurrentDebug(debugCases.find((item) => item.id === event.target.value) ?? debugCases[0]); setClassification(""); setRepair(""); }} aria-label="Broken application scenario">{debugCases.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><pre className="debug-traceback">{currentDebug.traceback}</pre><label>Failure classification<select value={classification} onChange={(event) => setClassification(event.target.value)}><option value="">Choose one</option>{debugClassifications.map((item) => <option key={item}>{item}</option>)}</select></label><textarea value={repair} onChange={(event) => setRepair(event.target.value)} placeholder="Name the observation, your hypothesis, smallest safe diagnostic, and repair…" aria-label="Debug repair explanation" /><button className="coding-primary" onClick={() => debugSafe && onEvidence(`debug-${currentDebug.id}`, `Classified ${currentDebug.classification} and recorded a targeted repair hypothesis.`)}>Check diagnosis <Check size={16} /></button>{classification && <p className={debugSafe ? "coding-success" : "coding-form-error"}>{debugSafe ? `Good diagnostic path. ${currentDebug.repair}` : "Do not guess at fixes yet. Match the failure class and support the repair with at least two observed clues."}</p>}</div>
       <aside><span>Recovery loop</span><ol><li>Read the exact observed error.</li><li>Form one falsifiable hypothesis.</li><li>Run the smallest safe diagnostic.</li><li>Repair only the failing boundary.</li><li>Add regression evidence.</li></ol><p>A passing rerun is not the end: name the test or check that will prevent recurrence.</p></aside>
     </article>}
+
+    <details className="coding-system-sources"><summary>Source basis for this activity</summary><p>These primary sources support the concepts and boundaries used here. The fictional scenario and feedback are instructor-created training material.</p><ul>{sourceRecords.map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer">{source.publisher} · {source.title}</a><span>{source.version} · verified {source.lastVerified}<br />Supports: {source.supportedClaim}</span></li>)}</ul></details>
   </section>;
 }
