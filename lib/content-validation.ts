@@ -4,7 +4,7 @@ import {
   aioMissions,
   aioModules,
 } from "./aio-content";
-import { itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
+import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import { isReleaseApproved } from "./course-types";
 
 type Validation = { id: string; message: string };
@@ -147,6 +147,8 @@ export function validateAioContent(
       id: "interview-bank",
       message: "Exactly 150 authored interview prompts are required.",
     });
+  if (aioInterviewPrompts.some((question) => !question.sources.length || question.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy)))
+    errors.push({ id: "interview-bank", message: "Every interview prompt needs versioned, claim-mapped source records." });
   return errors;
 }
 
@@ -216,6 +218,12 @@ export function validateItSupportContent(
     if (options.requireReleaseApproval && !isReleaseApproved(mission.review))
       errors.push({ id: mission.id, message: "Mission lacks qualified release approval." });
   }
+  if (itSupportInterviewPrompts.length !== 150)
+    errors.push({ id: "it-interview-bank", message: "Exactly 150 authored IT Support interview prompts are required." });
+  if (new Set(itSupportInterviewPrompts.map((question) => question.id)).size !== itSupportInterviewPrompts.length)
+    errors.push({ id: "it-interview-bank", message: "IT Support interview IDs must be unique." });
+  if (itSupportInterviewPrompts.some((question) => !question.sources.length || question.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy)))
+    errors.push({ id: "it-interview-bank", message: "Every IT Support interview prompt needs versioned, claim-mapped source records." });
   return errors;
 }
 

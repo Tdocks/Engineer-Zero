@@ -172,6 +172,9 @@ export type InterviewPrompt = {
   commonMiss: string;
   followUp: string;
   rubric: string[];
+  /** Primary-source records that support the technical claims or role practice
+   * in this prompt. Examiner guidance remains server-only until an attempt is saved. */
+  sources: SourceReference[];
 };
 export type ContentAttempt = {
   id: string;

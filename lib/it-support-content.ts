@@ -648,6 +648,7 @@ type InterviewTheme = {
   commonMiss: string;
   followUp: string;
   rubric: string[];
+  sources: ReturnType<typeof source>;
   prompts: readonly string[];
 };
 
@@ -659,6 +660,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Jumping straight to a reimage, driver reinstall, or hardware replacement without saying what evidence would make that safe and reversible.",
     followUp: "What would make you stop troubleshooting and switch to an approved replacement or escalation?",
     rubric: ["Name the affected operation and last-known-good state.", "Gather or interpret endpoint evidence before a broad change.", "Choose a reversible recovery boundary and verify the real user workflow."],
+    sources: source("windowsTroubleshooting", "incidentResponse"),
     prompts: [
       "Walk through a laptop that powers on but never reaches the Windows sign-in screen.",
       "An engineer reports that Windows starts, but their required application crashes immediately. How do you separate endpoint, profile, and application ownership?",
@@ -694,6 +696,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Treating an IP address, gateway ping, or static address workaround as proof that the device is correctly connected.",
     followUp: "Which facts would you put in an escalation packet so the network owner can act without repeating your investigation?",
     rubric: ["Differentiate at least two network layers with observable evidence.", "Keep VLAN, firewall, and segmentation changes with the accountable owner.", "Verify the required service or workflow after recovery."],
+    sources: source("vlan", "windowsTroubleshooting", "incidentResponse"),
     prompts: [
       "Why can DNS fail while a device still appears connected to the network?",
       "Walk through a device that has link lights, a DHCP address, and a gateway reply but cannot reach its required hostname.",
@@ -729,6 +732,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Resetting, disabling, or broadening permissions because it appears to make the symptom disappear.",
     followUp: "How would you communicate a short-term recovery status without exposing sensitive account information?",
     rubric: ["Differentiate authentication, authorization, and device-management behavior.", "Use an approved identity or access boundary rather than a bypass.", "Verify least-privilege access to the required workflow."],
+    sources: source("entra", "incidentResponse"),
     prompts: [
       "Explain the difference between authentication and authorization using a realistic support example.",
       "A user cannot complete MFA before a critical meeting. What is your safe recovery sequence?",
@@ -764,6 +768,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Restarting everything, deleting queues, or routing production work to an unvalidated backup before checking the evidence closest to the failure.",
     followUp: "What would you document so the next technician can reproduce or avoid the same issue?",
     rubric: ["Use the relevant physical or configuration evidence for the device class.", "Choose a controlled fallback or change boundary.", "Verify the actual output, scan, meeting, enrollment, or lifecycle record."],
+    sources: source("printing", "intune", "teamsRooms", "incidentResponse"),
     prompts: [
       "Walk through a network printer that is online but has a growing queue and produces no pages.",
       "A Zebra label printer began producing blank labels after a media change. What do you check before rerouting work?",
@@ -799,6 +804,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Equating urgency with unlimited authority, or giving a generic troubleshooting list with no prioritization, owner, or recovery verification.",
     followUp: "What would you say to the affected user in the next two minutes, and what fact would change your priority?",
     rubric: ["Prioritize by operational impact and safety, not by who speaks loudest.", "Include containment, owner/escalation, and an observable recovery check.", "Communicate a credible next checkpoint and prevention path."],
+    sources: source("incidentResponse", "vlan"),
     prompts: [
       "Three urgent tickets arrive at once: a workstation outage, a label-printer failure, and a conference-room issue. How do you prioritize?",
       "An engineer says their problem is launch-critical and asks you to bypass a normal access control. How do you respond?",
@@ -834,6 +840,7 @@ const itInterviewThemes: readonly InterviewTheme[] = [
     commonMiss: "Giving a polished story without a concrete action, measurable result, limitation, or honest distinction between your work and a team’s work.",
     followUp: "What would you do differently if the same situation happened tomorrow?",
     rubric: ["State your personal action and the operational context.", "Explain a decision, communication choice, and verification or result.", "Name a limitation, tradeoff, or learning without overstating ownership."],
+    sources: source("incidentResponse"),
     prompts: [
       "Tell me about a time you had to restore service under time pressure.",
       "Describe a situation where you had to explain a technical issue to someone who did not share your technical background.",
@@ -874,6 +881,7 @@ export const itSupportInterviewPrompts: InterviewPrompt[] = itInterviewThemes.fl
     commonMiss: theme.commonMiss,
     followUp: theme.followUp,
     rubric: theme.rubric,
+    sources: theme.sources,
   })),
 );
 

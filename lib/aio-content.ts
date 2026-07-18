@@ -2941,6 +2941,15 @@ function toInterviewPrompts(
   seeds: InterviewSeed[],
   offset: number,
 ): InterviewPrompt[] {
+  const sources = category === "Fundamentals"
+    ? [refs.python, refs.postgres]
+    : category === "Retrieval, evaluation, and agents"
+      ? [refs.nist, refs.nistGenAI, refs.openai]
+      : category === "Secure enterprise architecture"
+        ? [refs.nist, refs.owasp]
+        : category === "Software, data, and debugging"
+          ? [refs.python, refs.postgres, refs.otel]
+          : [refs.nist, refs.owasp];
   return seeds.map((seed, index) => ({
     id: "aio-interview-" + String(offset + index + 1).padStart(3, "0"),
     category,
@@ -2954,6 +2963,7 @@ function toInterviewPrompts(
       "Make an evidence-based decision.",
       "Name verification, owner, or failure behavior.",
     ],
+    sources,
   }));
 }
 

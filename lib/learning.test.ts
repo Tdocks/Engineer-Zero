@@ -122,6 +122,8 @@ describe("Engineer Zero track engine", () => {
       "Behavioral and project defense",
     ]));
     expect(itSupportInterviewPrompts.every((prompt) => prompt.rubric.length === 3 && prompt.followUp.length > 30)).toBe(true);
+    expect(itSupportInterviewPrompts.every((prompt) => prompt.sources.length > 0 && prompt.sources.every((source) => source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
+    expect(aioInterviewPrompts.every((prompt) => prompt.sources.length > 0 && prompt.sources.every((source) => source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
   });
 
   it("keeps release-reviewable content in one versioned server registry", () => {

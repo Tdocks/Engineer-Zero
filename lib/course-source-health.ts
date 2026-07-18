@@ -1,7 +1,7 @@
 import "server-only";
 
-import { aioLabs, aioMissions, aioModules } from "./aio-content";
-import { itSupportContentVersion, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
+import { aioInterviewPrompts, aioLabs, aioMissions, aioModules } from "./aio-content";
+import { itSupportContentVersion, itSupportInterviewPrompts, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import type { SourceReference } from "./course-types";
 
 export type CourseSourceStatus = "author_verified" | "overdue" | "needs_attention";
@@ -23,8 +23,8 @@ function recordsFor(trackId: CourseSourceHealthRecord["trackId"], contentVersion
 
 export function courseSourceHealthRecords(now = new Date(), reachability: SourceReachability = {}) {
   const records = [
-    ...recordsFor("applied-ai-operations", "aio-v3-zero-to-role-draft", [...aioModules, ...aioLabs, ...aioMissions]),
-    ...recordsFor("it-support-technician", itSupportContentVersion, [...itSupportSprintModules, ...itSupportLabs, ...itSupportMissions]),
+    ...recordsFor("applied-ai-operations", "aio-v3-zero-to-role-draft", [...aioModules, ...aioLabs, ...aioMissions, ...aioInterviewPrompts]),
+    ...recordsFor("it-support-technician", itSupportContentVersion, [...itSupportSprintModules, ...itSupportLabs, ...itSupportMissions, ...itSupportInterviewPrompts]),
   ];
   return records.map((record) => {
     const reach = reachability[record.source.url];
