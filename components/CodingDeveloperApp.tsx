@@ -13,7 +13,6 @@ import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
 import { CodingRecallPractice } from "@/components/CodingRecallPractice";
-import { reviewCodingChallenge } from "@/lib/coding-challenge-review";
 import { codingReviewBoardPrompts, reviewCodingBoardResponse } from "@/lib/coding-review-board";
 import {
   codingChallenges,
@@ -52,6 +51,8 @@ export function CodingDeveloperApp() {
   const [explanation, setExplanation] = useState("");
   const [localRunConfirmed, setLocalRunConfirmed] = useState(false);
   const [testConfirmed, setTestConfirmed] = useState(false);
+  const [reviewingChallenge, setReviewingChallenge] = useState(false);
+  const [challengeReviewError, setChallengeReviewError] = useState("");
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -172,21 +173,35 @@ export function CodingDeveloperApp() {
       xp: result.status === "reviewed" ? { ...progress.xp, communication: (progress.xp.communication ?? 0) + 15 } : progress.xp,
     });
   };
-  const submitChallenge = () => {
+  const submitChallenge = async () => {
     const submittedDesign = challenge.kind === "terminal"
       ? (progress.terminalSession?.transcript.map((entry) => `${entry.command}\n${entry.output}`).join("\n") ?? "")
       : code;
-    const result = reviewCodingChallenge(challenge, submittedDesign, explanation);
-    setProgress({
-      ...progress,
-      challengeAttempts: {
-        ...progress.challengeAttempts,
-        [challenge.id]: { ...result, explanation, localRunConfirmed, testConfirmed, updatedAt: updateDate() },
-      },
-      xp: result.status === "reviewed"
-        ? { ...progress.xp, builder: (progress.xp.builder ?? 0) + Math.max(5, Math.round(result.score / 10)) }
-        : progress.xp,
-    });
+    setReviewingChallenge(true);
+    setChallengeReviewError("");
+    try {
+      const response = await fetch("/api/coding/challenge-review", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, code: submittedDesign, explanation }),
+      });
+      const result = await response.json() as { score?: number; status?: "needs-revision" | "reviewed"; feedback?: string; error?: string };
+      if (!response.ok || typeof result.score !== "number" || !result.status || !result.feedback) throw new Error(result.error ?? "The design review could not be completed.");
+      setProgress({
+        ...progress,
+        challengeAttempts: {
+          ...progress.challengeAttempts,
+          [challenge.id]: { score: result.score, status: result.status, feedback: result.feedback, explanation, localRunConfirmed, testConfirmed, updatedAt: updateDate() },
+        },
+        xp: result.status === "reviewed"
+          ? { ...progress.xp, builder: (progress.xp.builder ?? 0) + Math.max(5, Math.round(result.score / 10)) }
+          : progress.xp,
+      });
+    } catch (error) {
+      setChallengeReviewError(error instanceof Error ? error.message : "The design review could not be completed.");
+    } finally {
+      setReviewingChallenge(false);
+    }
   };
   return (
     <main className="coding-program">
@@ -347,7 +362,7 @@ export function CodingDeveloperApp() {
                 onCodeChange={setCode}
                 onFilesChange={(files) => setProgress({ ...progress, workbenchDrafts: { ...(progress.workbenchDrafts ?? {}), [challenge.id]: files } })}
                 onSnapshotsChange={(snapshots) => setProgress({ ...progress, workbenchSnapshots: { ...(progress.workbenchSnapshots ?? {}), [challenge.id]: snapshots } })}
-              /><button className="coding-primary coding-workbench-review" onClick={submitChallenge}>Review visible design <Braces size={16} /></button></>
+              /><button className="coding-primary coding-workbench-review" onClick={submitChallenge} disabled={reviewingChallenge}>{reviewingChallenge ? "Reviewing…" : "Review visible design"} <Braces size={16} /></button></>
             )}
             {challenge.kind !== "terminal" && <CodingTutorPanel challenge={challenge} code={code} onHint={(count) => setProgress({ ...progress, notes: { ...progress.notes, [`tutor-${challenge.id}`]: `${count} guided hint${count === 1 ? "" : "s"} used` } })} />}
             <section className="coding-checklist"><h3>Visible design checks</h3><ul>{challenge.requiredSignals.map((signal) => <li key={signal}>{signal}</li>)}</ul><p>{challenge.expectedOutcome}</p></section>
@@ -357,8 +372,9 @@ export function CodingDeveloperApp() {
               <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder="Explain the behavior, the boundary, and how you would verify it…" aria-label={`${challenge.title} comprehension explanation`} />
               <label><input type="checkbox" checked={localRunConfirmed} onChange={(event) => setLocalRunConfirmed(event.target.checked)} /> I ran or will run the corresponding project locally; this is a self-attestation, not verified execution.</label>
               {challenge.day >= 2 && <label><input type="checkbox" checked={testConfirmed} onChange={(event) => setTestConfirmed(event.target.checked)} /> I inspected the relevant test output or can name the test I still need to add.</label>}
-              <button className="coding-primary" onClick={submitChallenge}>Review design and explanation <Braces size={16} /></button>
+              <button className="coding-primary" onClick={submitChallenge} disabled={reviewingChallenge}>{reviewingChallenge ? "Reviewing…" : "Review design and explanation"} <Braces size={16} /></button>
             </section>
+            {challengeReviewError && <p className="coding-form-error" role="alert">{challengeReviewError}</p>}
             {progress.challengeAttempts[challenge.id] && <section className="coding-feedback"><b>{progress.challengeAttempts[challenge.id].status === "reviewed" ? "Review recorded" : "Revision needed"} · {progress.challengeAttempts[challenge.id].score}% evidence completeness</b><p>{progress.challengeAttempts[challenge.id].feedback}</p></section>}
             <section className="coding-local-handoff"><h3>Run it for real</h3><p>This lab deliberately does not execute arbitrary learner code. Build the corresponding local starter project, run its tests in your own isolated environment, then return to defend the result.</p><code>python -m venv .venv && source .venv/bin/activate</code></section>
           </article>

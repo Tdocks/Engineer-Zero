@@ -39,7 +39,7 @@ import { codingBossBattles, reviewBossBattle } from "./coding-boss-battles";
 import { codingTutorResponse } from "./coding-tutor";
 import { codingTerminalStatus, initialCodingTerminalSession, runCodingTerminalCommand } from "./coding-terminal";
 import { codingInterviewPrompts, reviewCodingInterview } from "./coding-interviews";
-import { reviewCodingChallenge } from "./coding-challenge-review";
+import { reviewCodingChallenge, validateCodingChallengeRubrics } from "./coding-challenge-review";
 import { codingCatalogPublicationStatus, codingSourceReviewReport } from "./coding-source-governance";
 import { codingReviewBoardPrompts, reviewCodingBoardResponse } from "./coding-review-board";
 
@@ -79,6 +79,7 @@ describe("Engineer Zero track engine", () => {
       new Set(["observe", "modify", "complete", "repair", "build", "defend"]),
     );
     expect(validateCodingProgram()).toEqual([]);
+    expect(validateCodingChallengeRubrics()).toEqual([]);
     expect(codingConcepts.every((concept) => concept.sourceIds.length > 0 && Boolean(concept.escalation))).toBe(true);
     expect(codingConceptRecords.every((record) => record.officialSources.length > 0 && record.officialSources.every((source) => source.revalidateBy && source.deprecationStatus) && record.assessmentIds.length > 0 && Boolean(record.knownLimitations))).toBe(true);
     expect(Object.keys(tracks)).toHaveLength(2);
@@ -177,9 +178,9 @@ describe("Engineer Zero track engine", () => {
     const challenge = codingChallenges.find((item) => item.id === "coding-triage-cli")!;
     const visibleButEmpty = "def evaluate_reading(temperature: float):\n    if temperature:\n        return 'NORMAL'\n    elif temperature:\n        return 'REVIEW'";
     const stuffed = "input output threshold deterministic test ".repeat(35);
-    expect(reviewCodingChallenge(challenge, visibleButEmpty, stuffed).status).toBe("needs-revision");
+    expect(reviewCodingChallenge(challenge.id, visibleButEmpty, stuffed)?.status).toBe("needs-revision");
     const evidenceRich = "The input is a temperature value and the function returns NORMAL, REVIEW, or URGENT for the calling CLI. I would test the exact 90-degree threshold boundary because a temperature of 89 and 90 must deliberately take different branches. This remains a deterministic rule rather than an AI task because the explicit threshold must be repeatable and easy to audit. I would add an assertion for 90 plus an invalid text-value check that raises a visible validation error instead of quietly returning NORMAL. Before expanding the prototype, I would run those tests and document the rule assumptions for the operations owner.";
-    expect(reviewCodingChallenge(challenge, visibleButEmpty, evidenceRich).status).toBe("reviewed");
+    expect(reviewCodingChallenge(challenge.id, visibleButEmpty, evidenceRich)?.status).toBe("reviewed");
   });
 
   it("keeps dated sources visible and blocks commercial publication when review is due", () => {
