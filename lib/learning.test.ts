@@ -61,6 +61,7 @@ import { reviewCodingContextWindow } from "./coding-context-window-review";
 import { reviewCodingContinuation } from "./coding-continuation-rubric";
 import { codingSourceHealthRecords } from "./coding-source-health";
 import { productReleaseScorecard } from "./release-scorecard";
+import { courseContentRegistry, findRegistryItem, registrySummary } from "./course-content-registry";
 
 describe("Engineer Zero track engine", () => {
   it("migrates existing learner records to Premium Academy preferences and drafts", () => {
@@ -109,6 +110,13 @@ describe("Engineer Zero track engine", () => {
     expect(tracks["it-support-technician"].interviewQuestions).toHaveLength(
       150,
     );
+  });
+
+  it("keeps release-reviewable content in one versioned server registry", () => {
+    expect(courseContentRegistry["applied-ai-operations"].length).toBe(aioContentCounts.lessons + aioContentCounts.labs + aioContentCounts.missions);
+    expect(registrySummary("it-support-technician").modules).toBe(itSupportSprintModules.length);
+    expect(findRegistryItem("it-support-technician", "it-sprint-01-service-reality", "it-support-v1-interview-sprint-draft")?.kind).toBe("module");
+    expect(findRegistryItem("it-support-technician", "it-sprint-01-service-reality", "wrong-version")).toBeUndefined();
   });
 
   it("ships a source-mapped shared coding program rather than a third career track", () => {
