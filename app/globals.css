@@ -4343,7 +4343,6 @@ html[data-theme="dark"] {
 .coding-hero,
 .coding-nav,
 .coding-map,
-.coding-lesson-layout,
 .coding-lab-layout,
 .coding-review-board { width: var(--coding-shell); margin-inline: auto; }
 .coding-header {
@@ -4600,13 +4599,23 @@ html[data-theme="dark"] {
 .coding-method-note a b, .coding-method-note a small { display: block; }
 .coding-method-note a b { font-size: 13px; }
 .coding-method-note a small { margin-top: 4px; color: var(--ez-muted); font: 10px/1.5 "IBM Plex Mono", monospace; }
-.coding-lesson-layout { display: grid; grid-template-columns: minmax(200px, .22fr) minmax(0, 1fr); gap: clamp(28px, 6vw, 88px); padding-top: 52px; }
+/* Lesson reader: compact two-column band centered on the page so the article
+   does not start mid-viewport beside a sprawling 1680px shell. */
+.coding-lesson-layout {
+  width: min(1080px, 96vw);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(11.5rem, 14rem) minmax(0, 1fr);
+  gap: 1.75rem;
+  padding-top: 40px;
+  align-items: start;
+}
 .coding-lesson-index { padding-top: 5px; }
 .coding-lesson-index section + section { margin-top: 24px; }
 .coding-lesson-index section > b { display: block; margin-bottom: 8px; color: var(--ez-muted); font: 600 12px/1.4 "IBM Plex Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
-.coding-lesson-index button { display: flex; align-items: center; width: 100%; gap: 8px; padding: 8px 0; border: 0; background: transparent; color: var(--ez-muted); text-align: left; font: 400 15px/1.4 "Source Sans 3", sans-serif; cursor: pointer; }
+.coding-lesson-index button { display: flex; align-items: flex-start; width: 100%; gap: 8px; padding: 8px 0; border: 0; background: transparent; color: var(--ez-muted); text-align: left; font: 400 14px/1.35 "Source Sans 3", sans-serif; cursor: pointer; }
 .coding-lesson-index button:hover, .coding-lesson-index button.active { color: var(--ez-primary-strong); }
-.coding-reader { max-width: 72ch; }
+.coding-reader { max-width: 68ch; width: 100%; justify-self: start; }
 .coding-reader h2 { max-width: 22ch; font-size: clamp(36px, 3.6vw, 52px); }
 .coding-objective { margin: 18px 0 28px; color: var(--ez-muted); font: 400 22px/1.45 "Source Serif 4", Georgia, serif; }
 .coding-reader > section { margin: 28px 0; }
