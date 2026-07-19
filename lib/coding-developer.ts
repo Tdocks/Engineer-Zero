@@ -1,5 +1,14 @@
 import type { ProgramId } from "./types";
 import type { CodingTerminalSession } from "./coding-terminal";
+import {
+  day1LabBridgeExpectations,
+  validateLessonPackageDepth,
+  type CodingLessonBridge,
+  type CodingLessonCheck,
+  type CodingLessonFailure,
+  type CodingLessonPackage,
+} from "./coding-lesson-package";
+import { codingLessonPackages } from "./coding-lessons";
 
 export type CodingCompetencyKey =
   | "terminal"
@@ -65,13 +74,27 @@ export type CodingLesson = {
   durationMinutes: number;
   competency: CodingCompetencyKey;
   objective: string;
+  /** @deprecated Prefer `teach`; kept as a mirror for older callers. */
   explanation: string;
   workedExample: string;
+  /** @deprecated Prefer `tryThis`; kept as a mirror for older callers. */
   practicePrompt: string;
   defensePrompt: string;
   sourceIds: string[];
   mode: "observe" | "modify" | "complete" | "repair" | "build" | "defend";
+  whyItMatters: string;
+  teach: string;
+  tryThis: string;
+  tryThisStarter?: string;
+  tryThisSteps?: string[];
+  expectedOutput?: string;
+  hint?: string;
+  commonFailures: CodingLessonFailure[];
+  checkYourself: CodingLessonCheck[];
+  bridgeToLab?: CodingLessonBridge;
 };
+
+export type { CodingLessonBridge, CodingLessonCheck, CodingLessonFailure, CodingLessonPackage };
 
 export type CodingChallenge = {
   id: string;
@@ -564,38 +587,8 @@ export const codingCompetencies: Array<{ key: CodingCompetencyKey; title: string
   { key: "defense", title: "Engineering defense", target: 4, description: "Explain decisions, limitations, tests, and next steps under follow-up questions." },
 ];
 
-const lesson = (
-  day: CodingLesson["day"], order: number, competency: CodingCompetencyKey, title: string,
-  objective: string, explanation: string, workedExample: string, practicePrompt: string,
-  defensePrompt: string, sourceIds: string[], mode: CodingLesson["mode"],
-): CodingLesson => ({ id: `coding-day-${day}-${String(order).padStart(2, "0")}`, day, order, title, durationMinutes: 50, competency, objective, explanation, workedExample, practicePrompt, defensePrompt, sourceIds, mode });
-
-export const codingLessons: CodingLesson[] = [
-  lesson(1, 1, "terminal", "Inside the machine", "Trace a command from keyboard to program output.", "A terminal is a text interface to a shell. The shell asks the operating system to locate and start a program; Python interprets a source file and returns output or an error.", "keyboard → shell → operating system → Python interpreter → main.py → output", "Put those six parts in order without looking.", "What is the difference between the terminal, shell, and Python interpreter?", ["bashManual", "pythonTutorial"], "observe"),
-  lesson(1, 2, "terminal", "Safe terminal navigation", "Create and recover a small project folder without affecting a real system.", "Paths describe locations. Relative paths begin from the current folder; absolute paths begin from a known root. Use `pwd`, `ls`, `cd`, `mkdir`, and `touch` deliberately.", "mkdir ai_prototype → cd ai_prototype → touch main.py", "Recover after creating main.py in the wrong folder.", "Why check your location before removing or moving a file?", ["pythonTutorial"], "modify"),
-  lesson(1, 3, "python", "Values, variables, and first execution", "Run a Python file and name the values it transforms.", "A value has a type. A variable gives a value a useful name. `print()` makes output visible; a traceback explains the path to an error.", "remaining_minutes = launch_time - current_time\nprint(remaining_minutes)", "Change a countdown calculation to include a hold duration.", "What does the variable name add that a raw number does not?", ["pythonTutorial"], "modify"),
-  lesson(1, 4, "python", "Decisions and functions", "Put repeatable triage logic in a small function with a clear return value.", "A function gives behavior a name, keeps inputs narrow, and makes the result easier to test. Conditions select a branch based on explicit rules.", "def risk_level(temp: float) -> str:\n    return \"URGENT\" if temp >= 90 else \"NORMAL\"", "Add a REVIEW branch for temperatures from 80 through 89.", "Why is a function safer than duplicating the same condition in three places?", ["pythonTutorial"], "build"),
-  lesson(1, 5, "dataInterfaces", "Lists, dictionaries, and JSON-shaped data", "Complete a partially written data transformation with the structure that matches the question.", "Use a list when order or repeated items matter. Use a dictionary when named fields need lookup. JSON objects map naturally to dictionaries in Python. Before a blank-slate build, complete a known pattern and explain why each structure fits.", "readings = [{\"equipment\": \"pump-7\", \"temperature\": 94}]\nurgent = [reading for reading in readings if reading[\"temperature\"] >= 90]", "Complete the missing filter that selects urgent readings from three sensor dictionaries.", "Why is one equipment reading a dictionary while the collection of readings is a list?", ["pythonTutorial"], "complete"),
-  lesson(1, 6, "testingDebugging", "Errors and defensive input", "Classify a failure and make invalid input visible rather than silently ignoring it.", "Syntax, runtime, and logic errors need different responses. Validate before processing; catch only exceptions you understand well enough to handle.", "try:\n    temperature = float(raw_temperature)\nexcept ValueError:\n    raise ValueError(\"Temperature must be a number\")", "Repair a handler that turns every error into NORMAL.", "Why is broad exception swallowing dangerous in an operations prototype?", ["pythonTutorial"], "repair"),
-  lesson(2, 1, "terminal", "Cold rebuild and environments", "Recreate the Day 1 startup path from memory using an isolated environment.", "A virtual environment holds a project’s dependencies separately from global Python. It makes a setup more reproducible and prevents unrelated package conflicts.", "python -m venv .venv\nsource .venv/bin/activate\npython main.py", "Write the environment setup commands without notes, then identify the activation command for your operating system.", "Why not install every project package globally?", ["pythonVenv"], "repair"),
-  lesson(2, 2, "dataInterfaces", "Requests, responses, and JSON", "Describe the contract between a client and a service.", "A client sends a request to a route. The service validates the method, path, headers, and body, then sends a status code and response body. JSON carries structured data; it is not a substitute for validation.", "POST /triage with {\"temperature\": 94} returns a typed JSON result.", "Build a request for a missing equipment name and predict the response category.", "Why is an invalid request a client error rather than a normal triage result?", ["fastapiBody"], "observe"),
-  lesson(2, 3, "api", "FastAPI routes and request models", "Create a typed route that accepts a validated triage request.", "FastAPI maps typed models to request bodies, validates input, and generates a schema used by interactive documentation. A request model makes the expected shape explicit.", "@app.post(\"/triage\")\ndef triage(reading: ReadingIn) -> TriageOut:\n    return evaluate(reading)", "Add a field that rejects an empty equipment name.", "Why prefer a typed request model to a raw dictionary at the API boundary?", ["fastapiBody", "fastapiResponse"], "build"),
-  lesson(2, 4, "api", "Separate route from business logic", "Keep deterministic triage rules testable without a web server.", "The route handles transport concerns. A service function owns business rules. This separation makes the same logic reusable from a CLI, API, or batch job and keeps tests focused.", "main.py calls services.evaluate_reading(reading); tests import evaluate_reading directly.", "Move threshold logic out of a route into a service function.", "Why would testing the service function first be faster than testing every rule through HTTP?", ["fastapiBody"], "modify"),
-  lesson(2, 5, "testingDebugging", "Tests as evidence", "Write tests for normal, boundary, and invalid behavior.", "A useful test makes one behavioral claim. pytest uses readable assertions and discovers appropriately named tests. A suite is evidence against known requirements, not proof of perfection.", "def test_high_temperature_is_urgent():\n    assert evaluate_reading(94) == \"URGENT\"", "Add a boundary test for exactly 90 and an invalid-input test.", "Which test would catch the most likely regression after changing a threshold?", ["pytest"], "build"),
-  lesson(2, 6, "git", "Record a reviewable change", "Create a small change history and explain what it contains.", "A commit records a coherent change. A diff shows additions and removals. Pull requests give another person a place to review intent, behavior, and risks before merge.", "git status → git add app/services.py tests/test_services.py → git commit -m \"Add triage boundary tests\"", "Write a commit message for an API validation fix.", "What would a reviewer need besides the changed code?", ["githubPr"], "defend"),
-  lesson(3, 1, "aiApplications", "Deterministic versus probabilistic work", "Choose AI only where language interpretation adds value.", "Keep explicit thresholds, access decisions, and safety rules in trusted code. Use a model for bounded extraction, classification, or drafting when language is varied and a human remains accountable.", "A model extracts observations from a report; Python evaluates a temperature threshold.", "Classify four tasks as deterministic, AI-assisted, or inappropriate for AI.", "Why would an LLM make a fixed threshold rule harder to test?", ["nistAiRmf"], "observe"),
-  lesson(3, 2, "securityReliability", "Credentials and safe failure", "Keep a model credential out of code and define behavior when it is unavailable.", "Secrets belong in environment configuration, never source files or learner prompts. A missing key, timeout, or provider failure should be visible and recoverable; it must not silently create a made-up result.", "if not api_key: raise RuntimeError(\"Model integration is not configured\")", "Identify the unsafe logging statement in a sample integration.", "What should the user see when an approved model provider is unavailable?", ["nistSsdf", "openaiStructured"], "repair"),
-  lesson(3, 3, "aiApplications", "Structured extraction", "Convert free text into a schema with uncertainty rather than persuasive prose.", "Define required fields, optional fields, and uncertainties before calling a model. Validate returned data and reject or escalate a response that does not match the contract.", "{\"equipment\": \"pump-7\", \"observations\": [\"grinding\"], \"uncertainties\": [\"temperature unit missing\"]}", "Add an uncertainty field to an incident-extraction schema.", "Why is a fluent paragraph a weak interface between a model and your application?", ["openaiStructured"], "build"),
-  lesson(3, 4, "securityReliability", "Tool boundaries and human approval", "Design a workflow where a model cannot silently perform a consequential action.", "The model may propose or extract. Trusted code validates. A qualified human approves. A separate authorized function performs the action and records an audit event.", "report → extraction → schema validation → deterministic rule → proposed action → human approval", "Identify the first point at which a malicious report should lose influence.", "Why is a second model not an approval gate?", ["nistAiRmf", "nistSsdf", "owaspGenAi"], "modify"),
-  lesson(3, 5, "testingDebugging", "Evaluate model behavior", "Build a representative test set that includes failure and abstention cases.", "Test supported, ambiguous, contradictory, missing, irrelevant, injected, and unsupported inputs. Track valid schema, field accuracy, invented facts, uncertainty, latency, and cost.", "Case: missing unit. Expected: uncertainty is present and escalation is recommended.", "Write one evaluation case that a polished demo would likely miss.", "Why is one successful prompt not a benchmark?", ["nistAiRmf", "owaspGenAi"], "build"),
-  lesson(3, 6, "defense", "Explain the trust boundary", "Defend why an AI-assisted prototype keeps final risk classification outside the model.", "A good answer identifies the model’s limited task, the trusted Python rules, validation, approval, fallback behavior, and the data that should not leave the organization.", "AI extracts a possible issue; deterministic code classifies risk; a human approves any action.", "Give a 90-second explanation of the system’s trusted and untrusted portions.", "What would change before connecting this prototype to a real operational system?", ["nistAiRmf", "openaiStructured"], "defend"),
-  lesson(4, 1, "decomposition", "SCOPE: specify the problem", "Turn an ambiguous request into a bounded prototype brief.", "Ask who uses the system, what they do now, which input exists, what output helps, what is out of scope, and how success will be observed.", "“Summarize shift notes” becomes “extract blockers, owners, and deadlines from fictional notes for human review.”", "Write inputs, outputs, constraints, and acceptance criteria for a handoff assistant.", "What question prevents you from building an unnecessary feature?", ["nistSsdf", "nasaSoftwareHandbook"], "build"),
-  lesson(4, 2, "architecture", "SCOPE: choose the simplest architecture", "Select the smallest stack that proves the product assumption.", "For an interview prototype, one Python service, FastAPI, SQLite or memory, one external model dependency, and clear modules are usually more defensible than premature microservices.", "request → service → repository → response, with model extraction as one bounded dependency", "Choose between in-memory data and SQLite for a 90-minute handoff prototype.", "Why is a microservice architecture usually a poor first answer here?", ["fastapiBody", "nistSsdf"], "build"),
-  lesson(4, 3, "dataInterfaces", "SCOPE: outline data and behavior", "Write input and output schemas, main workflow, and failure cases before coding.", "A thin architecture starts with a clear contract. A good schema makes missing data, ownership, review status, and uncertainty visible.", "HandoffIn(notes: str); HandoffOut(issues, owners, urgency, review_status, uncertainties)", "Sketch a response schema that cannot confuse a draft with an approved action.", "Which field proves that a human has reviewed the output?", ["fastapiBody", "fastapiResponse"], "modify"),
-  lesson(4, 4, "testingDebugging", "SCOPE: produce vertically", "Build one end-to-end path before expanding features.", "Implement request → logic → response → test, then add the next feature. This exposes contract mistakes early and gives you a working demonstration path.", "POST /handoffs → parse one note → return one structured issue → test the result", "Put three implementation tasks in vertical-slice order.", "What does a passing vertical slice prove—and what does it not prove?", ["pytest", "fastapiBody"], "build"),
-  lesson(4, 5, "securityReliability", "SCOPE: evaluate and explain", "Run tests and explain prototype limits before calling it complete.", "A prototype needs explicit assumptions, risk, security limits, observability gaps, scaling questions, and a next production step. “It works locally” is a starting observation, not a release criterion.", "Run unit tests, exercise invalid input, document that external data and real credentials are out of scope.", "Write one rollback or degraded-mode behavior for the handoff assistant.", "What would you change before one hundred teams used this service?", ["nistSsdf", "pytest"], "defend"),
-  lesson(4, 6, "defense", "Prototype defense under pressure", "Explain a bounded prototype to a skeptical interviewer without overstating it.", "Lead with the user outcome, show the request and response contract, state the trusted rule boundary, name tests and failure behavior, disclose AI assistance, and identify the next decision.", "“The model extracts draft facts. The service validates them. A human review status prevents the output from becoming an instruction.”", "Record a two-minute walkthrough using the final capstone outline.", "What did AI generate, and how did you verify it?", ["githubPr", "nistAiRmf"], "defend"),
-];
+/** Rich instructional packages (teach / tryThis / failures / checks / lab bridges). */
+export const codingLessons: CodingLesson[] = codingLessonPackages;
 
 export const codingChallenges: CodingChallenge[] = [
   { id: "coding-terminal-escape", day: 1, kind: "terminal", title: "Terminal escape room", brief: "Create ai_prototype, enter it, create main.py, and recover from one wrong-folder attempt.", starter: "pwd\nls", requiredSignals: ["mkdir ai_prototype", "cd ai_prototype", "touch main.py"], expectedOutcome: "You can explain where your project lives and safely recover from a path mistake.", comprehensionPrompt: "Explain how you knew you were in the wrong folder and name the command that verified the recovery.", comprehensionRequirements: ["working directory", "recovery command", "why the path matters", "expected file location"], competencyWeights: { terminal: 1, testingDebugging: .3 }, sourceIds: ["pythonTutorial"] },
@@ -767,6 +760,7 @@ export function codingSourceList(ids: string[]) {
 export function validateCodingProgram() {
   const issues: string[] = [];
   const seenLessons = new Set<string>();
+  const challengeIds = new Set(codingChallenges.map((challenge) => challenge.id));
   for (const item of codingLessons) {
     if (seenLessons.has(item.id)) issues.push(`Duplicate lesson ID: ${item.id}`);
     seenLessons.add(item.id);
@@ -776,6 +770,18 @@ export function validateCodingProgram() {
     if (!item.sourceIds.length || item.sourceIds.some((id) => !codingSources[id])) {
       issues.push(`Lesson lacks valid source mapping: ${item.id}`);
     }
+    issues.push(...validateLessonPackageDepth(item));
+    if (item.bridgeToLab?.challengeId && !challengeIds.has(item.bridgeToLab.challengeId)) {
+      issues.push(`Lesson bridge points at unknown challenge: ${item.id} → ${item.bridgeToLab.challengeId}`);
+    }
+    const expectedBridge = day1LabBridgeExpectations[item.id];
+    if (expectedBridge && item.bridgeToLab?.challengeId !== expectedBridge) {
+      issues.push(`Day 1 lesson ${item.id} must bridge to ${expectedBridge}`);
+    }
+  }
+  if (codingLessons.length !== 24) issues.push(`Expected 24 lessons, found ${codingLessons.length}`);
+  if (codingLessons.some((lesson) => lesson.durationMinutes > 45)) {
+    issues.push("Lesson durations should stay honest (≤45 minutes); do not advertise fake 50-minute cards.");
   }
   for (const requiredMode of ["observe", "modify", "complete", "repair", "build", "defend"] as const) {
     if (!codingLessons.some((item) => item.mode === requiredMode)) issues.push(`Instructional sequence is missing ${requiredMode}.`);

@@ -13,6 +13,7 @@ import { CodingTutorPanel } from "@/components/CodingTutorPanel";
 import { CodingFileWorkbench } from "@/components/CodingFileWorkbench";
 import { CodingTerminalSimulator } from "@/components/CodingTerminalSimulator";
 import { CodingRecallPractice } from "@/components/CodingRecallPractice";
+import { CodingLessonReader } from "@/components/CodingLessonReader";
 import { codingReviewBoardPrompts } from "@/lib/coding-review-board-prompts";
 import {
   codingChallenges,
@@ -276,14 +277,45 @@ export function CodingDeveloperApp() {
               const dayLessons = codingLessons.filter((item) => item.day === day);
               const complete = dayLessons.filter((item) => progress.completedLessonIds.includes(item.id)).length;
               const capstone = codingChallenges.find((item) => item.day === day && ["code", "api", "ai", "defense"].includes(item.kind));
-              return <article key={day} className={day === progress.activeDay ? "current" : ""}>
-                <header><span>DAY {day}</span><small>{complete}/{dayLessons.length} sessions</small></header>
-                <h3>{dayPlan.title}</h3>
-                <p className="coding-day-mission">{dayPlan.mission}</p>
-                <ol>{dayLessons.map((item) => <li key={item.id}><button onClick={() => selectLesson(item)}><span className={progress.completedLessonIds.includes(item.id) ? "done" : ""}>{progress.completedLessonIds.includes(item.id) ? <Check size={13} /> : item.order}</span>{item.title}</button></li>)}</ol>
-                <details className="coding-day-cadence"><summary>{dayPlan.focusedHours} focused hours · recommended cadence</summary><ul>{dayPlan.cadence.map((block) => <li key={block.label}><b>{block.label}</b><span>{block.purpose}</span></li>)}</ul><code>{dayPlan.localProjectPath}</code></details>
-                {capstone && <button className="coding-capstone-link" onClick={() => selectChallenge(capstone)}>{capstone.title} <span>→</span></button>}
-              </article>;
+              const isCurrent = day === progress.activeDay;
+              return (
+                <article key={day} className={isCurrent ? "current" : ""}>
+                  <div className="coding-day-meta">
+                    <span className="coding-day-index">Day {day}</span>
+                    <small>{complete}/{dayLessons.length} sessions</small>
+                    {isCurrent && <em>Current</em>}
+                    <i className="coding-day-progress" aria-hidden="true"><em style={{ width: `${dayLessons.length ? (complete / dayLessons.length) * 100 : 0}%` }} /></i>
+                  </div>
+                  <div className="coding-day-copy">
+                    <h3>{dayPlan.title}</h3>
+                    <p className="coding-day-mission">{dayPlan.mission}</p>
+                    <details className="coding-day-cadence">
+                      <summary>{dayPlan.focusedHours} focused hours · recommended cadence</summary>
+                      <ul>{dayPlan.cadence.map((block) => <li key={block.label}><b>{block.label}</b><span>{block.purpose}</span></li>)}</ul>
+                      <code>{dayPlan.localProjectPath}</code>
+                    </details>
+                    {capstone && (
+                      <button type="button" className="coding-capstone-link" onClick={() => selectChallenge(capstone)}>
+                        <span>Capstone lab</span>
+                        {capstone.title} <span aria-hidden="true">→</span>
+                      </button>
+                    )}
+                  </div>
+                  <ol className="coding-day-sessions" aria-label={`Day ${day} sessions`}>
+                    {dayLessons.map((item) => {
+                      const done = progress.completedLessonIds.includes(item.id);
+                      return (
+                        <li key={item.id}>
+                          <button type="button" onClick={() => selectLesson(item)}>
+                            <span className={done ? "done" : ""}>{done ? <Check size={13} aria-hidden="true" /> : item.order}</span>
+                            <b>{item.title}</b>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </article>
+              );
             })}
           </div>
           <section className="coding-mastery" aria-label="Four-day mastery targets">
@@ -322,17 +354,24 @@ export function CodingDeveloperApp() {
           <aside className="coding-lesson-index">
             {([1, 2, 3, 4] as const).map((day) => <section key={day}><b>Day {day}</b>{codingLessons.filter((item) => item.day === day).map((item) => <button key={item.id} className={lesson.id === item.id ? "active" : ""} onClick={() => setSelectedLessonId(item.id)}>{progress.completedLessonIds.includes(item.id) && <Check size={13} />} {item.title}</button>)}</section>)}
           </aside>
-          <article className="coding-reader">
-            <p className="coding-kicker">DAY {lesson.day} · {lesson.mode}</p>
-            <h2>{lesson.title}</h2>
-            <p className="coding-objective">{lesson.objective}</p>
-            <section><h3>Read</h3><p>{lesson.explanation}</p></section>
-            <section className="coding-worked"><span>Worked example</span><pre>{lesson.workedExample}</pre></section>
-            <section className="coding-practice"><span>Practice before you continue</span><b>{lesson.practicePrompt}</b></section>
-            <section className="coding-defense"><span>Defense prompt</span><p>{lesson.defensePrompt}</p></section>
-            <section className="coding-sources"><h3>Source notes</h3>{codingSourceList(lesson.sourceIds).map((source) => <a key={source.id} href={source.url} target="_blank" rel="noreferrer"><b>{source.publisher} · {source.title}</b><small>{source.version} · verified {source.lastVerified} · revalidate {source.revalidateBy}<br />Supports: {source.supportedClaim}</small></a>)}</section>
-            <button className="coding-primary" onClick={() => markLesson(lesson)}>{progress.completedLessonIds.includes(lesson.id) ? "Evidence recorded" : "Mark learning session complete"} <Check size={16} /></button>
-          </article>
+          <CodingLessonReader
+            lesson={lesson}
+            completed={progress.completedLessonIds.includes(lesson.id)}
+            onComplete={() => markLesson(lesson)}
+            onOpenBridge={(bridge) => {
+              if (bridge.workspace === "systems") {
+                setWorkspace("systems");
+                return;
+              }
+              if (bridge.challengeId) {
+                const target = codingChallenges.find((item) => item.id === bridge.challengeId);
+                if (target) selectChallenge(target);
+                else setWorkspace("lab");
+              } else {
+                setWorkspace("lab");
+              }
+            }}
+          />
         </section>
       )}
 

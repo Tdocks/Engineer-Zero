@@ -7,7 +7,7 @@ Coding Developer is a reusable program, not a third career track. Applied AI Ope
 ## Implemented foundation
 
 - Dedicated route: `/programs/coding-developer`.
-- Four-day Mission Map with 24 authored 50-minute lessons and a realistic 10-focused-hour daily cadence.
+- Four-day Mission Map with 24 authored lesson packages (teach / worked example / try-this / failures / checks / lab bridge; ~25–40 min each) and a realistic focused-hour daily cadence.
 - Six practice challenges: terminal navigation, deterministic Python triage, FastAPI API design, test repair, structured AI extraction, and capstone defense.
 - Source registry with canonical URLs, versions, claim mappings, and verification date. It includes technical sources and two instructional-method sources.
 - Lesson reader, safe in-browser terminal simulator, browser-only structural review, comprehension prompts, self-attested local-run/test records, and an engineering Review Board.

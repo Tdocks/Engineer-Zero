@@ -6,6 +6,7 @@ import {
   codingSources,
 } from "./coding-developer";
 import { codingContinuation } from "./coding-continuation";
+import { validateLessonPackageDepth, type CodingLessonPackage } from "./coding-lesson-package";
 import { codingCatalogPublicationStatus } from "./coding-source-governance";
 import { ircProgramId } from "./irc-program";
 
@@ -44,9 +45,13 @@ function collectPublishableText() {
     ...codingLessons.flatMap((lesson) => [
       lesson.title,
       lesson.objective,
-      lesson.explanation,
+      lesson.whyItMatters ?? "",
+      lesson.teach ?? lesson.explanation,
       lesson.workedExample,
-      lesson.practicePrompt,
+      lesson.tryThis ?? lesson.practicePrompt,
+      ...(lesson.commonFailures ?? []).flatMap((item) => [item.failure, item.recovery]),
+      ...(lesson.checkYourself ?? []).flatMap((item) => [item.question, item.answer]),
+      lesson.bridgeToLab?.why ?? "",
       lesson.defensePrompt,
     ]),
     ...codingChallenges.flatMap((challenge) => [
@@ -93,18 +98,18 @@ export function codingDeveloperHumanReviewFindings(asOf = new Date()): HumanRevi
     evidence: "24 authored lessons, 6 challenges, and 4 day plans with local project paths.",
   });
 
-  const lessonsMissingDefense = codingLessons.filter(
-    (lesson) => !lesson.defensePrompt?.trim() || !lesson.practicePrompt?.trim() || !lesson.objective?.trim(),
+  const lessonDepthIssues = codingLessons.flatMap((lesson) =>
+    validateLessonPackageDepth(lesson as CodingLessonPackage),
   );
   findings.push({
     id: "instructional-lesson-packages",
     area: "instructional_design",
-    status: lessonsMissingDefense.length === 0 ? "pass" : "attention",
-    summary: "Every lesson includes objective, practice, and defense prompts.",
+    status: lessonDepthIssues.length === 0 ? "pass" : "blocked",
+    summary: "Every lesson clears instructional package depth gates (teach/worked/tryThis/failures/checks).",
     evidence:
-      lessonsMissingDefense.length === 0
-        ? "All lessons include objective, practice, and defense prompts."
-        : `${lessonsMissingDefense.length} lesson(s) miss package fields.`,
+      lessonDepthIssues.length === 0
+        ? "All 24 lessons pass validateLessonPackageDepth—packages, not flashcard stubs. Day 1 bridges Terminal escape + Equipment triage CLI where expected."
+        : lessonDepthIssues.slice(0, 8).join("; "),
   });
 
   const challengeRubricGaps = codingChallenges.filter(
