@@ -2,9 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CapabilityLevel, CourseAttemptRecord, CourseDraft, CourseStage, LearnerState, TrackId } from "@/lib/types";
-import type { StructuredEvidence } from "@/lib/course-types";
+import type {
+  CapabilityLevel,
+  CourseAttemptRecord,
+  CourseDraft,
+  CourseStage,
+  LearnerState,
+  PacketAttestations,
+  TrackId,
+} from "@/lib/types";
+import type { StructuredEvidence, WorkProductSchema } from "@/lib/course-types";
 import { recommendAioFoundationStart } from "@/lib/aio-foundation-path";
+import {
+  aioInterviewEmergencyPath,
+  aioInterviewEmergencyEstimatedHours,
+  evaluateInterviewEmergencyProgress,
+  interviewEmergencyPathSummary,
+  reviewedAioInterviewCodingChallengeIds,
+} from "@/lib/aio-interview-emergency-path";
+import {
+  isColdArchitectureRedrawComplete,
+  isCompleteOralProbeDryRun,
+} from "@/lib/aio-oral-probes";
+import { mediaForModule } from "@/lib/aio-media";
 import { browserSupabase } from "@/lib/browser-supabase";
 
 export type CourseKind = "module" | "lab" | "mission";
@@ -42,7 +62,14 @@ export type CourseItem = {
   performanceExpectation?: string;
   roleBoundary?: string;
   specialistEscalationGuidance?: string;
-  pathAvailability?: Array<"sprint-48h" | "sprint-7-day" | "foundation-bridge" | "full-program" | "concept-library">;
+  pathAvailability?: Array<
+    | "sprint-48h"
+    | "sprint-7-day"
+    | "interview-emergency"
+    | "foundation-bridge"
+    | "full-program"
+    | "concept-library"
+  >;
   prerequisites?: string[];
   competencies?: Record<string, number>;
   outcome?: string;
@@ -58,6 +85,7 @@ export type CourseItem = {
   assets?: Array<{ name: string; content: string; kind?: string }>;
   evidence?: { required: string[]; minimumWords?: number; requiredFields?: Array<keyof Omit<StructuredEvidence, "evidenceReferences">> };
   artifact?: { required: string[]; minimumWords?: number; requiredFields?: Array<keyof Omit<StructuredEvidence, "evidenceReferences">> };
+  workProduct?: WorkProductSchema;
   debrief: string;
   revisionPrompt?: string;
   sources?: Array<{
@@ -218,10 +246,12 @@ function LessonBlocks({ blocks, reflection, onReflection }: { blocks: CourseBloc
 export function AioCourseSurface({
   kind,
   state,
+  setState,
   trackId = "applied-ai-operations",
 }: {
   kind: CourseKind;
   state: LearnerState;
+  setState?: React.Dispatch<React.SetStateAction<LearnerState>>;
   trackId?: TrackId;
 }) {
   const router = useRouter();
@@ -270,7 +300,9 @@ export function AioCourseSurface({
           .at(-1);
         const phaseMatches = phaseFilter === "all" || item.phaseId === phaseFilter;
         const modeMatches = modeFilter === "all" || item.mode === modeFilter;
-        const pathMatches = pathFilter === "all" || item.pathAvailability?.includes(pathFilter as NonNullable<CourseItem["pathAvailability"]>[number]);
+        const pathMatches =
+          pathFilter === "all" ||
+          item.pathAvailability?.includes(pathFilter as NonNullable<CourseItem["pathAvailability"]>[number]);
         const capabilityMatches = capabilityFilter === "all" || item.capabilityLevel === capabilityFilter;
         const statusMatches =
           statusFilter === "all" ||
@@ -281,12 +313,65 @@ export function AioCourseSurface({
       }),
     [capabilityFilter, items, modeFilter, pathFilter, phaseFilter, state.courseAttempts, statusFilter],
   );
+  const emergencyGates =
+    trackId === "applied-ai-operations"
+      ? evaluateInterviewEmergencyProgress({
+          completedCourseItemIds: state.courseAttempts.filter((attempt) => attempt.complete).map((attempt) => attempt.itemId),
+          completedCodingLessonIds: state.programProgress?.["coding-developer"]?.completedLessonIds ?? [],
+          reviewedCodingChallengeIds: reviewedAioInterviewCodingChallengeIds(
+            state.programProgress?.["coding-developer"],
+          ),
+          completedTimedMockCount: state.interviewMockAttempts.filter(
+            (attempt) =>
+              attempt.trackId === "applied-ai-operations" &&
+              attempt.rounds.length === 4 &&
+              attempt.revision.trim().split(/\s+/).filter(Boolean).length >= 60,
+          ).length,
+          oralProbeDryRunComplete: state.oralProbeDryRuns.some(
+            (dryRun) =>
+              dryRun.trackId === "applied-ai-operations" &&
+              isCompleteOralProbeDryRun(dryRun),
+          ),
+          spokenNarrativeAttested: Boolean(
+            state.packetAttestations.spokenNarrativeAttestedAt,
+          ),
+          coldArchitectureRedrawComplete: isColdArchitectureRedrawComplete(
+            state.packetAttestations.coldArchitectureRedraw?.response,
+          ),
+        })
+      : null;
   const foundationRecommendation = trackId === "applied-ai-operations"
     ? recommendAioFoundationStart(state.assessmentSummaries["applied-ai-operations"])
     : null;
   const completedItems = new Set(
     state.courseAttempts.filter((attempt) => attempt.complete).map((attempt) => attempt.itemId),
   );
+  const openEmergencyItem = (item: (typeof aioInterviewEmergencyPath)[number]) => {
+    if (item.kind === "coding" || item.kind === "media") {
+      const target = item.activityId
+        ? item.activityId === "coding-aio-procedure-assistant" ||
+          item.activityId === "coding-aio-broken-pr-review" ||
+          item.activityId === "coding-aio-grok-draft-review"
+          ? `&challenge=${encodeURIComponent(item.activityId)}`
+          : `&lesson=${encodeURIComponent(item.activityId)}`
+        : "";
+      router.push(`/programs/coding-developer?path=interview-emergency${target}`);
+      return;
+    }
+    if ((item.kind === "module" || item.kind === "lab") && item.activityId) {
+      router.push(
+        `/learn/${trackId}/${item.kind}/${item.activityId}?path=interview-emergency`,
+      );
+      return;
+    }
+    if (item.kind === "interview") {
+      router.push(`/learn?track=${trackId}&view=interview&path=interview-emergency`);
+      return;
+    }
+    if (item.kind === "artifact" && item.id === "ep-d5-revise") {
+      router.push(`/learn?track=${trackId}&view=interview&path=interview-emergency&studio=probes`);
+    }
+  };
   const [label, description] = headings[kind];
   if (error)
     return (
@@ -323,10 +408,106 @@ export function AioCourseSurface({
         Kyra cannot grant completion.
       </p>
       <section className="capability-legend" aria-label="Evidence expectation legend">
-        <div><b>Know</b><span>Explain, recognize, and name the accountable specialist.</span></div>
-        <div><b>Practice</b><span>Complete bounded guided work with support.</span></div>
-        <div><b>Prove</b><span>Independently build, troubleshoot, or defend saved evidence.</span></div>
+        <div><b>Know</b><span>Explain, recognize, and name the accountable specialist. Reading ≠ timed mock.</span></div>
+        <div><b>Practice</b><span>Complete bounded guided work with support — not independent production implementation.</span></div>
+        <div><b>Prove</b><span>Independently build, troubleshoot, or defend saved evidence (Foundation path).</span></div>
       </section>
+      {trackId === "applied-ai-operations" && emergencyGates && (
+        <section className="foundation-diagnostic" aria-label="Few-Day Interview Path checklist">
+          <div>
+            <span className="eyebrow amber">FEW-DAY INTERVIEW PATH</span>
+            <h3>{emergencyGates.packetComplete ? "Packet complete (interview literacy)" : "Ordered emergency checklist"}</h3>
+            <p>{interviewEmergencyPathSummary} Packet complete ≠ Foundation Prove graduation.</p>
+            <p>
+              Gates: Coding {emergencyGates.codingBridge ? "✓" : "○"} · Sprint{" "}
+              {emergencyGates.sprintModules ? "✓" : "○"} · Labs {emergencyGates.requiredLabs ? "✓" : "○"} · Mock{" "}
+              {emergencyGates.timedMock ? "✓" : "○"} · Probes {emergencyGates.oralProbeDryRun ? "✓" : "○"} · Spoken{" "}
+              {emergencyGates.spokenNarrative ? "✓" : "○"} · Cold arch{" "}
+              {emergencyGates.coldArchitecture ? "✓" : "○"}
+            </p>
+            {!emergencyGates.packetComplete && (
+              <p>
+                Daily speak-aloud: 10 minutes verbalizing yesterday&apos;s TEACHBACK without notes.
+                Include a 60-second Grok talk-track after Day 2 (call shape, tool allowlist, what still
+                needs local eval). Live Grok: set server/local <code>XAI_API_KEY</code> for real calls;
+                fallback fixtures still count for packet complete.
+              </p>
+            )}
+            {setState && (
+              <p>
+                Live Grok soft attest:{" "}
+                {state.packetAttestations.liveGrokPracticed
+                  ? `${state.packetAttestations.liveGrokPracticed.mode} @ ${new Date(state.packetAttestations.liveGrokPracticed.completedAt).toLocaleString()}`
+                  : "not yet (optional)"}
+              </p>
+            )}
+            {setState && (
+              <div className="objective-list" aria-label="Speak-aloud checklist">
+                {(["day1", "day2", "day3", "day4", "day5"] as const).map((day) => {
+                  const checked = Boolean(state.packetAttestations.speakAloudChecklist?.[day]);
+                  return (
+                    <label key={day}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) =>
+                          setState((current) => ({
+                            ...current,
+                            packetAttestations: {
+                              ...current.packetAttestations,
+                              speakAloudChecklist: {
+                                ...current.packetAttestations.speakAloudChecklist,
+                                [day]: event.target.checked,
+                              },
+                            },
+                          }))
+                        }
+                      />{" "}
+                      {day.toUpperCase()} speak-aloud done
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {!emergencyGates.packetComplete && emergencyGates.missing.length > 0 && (
+              <p>
+                Next missing: {emergencyGates.missing.slice(0, 3).join("; ")}
+                {emergencyGates.missing.length > 3 ? ` (+${emergencyGates.missing.length - 3} more)` : ""}
+              </p>
+            )}
+          </div>
+          <button className="secondary" onClick={() => setPathFilter("interview-emergency")}>
+            Filter emergency path →
+          </button>
+        </section>
+      )}
+      {pathFilter === "interview-emergency" && kind === "module" && (
+        <section className="crash-plan" aria-label="Emergency path day plan">
+          <div>
+            <span className="eyebrow teal">DAY-BY-DAY PLAYLIST</span>
+            <h3>~{aioInterviewEmergencyEstimatedHours} focused hours; five days is the realistic default</h3>
+            <p>Three days is an exceptional 10+ hour/day sprint. Complete Coding bridge first, then Sprint + mandatory labs, then the dedicated timed mock.</p>
+          </div>
+          <ol className="crash-plan-grid">
+            {aioInterviewEmergencyPath.map((item) => (
+              <li key={item.id}>
+                <span>
+                  Day {item.day} · {item.block}
+                </span>
+                <b>{item.title}</b>
+                <small>
+                  {item.purpose} (~{item.estimatedHours}h)
+                </small>
+                {item.kind !== "artifact" && (
+                  <button className="link" onClick={() => openEmergencyItem(item)}>
+                    Open {item.kind === "interview" ? "Interview Studio" : "activity"} →
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {kind === "module" && foundationRecommendation && (
         <section className="foundation-diagnostic">
           <div>
@@ -346,7 +527,7 @@ export function AioCourseSurface({
         </section>
       )}
       <div className="activity-controls" aria-label="Filter learning activities">
-        <label>Path<select value={pathFilter} onChange={(event) => setPathFilter(event.target.value)}><option value="all">All paths</option><option value="sprint-48h">48-hour interview speedrun</option><option value="sprint-7-day">Days 3–7 Sprint extensions</option><option value="foundation-bridge">Zero-to-Role Foundation</option><option value="concept-library">Role Concepts Library</option><option value="full-program">18-week full program</option></select></label>
+        <label>Path<select value={pathFilter} onChange={(event) => setPathFilter(event.target.value)}><option value="all">All paths</option><option value="interview-emergency">Few-Day Interview Path</option><option value="sprint-48h">Sprint modules (crash lane)</option><option value="sprint-7-day">Days 3–7 Sprint extensions</option><option value="foundation-bridge">Zero-to-Role Foundation</option><option value="concept-library">Role Concepts Library</option><option value="full-program">18-week full program</option></select></label>
         <label>Phase<select value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value)}><option value="all">All phases</option><option value="crash-course">Interview Sprint</option><option value="foundation-bridge">Foundation Bridge</option><option value="fast-track">Applied AI Fast Track</option><option value="master-track">Master Track</option></select></label>
         <label>Evidence<select value={capabilityFilter} onChange={(event) => setCapabilityFilter(event.target.value)}><option value="all">All expectations</option><option value="know">Know</option><option value="practice">Practice</option><option value="prove">Prove</option></select></label>
         {(kind === "lab" || kind === "mission") && <label>Mode<select value={modeFilter} onChange={(event) => setModeFilter(event.target.value)}><option value="all">All modes</option><option>Solo</option><option>Pair Programming</option><option>AI Builder</option><option>Production Incident</option></select></label>}
@@ -382,7 +563,18 @@ export function AioCourseSurface({
                         ? `${unmetPrerequisites.length} prerequisite${unmetPrerequisites.length === 1 ? "" : "s"} required`
                         : "Artifact required"}
                 </span>
-                <button disabled={unmetPrerequisites.length > 0} onClick={() => router.push(`/learn/${trackId}/${kind}/${item.id}`)}>
+                <button
+                  disabled={unmetPrerequisites.length > 0}
+                  onClick={() =>
+                    router.push(
+                      `/learn/${trackId}/${kind}/${item.id}${
+                        pathFilter === "interview-emergency"
+                          ? "?path=interview-emergency"
+                          : ""
+                      }`,
+                    )
+                  }
+                >
                   {unmetPrerequisites.length ? "Locked" : attempt ? "Review →" : "Start →"}
                 </button>
               </footer>
@@ -406,6 +598,9 @@ export function CourseRunner({
   onSaved,
   onDraftChange,
   trackId = "applied-ai-operations",
+  pathContext,
+  packetAttestations,
+  onPacketAttestationsChange,
 }: {
   item: CourseItem;
   kind: CourseKind;
@@ -417,6 +612,9 @@ export function CourseRunner({
   onSaved: (attempt: CourseAttemptRecord) => void;
   onDraftChange?: (draft: CourseDraft | null) => void;
   trackId?: TrackId;
+  pathContext?: "interview-emergency";
+  packetAttestations?: PacketAttestations;
+  onPacketAttestationsChange?: (next: PacketAttestations) => void;
 }) {
   const [stage, setStage] = useState<CourseStage>(draft?.stage ?? "learn");
   const [answers, setAnswers] = useState<Record<string, string>>(
@@ -434,8 +632,27 @@ export function CourseRunner({
   const [submitError, setSubmitError] = useState("");
   const [verificationMessage, setVerificationMessage] = useState("Saved as local study evidence in this browser. It is not a verified credential record.");
   const [savedVerificationLevel, setSavedVerificationLevel] = useState<CourseAttemptRecord["verificationLevel"]>("local-study");
+  const [spokenSecondsLeft, setSpokenSecondsLeft] = useState<number | null>(null);
+  const [coldRedraw, setColdRedraw] = useState(
+    packetAttestations?.coldArchitectureRedraw?.response ?? "",
+  );
+  const [grokPracticeBusy, setGrokPracticeBusy] = useState<string | null>(null);
+  const [grokPracticeLog, setGrokPracticeLog] = useState<string>("");
+  const [grokSawLive, setGrokSawLive] = useState(false);
   const isIncident = item.mode === "Production Incident";
+  useEffect(() => {
+    if (spokenSecondsLeft === null || spokenSecondsLeft <= 0) return;
+    const timer = window.setInterval(
+      () => setSpokenSecondsLeft((current) => (current && current > 0 ? current - 1 : 0)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [spokenSecondsLeft]);
   const lessonBlocks = useMemo(() => lessonBlocksFor(item), [item]);
+  const mediaCues = useMemo(
+    () => (pathContext === "interview-emergency" ? mediaForModule(item.id) : []),
+    [item.id, pathContext],
+  );
   const stages = ["learn", "check", "practice", "debrief", "revision"] as const;
   const stageIndex = stages.indexOf(stage);
   const questionCount = item.knowledgeChecks?.length ?? 0;
@@ -459,10 +676,26 @@ export function CourseRunner({
   const completeMission =
     kind !== "mission" ||
     Boolean(missionPath.length && missionChoices[missionPath.at(-1)!.id]);
-  const requiredEvidenceFields = item.artifact?.requiredFields ?? evidenceFields.map((field) => field.key);
+  const requiredEvidenceFields =
+    item.artifact?.requiredFields ??
+    item.evidence?.requiredFields ??
+    evidenceFields.map((field) => field.key);
   const evidenceComplete = requiredEvidenceFields.every((key) =>
     evidence[key].trim().split(/\s+/).filter(Boolean).length >= 8,
   );
+  const workProduct = answers.__workProduct ?? "";
+  const workProductLines = workProduct.split("\n").map((line) => line.trim()).filter(Boolean);
+  const workProductEntries = item.workProduct?.entryPrefix
+    ? workProductLines.filter((line) =>
+        line.toLocaleLowerCase().startsWith(item.workProduct!.entryPrefix!.toLocaleLowerCase()),
+      )
+    : workProductLines;
+  const workProductComplete =
+    !item.workProduct ||
+    ((!item.workProduct.minimumWords ||
+      workProduct.trim().split(/\s+/).filter(Boolean).length >= item.workProduct.minimumWords) &&
+      (!item.workProduct.minimumEntries ||
+        workProductEntries.length >= item.workProduct.minimumEntries));
   const hasDraftWork =
     Object.keys(answers).length > 0 ||
     Object.keys(missionChoices).length > 0 ||
@@ -618,6 +851,41 @@ export function CourseRunner({
         {stage === "learn" && (
           <div className="course-body">
             <p className="lesson-opening">{item.outcome ?? item.task ?? item.briefing ?? item.overview}</p>
+            {item.capabilityLevel && (
+              <p className="guide-status">
+                Evidence level: <b className={`capability ${item.capabilityLevel}`}>{item.capabilityLevel}</b>
+                {" · "}
+                {item.performanceExpectation ?? "Create specific evidence you can explain and defend."}
+                {" · "}
+                Reading a lesson is not a timed mock.
+              </p>
+            )}
+            {mediaCues.length > 0 && (
+              <section className="lesson-takeaway" aria-label="Watch then do">
+                <b>Watch → Do (Few-Day path)</b>
+                {mediaCues.map((cue) => (
+                  <div key={cue.id}>
+                    <p>
+                      <a href={cue.url} target="_blank" rel="noreferrer">
+                        {cue.title}
+                      </a>{" "}
+                      · {cue.publisher} · ~{cue.durationMinutes} min
+                    </p>
+                    {cue.watchSegment && (
+                      <p>
+                        <small>Assigned segment: {cue.watchSegment}</small>
+                      </p>
+                    )}
+                    <p>
+                      <small>Watch for: {cue.watchFor}</small>
+                    </p>
+                    <p>
+                      <small>Do after: {cue.doAfter}</small>
+                    </p>
+                  </div>
+                ))}
+              </section>
+            )}
             <LessonBlocks
               blocks={lessonBlocks}
               reflection={answers.__lessonReflection ?? ""}
@@ -708,6 +976,15 @@ export function CourseRunner({
               assetNames={item.assets?.map((asset) => asset.name) ?? []}
               requiredFields={requiredEvidenceFields}
             />
+            {item.workProduct && (
+              <WorkProductEditor
+                schema={item.workProduct}
+                value={workProduct}
+                onChange={(value) =>
+                  setAnswers((current) => ({ ...current, __workProduct: value }))
+                }
+              />
+            )}
             <div className="course-help">
               <span>
                 {isIncident
@@ -727,6 +1004,7 @@ export function CourseRunner({
               disabled={
                 !completeMission ||
                 !evidenceComplete ||
+                !workProductComplete ||
                 busy
               }
               onClick={submit}
@@ -779,6 +1057,164 @@ export function CourseRunner({
                     </div>
                   ))}
                 </section>
+                {item.id === "aio-lab-01" && pathContext === "interview-emergency" && (
+                  <section className="interview-card">
+                    <span className="eyebrow amber">SPOKEN GATE</span>
+                    <h3>Deliver the 90-second narrative without reading the script.</h3>
+                    <p>
+                      Start the timer, speak once from memory, then attest. Looking at the
+                      script while the timer runs fails the honesty bar.
+                    </p>
+                    <button
+                      className="secondary"
+                      onClick={() => setSpokenSecondsLeft(90)}
+                      disabled={spokenSecondsLeft !== null && spokenSecondsLeft > 0}
+                    >
+                      {spokenSecondsLeft === null
+                        ? "Start 90s speak timer"
+                        : spokenSecondsLeft > 0
+                          ? `${spokenSecondsLeft}s remaining`
+                          : "Timer finished — attest below"}
+                    </button>
+                    <button
+                      className="primary wide"
+                      disabled={
+                        spokenSecondsLeft === null ||
+                        spokenSecondsLeft > 0 ||
+                        Boolean(packetAttestations?.spokenNarrativeAttestedAt)
+                      }
+                      onClick={() =>
+                        onPacketAttestationsChange?.({
+                          spokenNarrativeAttestedAt: new Date().toISOString(),
+                        })
+                      }
+                    >
+                      {packetAttestations?.spokenNarrativeAttestedAt
+                        ? "Spoken narrative attested ✓"
+                        : "I spoke the narrative without reading the script →"}
+                    </button>
+                  </section>
+                )}
+                {item.id === "aio-lab-06" && pathContext === "interview-emergency" && (
+                  <section className="interview-card">
+                    <span className="eyebrow amber">COLD REDRAW GATE</span>
+                    <h3>Redraw the architecture without the failure-matrix asset.</h3>
+                    <p>
+                      Close or ignore failure-matrix.csv. Write eight COMPONENT lines and
+                      CHALLENGE-A/B/C from memory.
+                    </p>
+                    <label className="write-answer">
+                      <b>Cold redraw</b>
+                      <textarea
+                        value={coldRedraw}
+                        onChange={(event) => setColdRedraw(event.target.value)}
+                        placeholder="COMPONENT-1 identity: …&#10;…&#10;CHALLENGE-A: …"
+                      />
+                    </label>
+                    <button
+                      className="primary wide"
+                      disabled={!isColdArchitectureRedrawComplete(coldRedraw)}
+                      onClick={() =>
+                        onPacketAttestationsChange?.({
+                          coldArchitectureRedraw: {
+                            completedAt: new Date().toISOString(),
+                            response: coldRedraw.trim(),
+                          },
+                        })
+                      }
+                    >
+                      {isColdArchitectureRedrawComplete(
+                        packetAttestations?.coldArchitectureRedraw?.response,
+                      )
+                        ? "Cold redraw saved ✓"
+                        : "Save cold architecture redraw →"}
+                    </button>
+                  </section>
+                )}
+                {item.id === "aio-lab-grok-live" && pathContext === "interview-emergency" && (
+                  <section className="interview-card">
+                    <span className="eyebrow amber">LIVE GROK PRACTICE</span>
+                    <h3>Run the three bounded fixtures (server key or fallback).</h3>
+                    <p>
+                      Uses server-only <code>XAI_API_KEY</code>. Never paste a key here. Copy
+                      requestId / mode lines into your RUN-TRACE work product. Local alternative:{" "}
+                      <code>prototypes/coding-developer/grok-procedure-prompt-lab</code>.
+                    </p>
+                    <div className="objective-list">
+                      {(["classify-cite", "abstain-conflict", "schema-repair"] as const).map(
+                        (taskId) => (
+                          <button
+                            key={taskId}
+                            className="secondary"
+                            disabled={grokPracticeBusy !== null}
+                            onClick={async () => {
+                              setGrokPracticeBusy(taskId);
+                              try {
+                                const response = await fetch("/api/course/grok-practice", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ taskId }),
+                                });
+                                const payload = (await response.json()) as {
+                                  mode?: string;
+                                  requestId?: string;
+                                  message?: string;
+                                  output?: unknown;
+                                  error?: string;
+                                };
+                                if (payload.mode === "live") setGrokSawLive(true);
+                                setGrokPracticeLog(
+                                  (current) =>
+                                    `${current}RUN-TRACE-${taskId} mode: ${payload.mode ?? "error"}\n` +
+                                    `RUN-TRACE-${taskId} requestId: ${payload.requestId ?? "n/a"}\n` +
+                                    `RUN-TRACE-${taskId} result: ${JSON.stringify(payload.output ?? payload.error ?? payload.message)}\n\n`,
+                                );
+                              } catch (error) {
+                                setGrokPracticeLog(
+                                  (current) =>
+                                    `${current}RUN-TRACE-${taskId} mode: error\n` +
+                                    `RUN-TRACE-${taskId} result: ${error instanceof Error ? error.message : "request failed"}\n\n`,
+                                );
+                              } finally {
+                                setGrokPracticeBusy(null);
+                              }
+                            }}
+                          >
+                            {grokPracticeBusy === taskId ? `Running ${taskId}…` : `Run ${taskId}`}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                    {grokPracticeLog ? (
+                      <label className="write-answer">
+                        <b>Fixture log (copy into work product)</b>
+                        <textarea readOnly value={grokPracticeLog} rows={8} />
+                      </label>
+                    ) : null}
+                    <button
+                      className="primary wide"
+                      disabled={!grokSawLive && !packetAttestations?.liveGrokPracticed}
+                      onClick={() =>
+                        onPacketAttestationsChange?.({
+                          liveGrokPracticed: {
+                            completedAt: new Date().toISOString(),
+                            mode: grokSawLive ? "live" : "fallback",
+                          },
+                        })
+                      }
+                    >
+                      {packetAttestations?.liveGrokPracticed
+                        ? `Live Grok attest saved (${packetAttestations.liveGrokPracticed.mode}) ✓`
+                        : grokSawLive
+                          ? "Attest live Grok practice →"
+                          : "Live attest unlocks after a live mode response"}
+                    </button>
+                    <p>
+                      Soft attest only — fallback-only sessions still complete the lab and packet
+                      without this button.
+                    </p>
+                  </section>
+                )}
                 <button
                   className="primary wide"
                   onClick={() => setStage("revision")}
@@ -807,10 +1243,20 @@ export function CourseRunner({
               requiredFields={requiredEvidenceFields}
               revision
             />
+            {item.workProduct && (
+              <WorkProductEditor
+                schema={item.workProduct}
+                value={workProduct}
+                onChange={(value) =>
+                  setAnswers((current) => ({ ...current, __workProduct: value }))
+                }
+                revision
+              />
+            )}
             <button
               className="primary wide"
               disabled={
-                !evidenceComplete || busy
+                !evidenceComplete || !workProductComplete || busy
               }
               onClick={submit}
             >
@@ -825,6 +1271,38 @@ export function CourseRunner({
     <main className="course-workspace-page">{runner}</main>
   ) : (
     <div className="modal-layer">{runner}</div>
+  );
+}
+
+function WorkProductEditor({
+  schema,
+  value,
+  onChange,
+  revision = false,
+}: {
+  schema: WorkProductSchema;
+  value: string;
+  onChange: (value: string) => void;
+  revision?: boolean;
+}) {
+  return (
+    <section className="structured-evidence" aria-label={schema.label}>
+      <h3>{revision ? `Revise: ${schema.label}` : schema.label}</h3>
+      <p>{schema.prompt}</p>
+      <label className="write-answer">
+        <b>Reviewable work product</b>
+        <span>
+          {schema.minimumEntries
+            ? `Use at least ${schema.minimumEntries} structured entries${schema.entryPrefix ? ` beginning with ${schema.entryPrefix}` : ""}.`
+            : `Use at least ${schema.minimumWords ?? 1} words.`}
+        </span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={schema.placeholder ?? schema.prompt}
+        />
+      </label>
+    </section>
   );
 }
 

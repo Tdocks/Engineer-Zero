@@ -16,7 +16,7 @@ import { CodingRecallPractice } from "@/components/CodingRecallPractice";
 import { CodingLessonReader } from "@/components/CodingLessonReader";
 import { codingReviewBoardPrompts } from "@/lib/coding-review-board-prompts";
 import {
-  codingChallenges,
+  allCodingChallenges as codingChallenges,
   codingDayPlans,
   codingCompetencies,
   codingBadges,
@@ -43,13 +43,31 @@ function updateDate() {
   return new Date().toISOString();
 }
 
-export function CodingDeveloperApp() {
+export function CodingDeveloperApp({
+  initialLessonId,
+  initialChallengeId,
+  emergencyPath = false,
+}: {
+  initialLessonId?: string;
+  initialChallengeId?: string;
+  emergencyPath?: boolean;
+}) {
   const { state, setState } = useLearnerState("applied-ai-operations");
   const progress = state.programProgress["coding-developer"] ?? emptyCodingProgress();
-  const [workspace, setWorkspace] = useState<Workspace>("map");
-  const [selectedLessonId, setSelectedLessonId] = useState(() => nextCodingLesson(progress).id);
-  const [selectedChallengeId, setSelectedChallengeId] = useState(codingChallenges[0].id);
-  const [code, setCode] = useState(() => codingChallenges[0].starter);
+  const requestedLesson = codingLessons.find((item) => item.id === initialLessonId);
+  const requestedChallenge = codingChallenges.find((item) => item.id === initialChallengeId);
+  const [workspace, setWorkspace] = useState<Workspace>(
+    requestedChallenge ? "lab" : requestedLesson ? "lesson" : "map",
+  );
+  const [selectedLessonId, setSelectedLessonId] = useState(
+    requestedLesson?.id ?? nextCodingLesson(progress).id,
+  );
+  const [selectedChallengeId, setSelectedChallengeId] = useState(
+    requestedChallenge?.id ?? codingChallenges[0].id,
+  );
+  const [code, setCode] = useState(
+    requestedChallenge?.starter ?? codingChallenges[0].starter,
+  );
   const [explanation, setExplanation] = useState("");
   const [localRunConfirmed, setLocalRunConfirmed] = useState(false);
   const [testConfirmed, setTestConfirmed] = useState(false);
@@ -358,6 +376,7 @@ export function CodingDeveloperApp() {
             lesson={lesson}
             completed={progress.completedLessonIds.includes(lesson.id)}
             onComplete={() => markLesson(lesson)}
+            showEmergencyMedia={emergencyPath}
             onOpenBridge={(bridge) => {
               if (bridge.workspace === "systems") {
                 setWorkspace("systems");

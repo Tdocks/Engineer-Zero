@@ -6,6 +6,8 @@ This audit measures the current repository against `Zero-to-Prototype AI Softwar
 
 **Internal learning product — not a commercial or job-readiness credential.** The four-day pathway is materially implemented, but the full plan remains incomplete until trusted learner records, a configured isolated sandbox, richer automatic grading, and human-review workflow exist.
 
+**Instructional quality (2026-07-19):** Structural validation is not teachability. Cross-program review of 112 teach modules is in [`docs/lesson-reviews/SYNTHESIS.md`](lesson-reviews/SYNTHESIS.md) — Waves 1–6 remediated Coding Days 2–4, AIO entry/extensions/core/concepts; IT sprint modules remain the career-track quality bar. Human `draftReview` still required before commercial claims.
+
 ## Requirement coverage
 
 | Master-plan requirement | Current evidence | Status |

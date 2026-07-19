@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, mkdir, chmod, chown, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import {
@@ -55,13 +55,27 @@ function runProcess(command, args, options = {}) {
   });
 }
 
+async function chownTree(root, uid, gid) {
+  await chown(root, uid, gid);
+  const entries = await readdir(root, { withFileTypes: true });
+  for (const entry of entries) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) await chownTree(path, uid, gid);
+    else await chown(path, uid, gid);
+  }
+}
+
 async function writeWorkspace(files) {
   const root = await mkdtemp(join(tmpdir(), "e0-sandbox-"));
   for (const file of files) {
     const target = join(root, file.path);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, file.content, "utf8");
+    await chmod(target, 0o644);
   }
+  // Learner container runs as uid 10001; host-written files must be readable.
+  await chownTree(root, 10001, 10001);
+  await chmod(root, 0o755);
   return root;
 }
 

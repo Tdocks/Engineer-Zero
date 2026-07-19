@@ -25,7 +25,7 @@ Misconception: “activation is permanent.” Activation updates your current sh
 
 Cold rebuild practice means you can recreate the startup path from memory: where the project lives, how the environment is created, how you verify which Python is active (\`which python\` / \`python -V\`).
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Before you install anything, prove activation with which python. Only then install the packages this project needs into that environment—and never into a sibling project's venv.`,
     workedExample: `$ cd equipment-triage-api
 $ python -m venv .venv
 $ source .venv/bin/activate
@@ -96,7 +96,7 @@ For triage:
 
 Misconception: “if JSON parses, the request is valid.” Parsing is necessary, not sufficient. Schema validation and business rules are separate layers.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Write the contract before you write the route: method, path, required fields, success shape, and the status family for invalid input. That contract is what Code Lab will enforce.`,
     workedExample: `Client intent:
 POST /triage
 Content-Type: application/json
@@ -166,7 +166,7 @@ Contract checklist:
     order: 3,
     competency: "api",
     title: "FastAPI routes and request models",
-    mode: "build",
+    mode: "modify",
     sourceIds: ["fastapiBody", "fastapiResponse"],
     objective: "Create a typed POST /triage route that accepts a validated request model and returns a typed result.",
     whyItMatters:
@@ -182,7 +182,9 @@ Prefer rejecting empty equipment names at the model boundary (constraints / vali
 
 Misconception: “dict in, dict out is fine for prototypes.” It is fast to type and slow to trust. You lose field errors, docs, and a clear boundary for tests.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Request models belong at the HTTP edge. Keep threshold arithmetic out of the decorator body so the same rule can be unit-tested without spinning up a server.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
@@ -267,7 +269,9 @@ Misconception: “separation is only for large systems.” Small prototypes bene
 
 Misconception: “I’ll extract after it works.” Extraction after spaghetti is more expensive. Draw the boundary while the file is still short.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+After extraction, the route should read like an adapter: parse → call service → return response model. If thresholds still live in the route, the separation is incomplete.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `# services.py
 def evaluate_reading(temperature: float) -> str:
     if temperature >= 90:
@@ -284,7 +288,7 @@ def triage(reading: ReadingIn) -> TriageOut:
 
 # tests can import evaluate_reading directly—no TestClient required for rule unit tests`,
     tryThis:
-      "Move threshold logic out of a route into a service function. List two tests you can now write without HTTP and one test that still needs the route layer.",
+      "Move threshold logic out of a route into a service function. List two tests you can now write without HTTP and one test that still needs the route layer. Record the artifact path or note title so you can reopen it during the related lab without rebuilding from memory.",
     tryThisSteps: [
       "Move threshold logic from the route into a service function.",
       "List two tests you can write without HTTP.",
@@ -345,7 +349,9 @@ Misconception: “tests prove correctness.” Tests prove the cases you wrote. T
 
 Misconception: “one happy-path test is enough for a prototype.” Boundary bugs are the usual production foot-gun.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+A test that never hits the exact boundary is advertising a policy you have not proven. Prefer exact 80/90 cases over a single hot reading like 91.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `from services import evaluate_reading
 
 def test_high_temperature_is_urgent():
@@ -363,7 +369,7 @@ def test_cool_reading_is_normal():
 $ pytest -q
 ....                                                                   [100%]`,
     tryThis:
-      "Add a boundary test for exactly 90 and an invalid-input test (at parsing layer or API layer). Name the regression each test is meant to catch.",
+      "Add a boundary test for exactly 90 and an invalid-input test (at parsing layer or API layer). Name the regression each test is meant to catch. Record the artifact path or note title so you can reopen it during the related lab without rebuilding from memory.",
     tryThisSteps: [
       "Add a boundary test for temperature == 90.",
       "Add an invalid-input test at parse or API layer.",
@@ -426,7 +432,9 @@ Misconception: “commit message describes the files.” Prefer describing the u
 
 Misconception: “prototype work doesn’t need history.” Interview and team settings both punish irreproducible changes.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+A reviewable change names the user-visible behavior, the evidence (test or constraint), and what you deliberately did not change. Prove that skill in Systems Lab git review the same day.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `$ git status
 modified:   app/services.py
 modified:   tests/test_services.py
@@ -454,6 +462,11 @@ Reviewer still needs:
 - test for empty string
 - no service change required`,
     hint: "Subject line states the user-visible behavior; body lists evidence a reviewer can check.",
+    bridgeToLab: {
+      workspace: "systems",
+      label: "Open Systems Lab · Git review",
+      why: "Turn the commit message and reviewer checklist into a scoped fictional PR with an exact-boundary test and no secrets.",
+    },
     commonFailures: [
       {
         failure: "Staging unrelated files with the feature change.",

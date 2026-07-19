@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { aioInterviewPrompts } from "@/lib/aio-content";
+import { scoreAioInterviewResponse } from "@/lib/aio-interview-scoring";
 import { itSupportInterviewPrompts } from "@/lib/it-support-content";
 import type { InterviewPrompt } from "@/lib/course-types";
 import type { TrackId } from "@/lib/types";
@@ -10,6 +11,8 @@ function publicPrompt(prompt: InterviewPrompt) {
     category: prompt.category,
     prompt: prompt.prompt,
     why: prompt.why,
+    timedMinutes: prompt.timedMinutes,
+    scenarioArtifact: prompt.scenarioArtifact,
   };
 }
 
@@ -68,16 +71,31 @@ const itDimensions = {
   ],
 } as const;
 
-function dimensionsFor(track: TrackId, category: string) {
-  if (track === "it-support-technician") return itDimensions[category as keyof typeof itDimensions] ?? [];
-  return [
-    ["recommendation", /\b(recommend|propose|would use|should)\b/i],
-    ["boundary", /\b(boundary|scope|permission|approval|read-only|least privilege)\b/i],
-    ["evidence", /\b(evidence|metric|test|evaluate|citation|baseline)\b/i],
-    ["verification", /\b(verify|monitor|review|regression|check)\b/i],
-    ["ownership", /\b(owner|stakeholder|escalat|human|team)\b/i],
-    ["tradeoff", /\b(tradeoff|risk|cost|latency|constraint|failure)\b/i],
-  ] as const;
+function scoreItInterview(response: string, category: string) {
+  const requiredDimensions = itDimensions[category as keyof typeof itDimensions] ?? [];
+  const answerWords = words(response);
+  const missing = requiredDimensions
+    .filter(([, matcher]) => !matcher.test(response))
+    .map(([label]) => label);
+  const score = Math.min(
+    100,
+    Math.round(
+      20 +
+        Math.min(answerWords.length, 220) * 0.12 +
+        (requiredDimensions.length - missing.length) *
+          (66 / Math.max(requiredDimensions.length, 1)),
+    ),
+  );
+  const complete = answerWords.length >= 80 && missing.length === 0;
+  return {
+    score,
+    complete,
+    missing,
+    antiPatterns: [] as string[],
+    feedback: complete
+      ? "Your first attempt has a clear operating sequence. Compare it to the examiner guidance, then revise for specificity."
+      : `Add specific reasoning for: ${missing.join(", ") || "depth and concrete evidence"}.`,
+  };
 }
 
 export async function POST(request: Request) {
@@ -93,21 +111,16 @@ export async function POST(request: Request) {
   if (!prompt || !body?.response || body.response.length > 8000) {
     return NextResponse.json({ error: "Provide a known prompt and a bounded response." }, { status: 400 });
   }
-  const response = body.response;
-  const answerWords = words(response);
-  const requiredDimensions = dimensionsFor(track, prompt.category);
-  const missing = requiredDimensions
-    .filter(([, matcher]) => !matcher.test(response))
-    .map(([label]) => label);
-  const score = Math.min(100, Math.round(20 + Math.min(answerWords.length, 220) * 0.12 + (requiredDimensions.length - missing.length) * (66 / Math.max(requiredDimensions.length, 1))));
-  const complete = answerWords.length >= 80 && missing.length === 0;
+  const scored =
+    track === "applied-ai-operations"
+      ? scoreAioInterviewResponse(body.response)
+      : scoreItInterview(body.response, prompt.category);
   return NextResponse.json({
-    score,
-    complete,
-    feedback: complete
-      ? "Your first attempt has a clear operating sequence. Compare it to the examiner guidance, then revise for specificity."
-      : `Add specific reasoning for: ${missing.join(", ") || "depth and concrete evidence"}.`,
-    missing,
+    score: scored.score,
+    complete: scored.complete,
+    feedback: scored.feedback,
+    missing: scored.missing,
+    antiPatterns: scored.antiPatterns,
     followUp: prompt.followUp,
     examinerGuidance: {
       strongAnswer: prompt.strongAnswer,

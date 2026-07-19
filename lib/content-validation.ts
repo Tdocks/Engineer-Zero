@@ -4,6 +4,11 @@ import {
   aioMissions,
   aioModules,
 } from "./aio-content";
+import {
+  aioInterviewEmergencyRequiredLabs,
+  aioInterviewEmergencyRequiredModules,
+} from "./aio-interview-emergency-path";
+import { mediaForModule } from "./aio-media";
 import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
 import { isReleaseApproved } from "./course-types";
 
@@ -64,6 +69,30 @@ export function validateAioContent(
         message:
           "Module needs artifact evidence and deterministic rubric rules.",
       });
+    const sectionField = {
+      context: "scenarioFact",
+      "scenario fact": "scenarioFact",
+      constraint: "boundary",
+      boundary: "boundary",
+      decision: "decision",
+      verification: "verification",
+      owner: "owner",
+      escalation: "escalation",
+    } as const;
+    const requiredFields = new Set(moduleDefinition.artifact.requiredFields ?? []);
+    if (
+      moduleDefinition.rules.some((rule) =>
+        (rule.requiredSections ?? []).some((section) => {
+          const field = sectionField[section.toLocaleLowerCase() as keyof typeof sectionField];
+          return field && !requiredFields.has(field);
+        }),
+      )
+    ) {
+      errors.push({
+        id: moduleDefinition.id,
+        message: "Module scoring rules require an evidence field the learner is not shown.",
+      });
+    }
     if (!moduleDefinition.sources.length)
       errors.push({
         id: moduleDefinition.id,
@@ -98,18 +127,58 @@ export function validateAioContent(
       });
     if (
       !lab.assets.length ||
+      lab.assets.length < 3 ||
       !lab.evidence.required.length ||
       lab.rules.length < 2 ||
       !lab.sources.length
     )
       errors.push({
         id: lab.id,
-        message: "Lab needs sources, fictional evidence, and multiple scoring criteria.",
+        message: "Lab needs ≥3 distinct fictional assets, sources, evidence, and multiple scoring criteria.",
       });
+    if (new Set(lab.assets.map((asset) => asset.name)).size !== lab.assets.length)
+      errors.push({ id: lab.id, message: "Lab asset names must be unique." });
+    if (lab.assets.some((asset) => asset.content.trim().length < 80))
+      errors.push({ id: lab.id, message: "Lab assets need substantive fictional content." });
+    if (lab.rules.every((rule) => rule.id === "required-sections" || rule.id === "scenario-evidence"))
+      errors.push({ id: lab.id, message: "Lab needs activity-specific scoring rules, not only generic section keywords." });
     if (!lab.evidence.requiredFields?.length || !lab.evidence.requireEvidenceReference)
       errors.push({ id: lab.id, message: "Lab needs structured evidence fields and at least one linked fictional evidence asset." });
     if (lab.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy))
       errors.push({ id: lab.id, message: "Lab source references need traceable version metadata." });
+  }
+  for (const moduleId of aioInterviewEmergencyRequiredModules) {
+    const moduleDefinition = aioModules.find((item) => item.id === moduleId);
+    if (!moduleDefinition) {
+      errors.push({ id: moduleId, message: "Emergency path references a missing module." });
+      continue;
+    }
+    if (
+      (moduleDefinition.blocks?.length ?? 0) < 4 ||
+      !moduleDefinition.blocks?.some((block) => block.type === "workedExample") ||
+      !moduleDefinition.blocks?.some((block) => block.type === "evidenceAsset") ||
+      moduleDefinition.misconceptions.length < 2 ||
+      moduleDefinition.knowledgeChecks.length < 3 ||
+      !moduleDefinition.workProduct
+    ) {
+      errors.push({
+        id: moduleId,
+        message:
+          "Emergency module needs ≥4 blocks, worked example, try-this asset, ≥2 misconceptions, ≥3 checks, and a scored work product.",
+      });
+    }
+    if (mediaForModule(moduleId).length < 1) {
+      errors.push({ id: moduleId, message: "Emergency module needs a Watch → Do video cue." });
+    }
+  }
+  for (const labId of aioInterviewEmergencyRequiredLabs) {
+    const lab = aioLabs.find((item) => item.id === labId);
+    if (!lab?.pathAvailability?.includes("interview-emergency") || !lab.workProduct) {
+      errors.push({
+        id: labId,
+        message: "Required emergency lab needs path metadata and a scored packet work product.",
+      });
+    }
   }
   for (const mission of aioMissions) {
     addId(mission.id);
@@ -131,8 +200,19 @@ export function validateAioContent(
       });
     if (!mission.artifact.requiredFields?.length)
       errors.push({ id: mission.id, message: "Mission needs structured evidence fields." });
+    if ((mission.rules?.length ?? 0) < 3)
+      errors.push({ id: mission.id, message: "Mission needs at least three activity-specific rules." });
     if (mission.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy))
       errors.push({ id: mission.id, message: "Mission source references need traceable version metadata." });
+    if (
+      mission.steps.some(
+        (step) =>
+          step.id.startsWith("step-") &&
+          step.options.length >= 3 &&
+          (!step.options.some((option) => option.safe) || !step.options.some((option) => !option.safe)),
+      )
+    )
+      errors.push({ id: mission.id, message: "Mission decisions need at least one safe and one unsafe option." });
   }
   const questionIds = new Set(
     aioInterviewPrompts.map((question) => question.id),
@@ -149,6 +229,57 @@ export function validateAioContent(
     });
   if (aioInterviewPrompts.some((question) => !question.sources.length || question.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy)))
     errors.push({ id: "interview-bank", message: "Every interview prompt needs versioned, claim-mapped source records." });
+  if (new Set(aioInterviewPrompts.map((question) => question.why)).size < 100)
+    errors.push({ id: "interview-bank", message: "Interview why-guidance must be substantially unique across the bank." });
+  if (new Set(aioInterviewPrompts.map((question) => question.rubric.join("|"))).size < 100)
+    errors.push({ id: "interview-bank", message: "Interview rubrics must not share one global template across the bank." });
+  if (aioInterviewPrompts.filter((question) => question.timedMinutes).length < 30)
+    errors.push({ id: "interview-bank", message: "At least 30 interview prompts need timed scenario packaging." });
+
+  // Anti-hollow gates: knowledge checks must not paste outcome/example, and prompts must not collide.
+  const promptOwners = new Map<string, string>();
+  for (const moduleDefinition of aioModules) {
+    const correctTexts = new Set(
+      moduleDefinition.knowledgeChecks.map((question) => {
+        const correct = question.choices.find((choice) => choice.id === question.correctChoiceId);
+        return correct?.text.trim() ?? "";
+      }),
+    );
+    for (const banned of [moduleDefinition.outcome.trim(), moduleDefinition.workedExample.trim()]) {
+      if (banned.length >= 24 && correctTexts.has(banned)) {
+        errors.push({
+          id: moduleDefinition.id,
+          message: "Knowledge-check correct answer must not paste the module outcome/example/workedExample string.",
+        });
+        break;
+      }
+    }
+    for (const question of moduleDefinition.knowledgeChecks) {
+      const normalized = question.prompt.trim().toLowerCase();
+      const prior = promptOwners.get(normalized);
+      if (prior && prior !== moduleDefinition.id) {
+        errors.push({
+          id: moduleDefinition.id,
+          message: `Duplicate knowledge-check prompt also used by ${prior}.`,
+        });
+      } else {
+        promptOwners.set(normalized, moduleDefinition.id);
+      }
+      if (/^a teammate mentions .+ during a fictional design review/.test(normalized)) {
+        errors.push({
+          id: question.id,
+          message: "Concept checks must not use the templated teammate-mentions stem.",
+        });
+      }
+    }
+    if (moduleDefinition.id.startsWith("aio-core-") && !(moduleDefinition.blocks?.length ?? 0)) {
+      errors.push({
+        id: moduleDefinition.id,
+        message: "Core modules need authored CourseBlocks; factory-only sections are not allowed.",
+      });
+    }
+  }
+
   return errors;
 }
 
@@ -170,28 +301,28 @@ export function validateItSupportContent(
     if (ids.has(id)) errors.push({ id, message: "Duplicate stable ID." });
     ids.add(id);
   };
-  for (const module of itSupportSprintModules) {
-    add(module.id);
-    if (!module.outcome || !module.overview || (module.blocks?.length ?? 0) < 4)
-      errors.push({ id: module.id, message: "Module needs authored instruction and a multi-block lesson." });
-    if (module.knowledgeChecks.length !== 3)
-      errors.push({ id: module.id, message: "Sprint module needs exactly three authored knowledge checks." });
-    if (!module.artifact.required.length || !module.artifact.requiredFields?.length || module.rules.length < 3)
-      errors.push({ id: module.id, message: "Module needs structured evidence and at least three deterministic rules." });
-    if (!module.roleBoundary || !module.specialistEscalationGuidance || !module.performanceExpectation)
-      errors.push({ id: module.id, message: "Module needs explicit performance, boundary, and escalation guidance." });
-    if (!module.sources.length || module.sources.some((record) => !record.version || !record.locator || !record.supportedClaim || !record.revalidateBy))
-      errors.push({ id: module.id, message: "Module needs versioned, claim-mapped source records." });
-    if (!module.instructionalDesign?.sources.length)
-      errors.push({ id: module.id, message: "Module needs a documented instructional-design basis." });
-    for (const question of module.knowledgeChecks) {
+  for (const sprintModule of itSupportSprintModules) {
+    add(sprintModule.id);
+    if (!sprintModule.outcome || !sprintModule.overview || (sprintModule.blocks?.length ?? 0) < 4)
+      errors.push({ id: sprintModule.id, message: "Module needs authored instruction and a multi-block lesson." });
+    if (sprintModule.knowledgeChecks.length !== 3)
+      errors.push({ id: sprintModule.id, message: "Sprint module needs exactly three authored knowledge checks." });
+    if (!sprintModule.artifact.required.length || !sprintModule.artifact.requiredFields?.length || sprintModule.rules.length < 3)
+      errors.push({ id: sprintModule.id, message: "Module needs structured evidence and at least three deterministic rules." });
+    if (!sprintModule.roleBoundary || !sprintModule.specialistEscalationGuidance || !sprintModule.performanceExpectation)
+      errors.push({ id: sprintModule.id, message: "Module needs explicit performance, boundary, and escalation guidance." });
+    if (!sprintModule.sources.length || sprintModule.sources.some((record) => !record.version || !record.locator || !record.supportedClaim || !record.revalidateBy))
+      errors.push({ id: sprintModule.id, message: "Module needs versioned, claim-mapped source records." });
+    if (!sprintModule.instructionalDesign?.sources.length)
+      errors.push({ id: sprintModule.id, message: "Module needs a documented instructional-design basis." });
+    for (const question of sprintModule.knowledgeChecks) {
       if (question.choices.length !== 4 || !question.choices.some((choice) => choice.id === question.correctChoiceId))
         errors.push({ id: question.id, message: "Knowledge check answer structure is invalid." });
       if (question.choices.some((choice) => choice.text.trim().length < 55))
         errors.push({ id: question.id, message: "Knowledge check contains a weak distractor." });
     }
-    if (options.requireReleaseApproval && !isReleaseApproved(module.review))
-      errors.push({ id: module.id, message: "Module lacks qualified release approval." });
+    if (options.requireReleaseApproval && !isReleaseApproved(sprintModule.review))
+      errors.push({ id: sprintModule.id, message: "Module lacks qualified release approval." });
   }
   for (const lab of itSupportLabs) {
     add(lab.id);
@@ -224,6 +355,10 @@ export function validateItSupportContent(
     errors.push({ id: "it-interview-bank", message: "IT Support interview IDs must be unique." });
   if (itSupportInterviewPrompts.some((question) => !question.sources.length || question.sources.some((source) => !source.version || !source.locator || !source.supportedClaim || !source.revalidateBy)))
     errors.push({ id: "it-interview-bank", message: "Every IT Support interview prompt needs versioned, claim-mapped source records." });
+  if (new Set(itSupportInterviewPrompts.map((question) => question.why)).size < 100)
+    errors.push({ id: "it-interview-bank", message: "IT interview why-guidance must be scenario-specific, not one pack per theme only." });
+  if (itSupportInterviewPrompts.filter((question) => question.timedMinutes).length < 30)
+    errors.push({ id: "it-interview-bank", message: "At least 30 IT interview prompts need timed scenario packaging." });
   return errors;
 }
 

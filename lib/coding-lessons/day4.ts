@@ -6,7 +6,7 @@ export const codingLessonsDay4: CodingLessonPackage[] = [
     order: 1,
     competency: "decomposition",
     title: "SCOPE: specify the problem",
-    mode: "build",
+    mode: "complete",
     sourceIds: ["nistSsdf", "nasaSoftwareHandbook"],
     objective: "Turn an ambiguous request into a bounded prototype brief with inputs, outputs, constraints, and acceptance checks.",
     whyItMatters:
@@ -25,7 +25,9 @@ Misconception: “specification slows builders down.” Unscoped building is fas
 
 Misconception: “acceptance criteria are for PMs.” If you cannot state a check, you cannot demo honestly.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+A one-page SCOPE that refuses a feature is stronger than a vague backlog. Carry that refusal into the handoff capstone unchanged.
+
+Highlight one refused feature on the SCOPE page so the prototype stays honest under review pressure.`,
     workedExample: `Ambiguous ask:
 "Make an AI that helps mission handoff."
 
@@ -83,7 +85,7 @@ Refused example: auto-paging on model confidence alone`,
     order: 2,
     competency: "architecture",
     title: "SCOPE: choose the simplest architecture",
-    mode: "build",
+    mode: "complete",
     sourceIds: ["fastapiBody", "nistSsdf"],
     objective: "Select the smallest stack that proves the handoff assumption and explain what you are not building.",
     whyItMatters:
@@ -101,7 +103,11 @@ Misconception: “more boxes look more senior.” Senior judgment removes unnece
 
 Choose storage deliberately: in-memory is fine for demo volatility; SQLite if you need a file-backed restart story.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Pick the simplest store that still exercises approval state. Document what would force a switch—then build the vertical slice, not a platform.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.
+
+Write the switch criteria in three bullets: choice, why, and what evidence would force SQLite or a stronger store.`,
     workedExample: `Candidate architecture:
 
 Client → FastAPI routes → service layer → (optional) repository
@@ -126,6 +132,12 @@ Reason: they add failure modes without proving the handoff contract first.`,
 Why: ...
 Switch if: multi-process / restart durability needed`,
     hint: "Pick the simplest store that still exercises your real risk (usually approval state).",
+    bridgeToLab: {
+      workspace: "lab",
+      challengeId: "coding-handoff-capstone",
+      label: "Open Mission Operations Handoff capstone",
+      why: "Apply the architecture choice to the Day 4 handoff assistant with approval and degraded mode.",
+    },
     commonFailures: [
       {
         failure: "Designing five services before one request works.",
@@ -168,7 +180,11 @@ Make review_status impossible to skip conceptually: values like \`draft\` vs \`a
 
 Misconception: “I’ll add review_status later.” Later means demos already taught the wrong trust model.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+review_status must be an explicit enum. Draft must not look like approved action in the schema or the UI copy.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.
+
+Add one failure-case row where a draft still tries to look like an approved action—and reject it in the schema rules.`,
     workedExample: `HandoffIn
 - notes: str (min length 1)
 
@@ -233,7 +249,7 @@ failure: model proposes write while status=draft → rejected`,
     order: 4,
     competency: "testingDebugging",
     title: "SCOPE: produce vertically",
-    mode: "build",
+    mode: "modify",
     sourceIds: ["pytest", "fastapiBody"],
     objective: "Build one end-to-end path before expanding features, and state what a vertical slice proves—and does not.",
     whyItMatters:
@@ -251,7 +267,11 @@ Misconception: “vertical slice means UI polish.” It means a thin path throug
 
 Misconception: “tests come after features.” The first slice includes the first test or it is not done.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Order work so one request can complete safely before you polish secondary surfaces. Prove the slice in the Day 4 handoff capstone.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.
+
+List three tasks in vertical order and one sentence on what the first passing slice does not prove.`,
     workedExample: `Slice v1 tasks in order:
 1. Define HandoffIn/HandoffOut
 2. Implement POST /handoffs returning a hard-coded-but-valid draft for one note
@@ -278,6 +298,12 @@ before the first POST works`,
 Proves: one request can be drafted safely
 Does not prove: production auth or scale`,
     hint: "Horizontal finish-all-models-first is the anti-pattern.",
+    bridgeToLab: {
+      workspace: "lab",
+      challengeId: "coding-handoff-capstone",
+      label: "Open Mission Operations Handoff capstone",
+      why: "Prove the vertical slice: one safe request path before polishing secondary surfaces.",
+    },
     commonFailures: [
       {
         failure: "Implementing five endpoints with zero tests.",
@@ -322,7 +348,13 @@ Degraded mode is required thinking: if extraction fails, what does the operator 
 
 Misconception: “listing limits makes the project look weak.” Hiding limits makes you look untrustworthy.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Name a user-visible degraded mode before you demo the happy path. Capstone reviewers will ask for it.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.
+
+State the degraded-mode user message in one sentence before you claim the assistant is demo-ready.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `Completion checklist (prototype):
 [x] pytest green for draft path + empty notes
 [x] model unavailable returns uncertainties+=model_unavailable, review_status stays draft
@@ -332,7 +364,7 @@ Practice note: do not skim this lesson as a definition card. Re-state the object
 Rollback / degraded behavior:
 If model client raises unavailable → continue with heuristic/empty extraction, mark uncertainties, require human review.`,
     tryThis:
-      "Write one rollback or degraded-mode behavior for the handoff assistant. Then answer: what would you change before one hundred teams used this service? Give three bullets.",
+      "Write one rollback or degraded-mode behavior for the handoff assistant. Then answer: what would you change before one hundred teams used this service? Give three bullets. Write the degraded-mode sentence and the three pre-scale bullets in the same notes file as your SCOPE page.",
     tryThisSteps: [
       "Write one rollback or degraded-mode behavior for the handoff assistant.",
       "Answer with three bullets: what you would change before 100 teams used it.",
@@ -393,7 +425,9 @@ Misconception: “if they like the demo, questions will be easy.” Hard questio
 
 Misconception: “disclose AI assistance only if asked.” Disclose proactively and show your verification method.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Speak the boundary: what is prototype, what is untrusted, what you would escalate before production. Record that walkthrough against the capstone brief.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.`,
     workedExample: `# Capstone defense script
 $ # record or speak for ~120 seconds
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CourseRunner,
   type CourseCatalog,
@@ -20,6 +20,11 @@ export function AioCourseWorkspace({
   trackId?: TrackId;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathContext =
+    searchParams.get("path") === "interview-emergency"
+      ? "interview-emergency"
+      : undefined;
   const { state, setState, hydrated } = useLearnerState(trackId);
   const [catalog, setCatalog] = useState<CourseCatalog | null>(null);
   const [error, setError] = useState("");
@@ -91,6 +96,7 @@ export function AioCourseWorkspace({
       presentation="workspace"
       onClose={() => router.back()}
       trackId={trackId}
+      pathContext={pathContext}
       onDraftChange={(nextDraft) =>
         setState((current) => {
           const courseDrafts = { ...current.courseDrafts };
@@ -109,6 +115,13 @@ export function AioCourseWorkspace({
             courseDrafts,
           };
         })
+      }
+      packetAttestations={state.packetAttestations}
+      onPacketAttestationsChange={(next) =>
+        setState((current) => ({
+          ...current,
+          packetAttestations: { ...current.packetAttestations, ...next },
+        }))
       }
     />
   );

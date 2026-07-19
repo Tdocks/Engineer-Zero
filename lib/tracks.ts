@@ -6,9 +6,25 @@ const sharedPhases = [
   { id: "reality-check" as const, title: "Reality Check", duration: "45 min", summary: "Understand the work, constraints, and baseline gaps." },
   { id: "crash-course" as const, title: "48-Hour Crash Course", duration: "48 hours", summary: "Build immediate interview confidence and a defensible packet." },
 ];
+const aioSharedPhases = [
+  { id: "reality-check" as const, title: "Reality Check", duration: "45 min", summary: "Understand the work, constraints, and baseline gaps." },
+  {
+    id: "crash-course" as const,
+    title: "Few-Day Interview Packet",
+    duration: "3–5 days",
+    summary:
+      "Interview-ready partner/judgment screen: explain concepts, defend design choices, and walk a guided LLM PoC — not independent production implementation.",
+  },
+];
 const aioPhases = [
-  ...sharedPhases,
-  { id: "foundation-bridge" as const, title: "Zero-to-Role Foundation", duration: "6 weeks", summary: "Build Python and application-system confidence from zero knowledge." },
+  ...aioSharedPhases,
+  {
+    id: "foundation-bridge" as const,
+    title: "Zero-to-Role Foundation",
+    duration: "6 weeks",
+    summary:
+      "Post-offer / role accelerator: read AI-generated code, find bugs, direct the model precisely, and deepen build confidence after the interview packet.",
+  },
   { id: "fast-track" as const, title: "Applied AI Fast Track", duration: "8 weeks", summary: "Develop applied AI, system design, and technical-partner judgment." },
   { id: "master-track" as const, title: "Master Track", duration: "4 weeks", summary: "Build durable professional depth and a capstone." },
   { id: "interview-simulator" as const, title: "Interview Simulator", duration: "Ongoing", summary: "Practice pressure, technical depth, and project defense." }
@@ -144,16 +160,41 @@ const itProjects: ProjectTemplate[] = [
 const aiQuestions: InterviewQuestion[] = ["Explain RAG to an engineer.", "How would you reduce hallucinations?", "When should you not use AI?", "Design a secure internal assistant.", "How do you evaluate model quality?", "Tell me about an AI-assisted project you can defend."].map((prompt, index) => ({ id: `ai-q-${index + 1}`, category: index < 4 ? "Technical" : "Project defense", prompt, why: "Tests practical judgment, not terminology recall.", answerShape: "State the user outcome, constraints, proposed boundary, evidence, and next tradeoff." }));
 const itQuestions: InterviewQuestion[] = ["Walk me through a computer that will not boot.", "Why can DNS fail while networking appears connected?", "What is a VLAN and when do you escalate?", "How do you troubleshoot a printer with queued jobs?", "How do you prioritize several urgent requests?", "How do you support a demanding engineer under time pressure?"].map((prompt, index) => ({ id: `it-q-${index + 1}`, category: index < 4 ? "Technical" : "Behavioral", prompt, why: "Tests structured troubleshooting, safety, and customer communication.", answerShape: "Clarify impact, gather evidence, isolate safely, test, verify, communicate, and document." }));
 
-export const crashCoursePlan: Record<TrackId, Array<{ day: "Day 1" | "Day 2"; time: string; title: string; focus: string; activityId?: string }>> = {
+export const crashCoursePlan: Record<
+  TrackId,
+  Array<{ day: "Day 1" | "Day 2" | "Day 3" | "Day 4" | "Day 5"; time: string; title: string; focus: string; activityId?: string }>
+> = {
   "applied-ai-operations": [
-    { day: "Day 1", time: "Hour 0–2", title: "Role narrative", focus: "Write the credible bridge between your operations, product, and technical strengths.", activityId: "applied-ai-operations-crash-course-2" },
-    { day: "Day 1", time: "Hour 2–5", title: "LLM fundamentals", focus: "Explain models, prompts, structured outputs, tools, and limits without hype." },
-    { day: "Day 1", time: "Hour 5–8", title: "RAG and evaluation", focus: "Practice retrieval, grounding, citations, failure modes, and success measures.", activityId: "applied-ai-operations-crash-course-3" },
-    { day: "Day 1", time: "Hour 8–10", title: "Secure boundary", focus: "Choose what data, permissions, human approvals, and operating limits belong in the pilot.", activityId: "applied-ai-operations-crash-course-4" },
-    { day: "Day 2", time: "Hour 24–27", title: "System design", focus: "Draw an authorized assistant from identity through retrieval, model, audit, and escalation." },
-    { day: "Day 2", time: "Hour 27–30", title: "Project packaging", focus: "Turn two projects into honest, measurable case studies with your contribution and lessons." },
-    { day: "Day 2", time: "Hour 30–33", title: "Pressure stories", focus: "Practice ownership, skeptical stakeholders, unsafe requests, and fast delivery with STAR structure." },
-    { day: "Day 2", time: "Hour 33–36", title: "Full mock loop", focus: "Run rapid technical, system design, and project-defense questions; revise your packet." }
+    {
+      day: "Day 1",
+      time: "~8h",
+      title: "Coding foundations I",
+      focus: "Terminal navigation, first Python execution, functions, JSON-shaped data, defensive input, and reviewed CLI evidence. Watch → Do videos are part of the work.",
+    },
+    {
+      day: "Day 2",
+      time: "~9h",
+      title: "Coding foundations II + role/LLM",
+      focus: "HTTP/JSON, FastAPI, tests, bounded AI lessons/challenges; then Sprint 01–02 discovery, narrative artifact, tokens, and context.",
+    },
+    {
+      day: "Day 3",
+      time: "~4.5h",
+      title: "RAG + boundary + evaluation",
+      focus: "Sprint 03–05; author the 12-case evaluation pack and complete the required evaluation-matrix lab.",
+    },
+    {
+      day: "Day 4",
+      time: "~5.25h",
+      title: "Architecture + runnable mini-capstone",
+      focus: "Sprint 06–07, required architecture defense, then run/repair the permission-aware procedure-assistant scaffold and write an honest defense card.",
+    },
+    {
+      day: "Day 5",
+      time: "~4h",
+      title: "Full mock + probe dry-run",
+      focus: "Sprint-08, dedicated timed four-round mock, weakest-answer revision, and readiness-bar probes without notes. Not Foundation Prove graduation.",
+    },
   ],
   "it-support-technician": [
     { day: "Day 1", time: "Hour 0–2", title: "Hardware and Windows", focus: "Review boot flow, storage, docks, displays, Device Manager, Event Viewer, and known-good swaps.", activityId: "it-support-technician-crash-course-2" },
@@ -163,8 +204,8 @@ export const crashCoursePlan: Record<TrackId, Array<{ day: "Day 1" | "Day 2"; ti
     { day: "Day 2", time: "Hour 24–27", title: "Microsoft and identity", focus: "Review Entra/AD concepts, MFA recovery, encryption, managed devices, and access boundaries." },
     { day: "Day 2", time: "Hour 27–30", title: "Printing, mobile, and AV", focus: "Work queues, drivers, label printers, MFPs, device enrollment, and conference-room triage.", activityId: "it-support-technician-crash-course-4" },
     { day: "Day 2", time: "Hour 30–33", title: "Service stories", focus: "Prepare concise examples for interruptions, demanding users, escalation, documentation, and ownership." },
-    { day: "Day 2", time: "Hour 33–36", title: "Full mock loop", focus: "Answer rapid technical and behavioral prompts; improve communication and decision order." }
-  ]
+    { day: "Day 2", time: "Hour 33–36", title: "Full mock loop", focus: "Answer rapid technical and behavioral prompts; improve communication and decision order." },
+  ],
 };
 
 function expansion(trackId: TrackId, phaseId: Activity["phaseId"], type: Activity["type"], topics: string[], competency: CompetencyKey, mode?: Activity["mode"]): Activity[] {
@@ -183,7 +224,21 @@ const itExtraLabs = expansion("it-support-technician", "fast-track", "lab", ["Bo
 const itExtraMissions = expansion("it-support-technician", "master-track", "mission", ["Critical workstation recovery", "Label-printing outage", "Conference-room preflight failure", "Asset-lifecycle discrepancy", "Skeptical engineer support", "Account lockout during operation", "Intermittent production-device connectivity", "Endpoint deployment rollback", "Executive AV support", "After-hours incident handoff"], "leadership", "Solo");
 
 export const tracks: Record<TrackId, TrackDefinition> = {
-  "applied-ai-operations": { id: "applied-ai-operations", title: "Applied AI Operations Engineer", subtitle: "AI-native systems, enterprise judgment, and technical leadership", price: "$349", accent: "teal", roleSummary: "Become the engineer who can discover a problem, design a controlled AI solution, build or guide a prototype, evaluate it, and defend the result.", competencyWeights: weights, assessment: [], phases: aioPhases, activities: [...activities("applied-ai-operations", aiInput), ...aiExtraLessons, ...aiExtraLabs, ...aiExtraMissions], projects: aiProjects, interviewQuestions: questionBank("ai", aiQuestions, 150, 100) },
+  "applied-ai-operations": {
+    id: "applied-ai-operations",
+    title: "Applied AI Operations Engineer",
+    subtitle: "AI-native systems, enterprise judgment, and technical leadership",
+    price: "$349",
+    accent: "teal",
+    roleSummary:
+      "Become the technical partner who can discover a problem, design a controlled AI solution, guide a prototype, evaluate it, and defend the result under interview pressure. Few-Day packet (<5 days) = interview-ready partner/judgment screen + guided PoC defense. Foundation (weeks) = post-offer role accelerator — read AI output, spot issues, and deepen build confidence. Not a 3–5 day independent implementer path.",
+    competencyWeights: weights,
+    assessment: [],
+    phases: aioPhases,
+    activities: [...activities("applied-ai-operations", aiInput), ...aiExtraLessons, ...aiExtraLabs, ...aiExtraMissions],
+    projects: aiProjects,
+    interviewQuestions: questionBank("ai", aiQuestions, 150, 100),
+  },
   "it-support-technician": { id: "it-support-technician", title: "IT Support Technician", subtitle: "Mission-critical enterprise endpoint and service operations", price: "$249", accent: "amber", roleSummary: "Become the technician who can restore users safely, troubleshoot systems methodically, manage assets, and communicate calmly under operational pressure.", competencyWeights: weights, assessment: [], phases: itPhases, activities: [...activities("it-support-technician", itInput), ...itFastLessons, ...itMasterLessons, ...itExtraLabs, ...itExtraMissions], projects: itProjects, interviewQuestions: questionBank("it", itQuestions, 150, 100) }
 };
 export const trackList = Object.values(tracks);

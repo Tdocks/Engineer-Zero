@@ -5,6 +5,7 @@ import {
   draftReview,
   type SourceReference,
 } from "./course-types";
+import { aioConceptRetrievalChecks } from "./aio-concept-checks";
 
 const accessed = "2026-07-17";
 const sources = {
@@ -216,8 +217,8 @@ const foundationSeeds: FoundationSeed[] = [
     week: 2,
     pillar: "Zero-to-Role Foundation",
     competency: "foundations",
-    outcome: "Independently write and explain small Python functions that transform data and reject invalid inputs explicitly.",
-    expectation: "Prove that you can read, change, test, and explain a small function without an AI assistant writing the answer for you.",
+    outcome: "Read, explain, and sketch small Python functions that transform data and reject invalid inputs explicitly—using the worked example as the practice artifact.",
+    expectation: "Prove that you can explain and modify a small function’s inputs, branches, and error path without treating AI output as an unreviewed answer.",
     boundary: "Small exercises are not permission to merge unreviewed code into a production service.",
     escalation: "Escalate unfamiliar production failures, dependencies, or security-sensitive changes through normal review rather than guessing.",
     overview: "Python is the primary implementation language because it lets you express service behavior clearly. The goal is not syntax recall; it is predictable inputs, visible decisions, and recoverable error paths.",
@@ -225,7 +226,7 @@ const foundationSeeds: FoundationSeed[] = [
       { heading: "Data has shape", body: "Strings, numbers, lists, dictionaries, and booleans represent different kinds of information. A function should state what shape it expects and what shape it returns." },
       { heading: "Decisions stay explicit", body: "Conditions and loops let a function choose a path. Keep each branch small enough that you can explain why it exists and what happens when it fails." },
       { heading: "Errors are part of the contract", body: "Missing identifiers, unexpected fields, and failed conversions should create clear errors. Silently accepting bad data produces hard-to-diagnose operational failures later." },
-      { heading: "Read before you edit", body: "When AI suggests code, trace the inputs, outputs, branches, exceptions, and tests first. You own the result even when a tool accelerated the first draft." },
+      { heading: "Practice sketch (do this)", body: "Write on paper or in a scratch file: def normalize_incident(record: dict) -> dict that requires incident_id, maps priority strings to a small enum, and raises ValueError when the id is missing. Trace one valid and one invalid call before you ask any assistant to expand it." },
     ],
     example: "A function accepts a fictional incident dictionary, requires an incident_id, normalizes a priority value, and returns an explicit error when the ID is missing rather than creating an anonymous record.",
     misconceptions: ["Exceptions should always be ignored so a script keeps running.", "Type hints replace tests and validation."],
@@ -270,8 +271,8 @@ const foundationSeeds: FoundationSeed[] = [
     week: 4,
     pillar: "Zero-to-Role Foundation",
     competency: "architecture",
-    outcome: "Build a small read-only FastAPI endpoint with a request contract, validation, predictable errors, and a safe response shape.",
-    expectation: "Prove that you can implement and explain a small API boundary, including its failure behavior and tests.",
+    outcome: "Specify and explain a small read-only FastAPI endpoint contract: request schema, validation, predictable errors, safe response shape, and the tests that prove each path.",
+    expectation: "Prove that you can design and defend an API boundary—including failure behavior—using the fictional procedure-lookup example.",
     boundary: "The exercise is read-only and fictional; it does not authorize live provider calls, internal data access, or deployment.",
     escalation: "Escalate production API ownership, authentication integration, and deployment approval to the responsible service and security owners.",
     overview: "An API is an agreement between clients and services. It states what a caller may send, what the service returns, and how errors are communicated. This contract is the foundation for safe AI integration later.",
@@ -279,7 +280,7 @@ const foundationSeeds: FoundationSeed[] = [
       { heading: "Requests are contracts", body: "A request schema says what fields exist, their types, and which are required. Validate before business logic so invalid requests do not become confusing downstream failures." },
       { heading: "Responses need meaning", body: "Use a stable response shape and meaningful status codes. A caller should distinguish a malformed request, denied access, missing record, and service failure." },
       { heading: "Read-only is a deliberate boundary", body: "Start with a retrieval or validation path before any action path. This limits impact while you learn the workflow, inputs, and failure cases." },
-      { heading: "Tests describe the contract", body: "Write tests for accepted input, rejected input, missing records, and denied or unsupported paths. These tests are evidence that a later change did not silently weaken the boundary." },
+      { heading: "Contract sketch (do this)", body: "Write the request fields (procedure_key, role), the 200 response fields, and three failure statuses (422 malformed, 404 missing, 403 denied). List one pytest name for each path. Implementation can follow in Coding Developer labs; this foundation lesson owns the contract." },
     ],
     example: "A fictional procedure lookup endpoint accepts a procedure key and role, rejects unscoped requests, returns a small cited response for allowed records, and returns a predictable denial for restricted records.",
     misconceptions: ["If JSON parses, the request is valid enough for service logic.", "A successful happy-path demo makes error behavior unimportant."],
@@ -297,19 +298,19 @@ const foundationSeeds: FoundationSeed[] = [
     week: 5,
     pillar: "Zero-to-Role Foundation",
     competency: "security",
-    outcome: "Model simple relational evidence, write pytest checks, explain a Git review, and distinguish authentication from authorization.",
-    expectation: "Prove that you can explain why a request is allowed, denied, tested, and reversible—not merely make it work locally.",
-    boundary: "The learner models and tests synthetic records only; real identity, secrets, and production databases remain out of scope.",
+    outcome: "Explain how relational evidence, pytest checks, Git review, and authn vs authz fit together—using one fictional access-control story rather than claiming four unrelated specialties.",
+    expectation: "Prove that you can explain why a request is allowed, denied, tested, and reversible in a single coherent scenario.",
+    boundary: "The learner models and tests synthetic records only; real identity, secrets, and production databases remain out of scope. Depth on each subtopic continues in later Coding and AIO modules.",
     escalation: "Engage the data, identity, or security owner whenever a change affects real permissions, retention, or protected records.",
-    overview: "Reliable systems remember facts and decisions. Relational data links people, roles, records, and audit events. Tests protect behavior, and Git makes a change reviewable and reversible.",
+    overview: "Reliable systems remember facts and decisions. This lesson follows one fictional access story: who may see a procedure revision, how that permission is stored, how tests prove denial, and how a Git change keeps the boundary reviewable.",
     sections: [
-      { heading: "Model relationships", body: "A role, user, document, request, approval, and audit event are related facts. Modeling those relationships makes ownership and history inspectable instead of hiding them in prose." },
-      { heading: "Authentication versus authorization", body: "Authentication establishes who is requesting. Authorization decides what that known identity may do. A system needs both, and neither should be replaced by a prompt." },
-      { heading: "Tests preserve intent", body: "A test should prove a behavior that matters: accepted requests work, denied requests stay denied, and a later change cannot silently remove a safety boundary." },
-      { heading: "Git makes change visible", body: "A small diff, meaningful commit, review notes, and passing tests make it possible for another engineer to understand, verify, or roll back a change." },
+      { heading: "One story, four controls", body: "Technician Maya asks for procedure P-17. The service must know who Maya is (authentication), whether her role may read P-17 (authorization), store that fact as relational evidence, prove the deny path with tests, and land any permission change as a small reviewed Git diff. Treat these as one chain—not four unrelated specialties." },
+      { heading: "Relational evidence for access", body: "Model users, roles, document revisions, and audit events as linked records. A role_permission row or equivalent is the system of record for ‘Maya may read P-17.’ Prose in a ticket is not. When you later add AI retrieval, the same rows decide what may enter model context." },
+      { heading: "Authn vs authz in the request path", body: "Authentication establishes identity (session/token verified). Authorization evaluates that identity against the relational permission for the specific resource. Neither belongs in a prompt or UI hide/show alone. Denied callers should receive neither content nor a citation that reveals the restricted revision exists." },
+      { heading: "Pytest + Git close the loop", body: "Write tests named for the story: test_technician_may_read_approved_revision and test_unauthorized_gets_empty_denial. When someone proposes broadening access, the change is a small Git diff of the permission model plus those tests—so a reviewer can connect intent, risk, and rollback before merge." },
     ],
-    example: "A fictional service stores procedure revisions and access roles. A pytest suite proves that a technician can see an approved document while an unauthorized requester receives no content or citation.",
-    misconceptions: ["Authentication and authorization are two names for the same password check.", "A passing local run makes a code review unnecessary."],
+    example: "Maya (technician) may read approved P-17; contractor Sam cannot. Relational roles encode that. Pytest asserts Maya gets content+citation and Sam gets a denial with no leakage. A PR that adds Sam’s role must update both the data model and the deny test, or review rejects it.",
+    misconceptions: ["Authentication and authorization are two names for the same password check.", "A passing local run makes a code review unnecessary.", "Four topics in one lesson means four independent certifications."],
     source: sources.postgres,
     checks: [
       { prompt: "What is the difference between authentication and authorization?", correct: "Authentication establishes identity; authorization evaluates whether that identity may perform a specific action on a specific resource.", distractors: ["Authentication creates an audit record while authorization decides how long the database should retain that record.", "Authentication validates JSON fields while authorization converts a request into the response format expected by a browser.", "Authentication is a user-interface concern while authorization is only necessary when a service performs database writes."], misconception: "Both controls are required and apply beyond password handling." },
@@ -349,51 +350,412 @@ const foundationSeeds: FoundationSeed[] = [
 
 export const aioFoundationModules = foundationSeeds.map(foundationModule);
 
-const extensionSeeds = [
-  ["aio-sprint-extension-01-prototype-tour", "Prototype tour: permission-aware knowledge", "Walk through the fictional FastAPI knowledge assistant, identify its authorization-before-retrieval boundary, and explain what the tests prove.", "Practice", "A repository walkthrough is evidence of code-reading practice, not proof that you could build the service from zero.", "Escalate real data access and provider configuration to the accountable service and security owners.", sources.python],
-  ["aio-sprint-extension-02-api-reading", "Read an API without pretending to be senior", "Trace a request, response schema, validation error, log event, and pytest assertion through a small fictional endpoint.", "Practice", "You may inspect and reason about a safe sample; do not claim production API ownership from a guided walkthrough.", "Escalate production failures with the request path, observed error, scope, and user impact.", sources.fastapi],
-  ["aio-sprint-extension-03-retrieval-evaluation", "Retrieval and evaluation deepening", "Compare two fictional retrieval results, identify a failure mode, and add an edge case to a tiny evaluation set.", "Practice", "A short evaluation exercise teaches reasoning; production release criteria require broader representative evidence.", "Escalate retrieval access, data freshness, and source-conflict decisions to the documented content owner.", sources.nist],
-  ["aio-sprint-extension-04-safe-boundaries", "Boundary drill: no AI is a valid answer", "Choose among conventional automation, read-only AI, human approval, or no AI for fictional constrained workflows.", "Practice", "Do not treat a model capability as approval to use protected data or write to an operational system.", "Escalate legal, export-control, privacy, and security interpretations to qualified reviewers.", sources.owasp],
-  ["aio-sprint-extension-05-defense-loop", "System design and project-defense loop", "Practice a timed architecture explanation, skeptical follow-up, project ownership disclosure, and revision against a clear rubric.", "Practice", "Interview practice is not a certification of independent implementation skill.", "Escalate gaps honestly: name the next learning or specialist partnership rather than inventing experience.", sources.nist],
-] as const;
+const practiceEvidence: ArtifactSchema = {
+  type: "explanation",
+  required: ["scenario fact", "decision", "boundary", "escalation"],
+  requiredFields: ["scenarioFact", "decision", "boundary", "escalation"],
+};
 
-export const aioSprintExtensions: CourseModule[] = extensionSeeds.map(([id, title, overview, _level, boundary, escalation, source], index) => ({
-  id,
-  title,
-  phaseId: "crash-course",
-  week: 0,
-  durationMinutes: 75,
-  pillar: "7-Day Sprint Extension",
-  competencies: { foundations: 0.45, communication: 0.55, aiCollaboration: 0.25 },
-  prerequisites: [],
-  capabilityLevel: "practice",
-  performanceExpectation: "Practice a bounded role-relevant activity with support, then explain the decision and limits clearly.",
-  roleBoundary: boundary,
-  specialistEscalationGuidance: escalation,
-  pathAvailability: ["sprint-7-day"],
-  instructionalDesign: aioInstructionalDesign,
-  outcome: overview,
-  overview,
-  sections: [
-    { heading: "What you need to recognize", body: overview },
-    { heading: "How to reason safely", body: "Name the operational outcome, identify the boundary, choose a proportionate next step, and define the evidence that would verify or change your recommendation." },
-    { heading: "What this exercise does not claim", body: boundary },
-    { heading: "When to involve a specialist", body: escalation },
-  ],
-  workedExample: "Use fictional evidence, state the constraint, make a bounded recommendation, and identify the accountable owner before claiming a result.",
-  misconceptions: ["Interview confidence requires pretending to have already performed every technical task.", "A guided walkthrough proves independent production readiness."],
-  knowledgeChecks: [check(`${id}-q1`, "communication", {
-    prompt: `What is the credible goal of ${title.toLowerCase()}?`,
-    correct: "Use the fictional exercise to build precise vocabulary, safe reasoning, and an honest explanation of the boundary.",
-    distractors: ["Claim independent production authority because the exercise uses a realistic technical artifact and concise rubric.", "Memorize a tool list without connecting any concept to an operational constraint, owner, or evidence signal.", "Avoid discussing limits in an interview because a confident answer should never mention learning or specialist partnership."],
-    misconception: "Credibility comes from clear scope and reasoning, not inflated claims.",
-  })],
-  artifact: knowEvidence,
-  rules: [{ id: "bounded-explanation", label: "Bounded explanation", requiredTerms: ["boundary"], minimumMatches: 1 }],
-  sources: [source],
-  review: draftReview,
-  mdxPath: "content/applied-ai-operations/v2/interview-literacy-speedrun.mdx",
-}));
+type ExtensionSeed = {
+  id: string;
+  title: string;
+  competency: CompetencyKey;
+  outcome: string;
+  overview: string;
+  expectation: string;
+  boundary: string;
+  escalation: string;
+  durationMinutes: number;
+  sections: Array<{ heading: string; body: string }>;
+  example: string;
+  misconceptions: string[];
+  source: SourceReference;
+  checks: [CheckSeed, CheckSeed, CheckSeed];
+  competencies?: CourseModule["competencies"];
+};
+
+function extensionModule(seed: ExtensionSeed): CourseModule {
+  return {
+    id: seed.id,
+    title: seed.title,
+    phaseId: "crash-course",
+    week: 0,
+    durationMinutes: seed.durationMinutes,
+    pillar: "7-Day Sprint Extension",
+    competencies: seed.competencies ?? { [seed.competency]: 1, communication: 0.35, aiCollaboration: 0.2 },
+    prerequisites: [],
+    capabilityLevel: "practice",
+    performanceExpectation: seed.expectation,
+    roleBoundary: seed.boundary,
+    specialistEscalationGuidance: seed.escalation,
+    pathAvailability: ["sprint-7-day"],
+    instructionalDesign: aioInstructionalDesign,
+    outcome: seed.outcome,
+    overview: seed.overview,
+    sections: seed.sections,
+    workedExample: seed.example,
+    misconceptions: seed.misconceptions,
+    knowledgeChecks: seed.checks.map((item, index) => check(`${seed.id}-q${index + 1}`, seed.competency, item)),
+    artifact: practiceEvidence,
+    rules: [
+      { id: "bounded-explanation", label: "Bounded explanation", requiredTerms: ["boundary"], minimumMatches: 1 },
+      { id: "named-escalation", label: "Named escalation", requiredTerms: ["escalat"], minimumMatches: 1 },
+    ],
+    sources: [seed.source],
+    review: draftReview,
+    mdxPath: "content/applied-ai-operations/v2/interview-literacy-speedrun.mdx",
+  };
+}
+
+const extensionSeeds: ExtensionSeed[] = [
+  {
+    id: "aio-sprint-extension-01-prototype-tour",
+    title: "Prototype tour: permission-aware knowledge",
+    competency: "security",
+    outcome: "Walk a fictional FastAPI knowledge assistant end to end, name the authorization-before-retrieval boundary, and state exactly what three pytest cases prove.",
+    overview: "This practice tour uses a fictional read-only knowledge assistant: a FastAPI service that answers procedure questions only from collections the caller may see. You are reading and explaining an existing sample, not building production infrastructure.",
+    expectation: "Practice tracing a permission-aware retrieval path and explaining what the accompanying tests prove—and what a walkthrough does not certify.",
+    boundary: "A repository walkthrough is evidence of code-reading practice, not proof that you could design, secure, or operate the service from zero.",
+    escalation: "Escalate real data access, identity integration, and provider configuration to the accountable service and security owners.",
+    durationMinutes: 50,
+    competencies: { security: 1, foundations: 0.45, communication: 0.4 },
+    sections: [
+      {
+        heading: "The fictional service you are touring",
+        body: "ProcedureDesk is a small FastAPI app with three layers: an auth dependency that resolves a caller identity and role, a permission filter that returns only allowed collection IDs, and a retrieval+answer path that builds a response with citations or an explicit abstention. There is no write tool and no direct database credential in the model path.",
+      },
+      {
+        heading: "Authorization before retrieval",
+        body: "When a technician asks about procedure P-17, the service does not search the full corpus and then hide restricted hits. It first resolves the caller’s allowed collections, then retrieves only inside that set. Denied callers receive neither content nor a citation that reveals a restricted revision exists. The model never sees unauthorized text.",
+      },
+      {
+        heading: "What the tests prove",
+        body: "Three pytest names tell the story: test_allowed_role_gets_cited_answer asserts a permitted caller receives content plus source IDs; test_unauthorized_gets_empty_denial asserts a contractor receives a denial with an empty citation list; test_restricted_text_never_enters_prompt asserts a spy on the prompt-builder never receives chunks outside the allowed set. Passing these tests proves the boundary under those cases—not production readiness.",
+      },
+      {
+        heading: "Tour practice (do this)",
+        body: "On paper, draw: caller → auth dependency → allowed collections → retrieve → prompt → cited answer or denial. Under each arrow, write one failure you would look for (missing role, empty allowed set, stale chunk, prompt leakage). Then write one sentence: ‘These tests prove X; they do not prove Y.’",
+      },
+    ],
+    example: "Caller Maya (technician) may read collection ops-procedures. She asks for P-17 calibration steps. Auth resolves her role; the filter returns ops-procedures; retrieval returns two current chunks; the answer cites them. Caller Sam (contractor) asks the same question. Auth resolves contractor; the filter returns []; the response is a structured denial with citations=[]. A unit test fails the PR if Sam’s path ever receives a P-17 chunk in the prompt assembly spy.",
+    misconceptions: [
+      "Hiding a document link in the UI is the same as authorization-before-retrieval.",
+      "A guided tour of a sample FastAPI app means you independently built and secured the service.",
+      "One happy-path demo proves restricted content cannot leak into model context.",
+    ],
+    source: sources.owasp,
+    checks: [
+      {
+        prompt: "In the fictional ProcedureDesk tour, when must the caller’s allowed collections be determined?",
+        correct: "Before retrieval and prompt assembly, so unauthorized procedure text never enters model context.",
+        distractors: [
+          "After the model drafts an answer, so the frontend can redact any restricted citations before display.",
+          "Only when the caller asks for an export, because ordinary chat answers are assumed to be low risk.",
+          "Inside the embedding index itself, because similarity search automatically excludes roles the model considers inappropriate.",
+        ],
+        misconception: "UI redaction and post-hoc filtering are not authorization-before-retrieval.",
+      },
+      {
+        prompt: "What does test_unauthorized_gets_empty_denial need to assert beyond an error status?",
+        correct: "The denied response includes neither protected content nor citations that reveal the restricted record exists.",
+        distractors: [
+          "The model receives the full procedure and is instructed in the system prompt never to quote restricted sections aloud.",
+          "The UI hides the document title while the API still returns the newest revision for trusted frontend caching.",
+          "The denied caller receives a related unrestricted procedure so the product still feels helpful under every role.",
+        ],
+        misconception: "Denial must avoid content leakage, including citation side channels.",
+      },
+      {
+        prompt: "You finished the guided tour and all three sample tests pass locally. What claim is still dishonest?",
+        correct: "Claiming you independently designed, secured, and are ready to operate the production knowledge assistant.",
+        distractors: [
+          "Explaining that authorization runs before retrieval and naming what each pytest case checks.",
+          "Listing the remaining gaps: real identity integration, content ownership, and broader evaluation evidence.",
+          "Saying the walkthrough built vocabulary for permission-aware retrieval without certifying build skill.",
+        ],
+        misconception: "Reading a sample is practice, not production ownership.",
+      },
+    ],
+  },
+  {
+    id: "aio-sprint-extension-02-api-reading",
+    title: "Read an API without pretending to be senior",
+    competency: "foundations",
+    outcome: "Trace one fictional FastAPI request through schema validation, handler logic, a log event, and the pytest assertion that locks the contract.",
+    overview: "Senior-sounding API talk often skips the evidence trail. This practice forces a concrete path: request body → schema → validation failure or success → handler → structured log → test. You inspect a safe sample; you do not claim production API ownership.",
+    expectation: "Practice reading a small endpoint contract and explaining how validation, logging, and tests work together on one request path.",
+    boundary: "You may inspect and reason about a safe sample; do not claim production API ownership or on-call authority from a guided walkthrough.",
+    escalation: "Escalate production failures with the request path, observed error, scope, and user impact—not with a vague ‘API is broken’ note.",
+    durationMinutes: 50,
+    competencies: { foundations: 1, architecture: 0.35, communication: 0.4 },
+    sections: [
+      {
+        heading: "Start from the contract, not the framework name",
+        body: "The sample endpoint POST /v1/procedure-lookup accepts { procedure_key: string, role: string }. The response shape is { status: 'ok'|'denied'|'invalid', citations: string[], summary: string | null }. Status codes: 200 for ok/denied business outcomes with a body, 422 for schema validation failures. Knowing FastAPI exists is not the same as tracing this contract.",
+      },
+      {
+        heading: "Validation before business logic",
+        body: "Pydantic (or equivalent) rejects empty procedure_key and unknown role enums before the handler queries anything. A 422 body names the field and reason. That failure should never become a 500 from a KeyError deeper in the stack. The log for 422 records request_id, path, and error_category=validation—not the full payload if it might contain sensitive free text.",
+      },
+      {
+        heading: "Happy path, denial path, and the log line",
+        body: "On valid input, the handler checks authorization, retrieves or denies, and emits one structured log: request_id, procedure_key, role, outcome, latency_ms. Denied access is a first-class outcome with citations=[]. Missing procedure returns status invalid or a documented not-found shape—pick one and keep tests consistent. The log is how an operator reconstructs what happened without reading the model prompt.",
+      },
+      {
+        heading: "Pytest locks the trail (do this)",
+        body: "Write five assertion names before you look at any generated code: test_valid_lookup_returns_citations; test_empty_key_returns_422; test_unknown_role_returns_422; test_denied_role_empty_citations; test_log_includes_request_id_and_outcome. For each, note which layer failed if the assertion breaks (schema, auth, retrieval, logging).",
+      },
+    ],
+    example: "Request { procedure_key: 'P-17', role: 'technician' } validates, auth allows ops-procedures, handler returns 200 with status=ok and two citation IDs, and the log shows outcome=ok. Request { procedure_key: '', role: 'technician' } never reaches retrieval: schema returns 422 and the log shows error_category=validation. Pytest asserts both the 422 detail path and that no retrieval mock was called.",
+    misconceptions: [
+      "If JSON parses, the request is valid enough for business logic.",
+      "A single browser happy-path click proves the API contract, including denial and validation.",
+      "Reading an OpenAPI snippet means you own production incident response for that service.",
+    ],
+    source: sources.fastapi,
+    checks: [
+      {
+        prompt: "A fictional client sends procedure_key as an empty string. Where should the failure surface first?",
+        correct: "At schema validation with a 422 and a field-level reason, before any retrieval or model call runs.",
+        distractors: [
+          "Inside the embedding search, which can treat an empty key as a broad query across all collections.",
+          "In the model prompt, which should invent a procedure key when the client forgets to supply one.",
+          "Only in an operator dashboard after a 500 traceback shows a KeyError deep in the handler.",
+        ],
+        misconception: "Validation belongs at the boundary, not after side effects begin.",
+      },
+      {
+        prompt: "Which evidence trail best shows you actually read the endpoint rather than memorized framework names?",
+        correct: "Request fields, validation failure shape, denial outcome, log fields, and the pytest names that lock each path.",
+        distractors: [
+          "A list of popular API frameworks and a claim that any of them could host the same assistant equally well.",
+          "A screenshot of a 200 response with no mention of 422, denial, or what the structured log records.",
+          "A generated OpenAPI file that was never compared to a failing test or an observed error body.",
+        ],
+        misconception: "Contract literacy is the path through failures, not tool-name fluency.",
+      },
+      {
+        prompt: "You are escalating a production lookup failure. What package is most useful to the next owner?",
+        correct: "Request path, observed status and body, scope of affected roles, user impact, and whether validation, auth, or retrieval is implicated.",
+        distractors: [
+          "Only the message ‘the API is broken,’ because specialists prefer to rediscover the failing path themselves.",
+          "The full authorization token and raw document text pasted into the ticket for maximum debugging detail.",
+          "A proposal to rewrite the service in a different framework before any failing request evidence is captured.",
+        ],
+        misconception: "Escalation needs a scoped evidence trail, not panic or secret dumping.",
+      },
+    ],
+  },
+  {
+    id: "aio-sprint-extension-03-retrieval-evaluation",
+    title: "Retrieval and evaluation deepening",
+    competency: "architecture",
+    outcome: "Compare two fictional retrieval results for the same question, name the failure mode, and add one edge case to a tiny evaluation set with an expected outcome.",
+    overview: "Retrieval quality is not ‘the answer sounded good.’ This practice compares two candidate result packs, classifies what went wrong, and extends a miniature evaluation set so the next change has a regression target.",
+    expectation: "Practice comparing retrieval packs, labeling a failure mode, and writing one evaluable edge case—not releasing a production RAG system.",
+    boundary: "A short evaluation exercise teaches reasoning; production release criteria require broader representative evidence, owners, and thresholds.",
+    escalation: "Escalate retrieval access, data freshness, and source-conflict decisions to the documented content owner.",
+    durationMinutes: 55,
+    competencies: { architecture: 1, production: 0.35, communication: 0.35 },
+    sections: [
+      {
+        heading: "Same question, two result packs",
+        body: "Question: ‘What is the torque sequence for fixture F-12?’ Pack A returns chunk F12-2024-revC (current, authorized) and a short related safety note. Pack B returns F12-2019-revA (superseded) plus a semantically similar chunk from fixture F-11. Both packs can look ‘relevant’ to an embedding score; only Pack A is operationally usable.",
+      },
+      {
+        heading: "Name the failure mode before you tweak prompts",
+        body: "Useful labels: stale_source (old revision ranked above current), wrong_entity (F-11 confused with F-12), permission_leak (restricted chunk present), unsupported (no adequate chunk; model should abstain), conflict (two current sources disagree). Pack B fails as stale_source + wrong_entity. Fixing the label points to metadata filters and freshness—not a longer system prompt alone.",
+      },
+      {
+        heading: "Tiny eval set shape",
+        body: "Each case needs: id, question, allowed_role, expected_source_ids or expected_abstention, and failure_tag if the case targets a known risk. Start with five to eight cases that cover supported answer, denial, stale revision, wrong entity, and unsupported question. A demo transcript is not an eval set.",
+      },
+      {
+        heading: "Add one edge case (do this)",
+        body: "Write a new case where two current authorized procedures disagree on a step. Expected outcome: abstain or escalate_conflict—not a silently chosen side. Include the two source IDs the retriever should surface and the assertion that the answer must not present a single sequence as settled fact.",
+      },
+    ],
+    example: "Case eval-07: role=technician, question asks for F-12 torque after a known revision cutover. Pack A (pass): sources [F12-2024-revC]. Pack B (fail): sources [F12-2019-revA, F11-torque]. You label Pack B stale_source+wrong_entity, then add eval-08: two current F-12 notes conflict → expected=escalate_conflict. The next retrieval change must keep eval-07 green and satisfy eval-08’s abstention rule.",
+    misconceptions: [
+      "Higher embedding similarity proves the retrieved revision is current and correct.",
+      "A polished cited answer is evaluation evidence even without expected source IDs or failure tags.",
+      "Prompt wording alone fixes stale or wrong-entity retrieval without metadata and tests.",
+    ],
+    source: sources.nist,
+    checks: [
+      {
+        prompt: "Pack B returns a superseded F-12 revision and an F-11 chunk for an F-12 torque question. What is the best failure labeling?",
+        correct: "stale_source and wrong_entity, pointing next work at freshness metadata and entity filters rather than only the prompt.",
+        distractors: [
+          "model_too_small, because a larger model would have ignored the wrong fixture identifiers automatically.",
+          "authorization_failure, because any imperfect citation means the caller lacked permission for every procedure.",
+          "success_with_style_issues, because both packs contained mechanically related maintenance language.",
+        ],
+        misconception: "Similarity is not freshness, entity identity, or authorization.",
+      },
+      {
+        prompt: "What must a new evaluation edge case include to be useful?",
+        correct: "A question, role or permission context, expected sources or abstention, and a named failure tag the case is meant to catch.",
+        distractors: [
+          "Only a sample model answer that sounded helpful during a live demo with the project sponsor.",
+          "A list of embedding model names without any expected citation IDs or denial conditions.",
+          "A screenshot of the chat UI proving that at least one citation string appeared in the response.",
+        ],
+        misconception: "Evaluation needs expected outcomes, not vibes.",
+      },
+      {
+        prompt: "Two current authorized procedures disagree on a step. What expected outcome belongs in the eval set?",
+        correct: "Abstain or escalate the conflict rather than silently choosing one sequence as settled fact.",
+        distractors: [
+          "Pick the longer procedure because more text usually means the author was more careful and complete.",
+          "Average the two sequences into a blended checklist so the assistant still returns a confident answer.",
+          "Return both full documents without a conflict signal and let the requester reconcile them unaided later.",
+        ],
+        misconception: "Conflict is a first-class failure mode, not a creativity prompt.",
+      },
+    ],
+  },
+  {
+    id: "aio-sprint-extension-04-safe-boundaries",
+    title: "Boundary drill: no AI is a valid answer",
+    competency: "roleJudgment",
+    outcome: "Classify fictional workflows into conventional automation, read-only AI, human-approved AI action, or no AI—and defend each choice with the risk that would make a higher autonomy level unsafe.",
+    overview: "Model capability is not permission. This drill trains a four-way classification so ‘use an agent’ is not the default. Sometimes the correct applied-AI recommendation is a checklist, a SQL report, or no AI at all.",
+    expectation: "Practice selecting a proportionate automation level and explaining the boundary that blocks a more autonomous option.",
+    boundary: "Do not treat a model capability as approval to use protected data or write to an operational system.",
+    escalation: "Escalate legal, export-control, privacy, and security interpretations to qualified reviewers.",
+    durationMinutes: 45,
+    competencies: { roleJudgment: 1, security: 0.45, communication: 0.4 },
+    sections: [
+      {
+        heading: "Four levels, not a binary",
+        body: "Conventional automation: deterministic rules, forms, search, scripts—no model. Read-only AI: summarize or answer from authorized context; no side effects. Human-approved AI action: model drafts; a qualified human approves the exact write or external call. No AI: data, policy, or error tolerance make model involvement inappropriate even as a draft.",
+      },
+      {
+        heading: "Classify with the risk that blocks the next level up",
+        body: "Ask: Is the outcome deterministic from structured data? Prefer conventional. Is the value summarization or search over authorized prose with abstention? Read-only AI may fit. Does any step create, change, or send a consequential record? Require human approval or stay conventional. Is the source export-controlled, legally privileged, or lacking an approved environment? Choose no AI until reviewers decide otherwise.",
+      },
+      {
+        heading: "Drill scenarios",
+        body: "(1) Nightly count of open tickets by queue → conventional. (2) Draft a plain-language summary of an authorized incident timeline for a responder → read-only AI. (3) Propose a CMDB field update from a chat request → human-approved AI action or conventional form—not autonomous write. (4) Paste customer export-controlled drawings into a public model to ‘explain the assembly’ → no AI.",
+      },
+      {
+        heading: "Practice card (do this)",
+        body: "For each of the four scenarios, write: level chosen; one sentence why; the next more autonomous level you rejected; the risk that blocks it; the owner you would ask before changing the level. Keep answers short enough to say aloud in under thirty seconds each.",
+      },
+    ],
+    example: "Scenario: a lead asks for an agent that closes low-priority tickets when the model is confident. Classification: not autonomous. Safer path: conventional automation for clearly encoded close rules, or human-approved AI that drafts a close note the assignee must accept. Rejected level: write-enabled agent. Blocking risk: incorrect closure, missing audit intent, and silent policy drift. Owner: service desk workflow owner plus security review before any write tool exists.",
+    misconceptions: [
+      "If a model can draft the action, the organization should let it execute the action.",
+      "Air-gapped or ‘private’ hosting automatically makes every source eligible for AI ingestion.",
+      "Choosing no AI means you failed the applied-AI interview rather than applied judgment.",
+    ],
+    source: sources.owasp,
+    checks: [
+      {
+        prompt: "A manager wants a public chatbot to explain export-controlled assembly drawings pasted by engineers. Best classification?",
+        correct: "No AI until qualified reviewers define an approved environment, source boundary, and handling rules.",
+        distractors: [
+          "Read-only AI, because answering questions is harmless as long as the model is told not to store chats.",
+          "Human-approved AI action, because a supervisor can click approve after the public model already processed the drawing.",
+          "Conventional automation, because a nightly script can upload the drawings to any available model API automatically.",
+        ],
+        misconception: "Capability and convenience do not override data-handling constraints.",
+      },
+      {
+        prompt: "Which workflow is the best fit for conventional automation rather than a model?",
+        correct: "A nightly count of open tickets by queue from structured fields with a fixed report format.",
+        distractors: [
+          "Summarizing a messy multi-day incident narrative that needs citation-backed prose for responders.",
+          "Drafting a nuanced customer apology that must reflect tone, facts, and legal review before sending.",
+          "Explaining conflicting procedure revisions where abstention and source comparison are the main value.",
+        ],
+        misconception: "Deterministic structured reporting rarely needs a generative model.",
+      },
+      {
+        prompt: "An assistant may draft a CMDB update but must not apply it. Which level and control pair is correct?",
+        correct: "Human-approved AI action: the model prepares a diff; a qualified human approves the exact write before execution.",
+        distractors: [
+          "Read-only AI with a hidden write credential so the tool can ‘save time’ when confidence is high.",
+          "No AI forever, because any draft that mentions a configuration item is automatically a policy violation.",
+          "Conventional automation that grants the model a broad admin token to skip the approval queue entirely.",
+        ],
+        misconception: "Drafting and executing are different autonomy levels.",
+      },
+    ],
+  },
+  {
+    id: "aio-sprint-extension-05-defense-loop",
+    title: "System design and project-defense loop",
+    competency: "communication",
+    outcome: "Run a timed fictional defense: state scope, boundary, ownership, and revision against a four-part rubric, then improve one weak answer after skeptical follow-up.",
+    overview: "Interview and design reviews reward structured ownership under time pressure. This practice uses a short clock and an explicit rubric—scope, boundary, ownership, revision—so you practice defense, not improvisational bragging.",
+    expectation: "Practice a timed architecture explanation and honest ownership disclosure; this does not certify independent production implementation skill.",
+    boundary: "Interview practice is not a certification of independent implementation skill or production authority.",
+    escalation: "Escalate gaps honestly: name the next learning goal or specialist partnership rather than inventing experience.",
+    durationMinutes: 60,
+    competencies: { communication: 1, architecture: 0.4, aiCollaboration: 0.35, roleJudgment: 0.3 },
+    sections: [
+      {
+        heading: "The four-part rubric",
+        body: "Scope: what outcome and users the design serves in one sentence. Boundary: what the system must not do (data, write, autonomy). Ownership: what you personally designed, reviewed, tested, or only observed in a sample. Revision: after a skeptical question, what you would change and what evidence would convince you. Score yourself 0–2 on each; a credible practice pass needs at least 6/8 without inventing production experience.",
+      },
+      {
+        heading: "Timed loop (≈25 minutes on the clock)",
+        body: "Minute 0–2: read the prompt and jot scope/boundary. Minute 2–8: explain the design aloud (or in writing) covering request path, authz-before-retrieval, evaluation, and fallback. Minute 8–14: answer two skeptical follow-ups (failure mode + ownership). Minute 14–20: revise the weakest rubric cell using a different structure, not more adjectives. Minute 20–25: restate the final scope and the specialist you would involve next.",
+      },
+      {
+        heading: "Skeptical follow-ups to expect",
+        body: "‘What happens when retrieval returns two conflicting current sources?’ ‘Which tests prove unauthorized text never enters the prompt?’ ‘What did you build versus what did you tour?’ ‘Why not an agent that closes tickets?’ Weak answers add tools; strong answers return to boundary, evidence, and owner.",
+      },
+      {
+        heading: "Honest ownership language (do this)",
+        body: "Write four lines you could say under pressure: (1) I designed/decided… (2) I implemented or modified… (3) AI suggested… and I changed… (4) I have not yet… and would partner with… Keep each line factual. Then run the timed loop on the fictional ProcedureDesk read-only pilot.",
+      },
+    ],
+    example: "Prompt: defend a read-only procedure assistant for technicians. Scope: cited answers from authorized procedures; abstain when unsupported. Boundary: no writes, no export-controlled sources, authz before retrieval. Ownership: ‘I specified the contract and denial tests; I toured a sample FastAPI app; I have not operated production identity.’ Skeptical ask: conflict between two current procedures. Revision: ‘I would return escalate_conflict with both source IDs and add that case to the eval set before any write tool discussion.’",
+    misconceptions: [
+      "A strong defense requires claiming you personally built every layer of the stack.",
+      "Revision after feedback means your first answer failed; better to defend a weak claim stubbornly.",
+      "Listing many frameworks scores higher on the rubric than a clear boundary and ownership split.",
+    ],
+    source: sources.nist,
+    checks: [
+      {
+        prompt: "Which response best satisfies the ownership cell of the defense rubric?",
+        correct: "Separate what you specified, what you toured or generated, what you tested, and what you have not operated yet.",
+        distractors: [
+          "Claim every sample file in the repository as independent production implementation because you completed the lesson.",
+          "Avoid mentioning AI assistance or walkthroughs so the interviewer assumes full authorship by default.",
+          "List every framework you recognize and imply hands-on ownership of each without naming a boundary.",
+        ],
+        misconception: "Ownership is accountable honesty, not maximal credit.",
+      },
+      {
+        prompt: "A skeptical interviewer asks what happens when two current procedures conflict. Which revision improves the answer?",
+        correct: "Abstain or escalate with both source IDs, add a conflict case to evaluation, and postpone write-tools until that evidence exists.",
+        distractors: [
+          "Have the model pick the longer document and present it confidently so the user is not delayed by uncertainty.",
+          "Ignore the conflict in the interview because the original happy-path diagram did not show disagreement cases.",
+          "Add an autonomous agent loop that edits the procedures until they agree, then close the related tickets.",
+        ],
+        misconception: "Revision should strengthen boundary and evidence, not add unsafe autonomy.",
+      },
+      {
+        prompt: "What does a timed defense practice certify in this course?",
+        correct: "Practice structuring scope, boundary, ownership, and revision under time—not independent production skill certification.",
+        distractors: [
+          "Authority to deploy the defended design into a live environment without further review or owners.",
+          "Proof that every architectural box you named was implemented solely by you in production.",
+          "A guarantee that interviewers will not ask about failures, tests, or specialist partnerships.",
+        ],
+        misconception: "Practice builds performance under pressure; it does not mint production authority.",
+      },
+    ],
+  },
+];
+
+export const aioSprintExtensions: CourseModule[] = extensionSeeds.map(extensionModule);
 
 type ConceptSeed = {
   group: string;
@@ -413,18 +775,18 @@ const conceptSeeds: ConceptSeed[] = [
   { group: "Computing and systems", title: "Local, cloud, and restricted environments", competency: "architecture", explanation: "Local development, hosted cloud services, and restricted or air-gapped environments have different access, deployment, update, and data-boundary constraints.", why: "Model choice and integration design must fit the approved environment rather than assuming public internet access.", example: "A fictional team can test sanitized data locally but needs a separate approval path before using an isolated internal model endpoint.", redFlag: "Assuming a hosted API key can be moved into a restricted environment without review.", owner: "Platform, security, and environment owner", source: sources.nist },
   { group: "Computing and systems", title: "Containers", competency: "architecture", explanation: "A container packages an application and its dependencies into a repeatable runtime unit. It helps consistency, but it does not automatically make an application secure or observable.", why: "You should recognize a containerized deployment conversation and ask about configuration, secrets, logs, network access, and update ownership.", example: "A fictional FastAPI service runs the same image in test and staging but receives different approved configuration at deployment time.", redFlag: "Treating a container image as proof that deployment controls and secrets management are solved.", owner: "Platform or DevOps owner", source: sources.opentelemetry },
   { group: "Computing and systems", title: "Asynchronous work", competency: "production", explanation: "Asynchronous work lets a service wait for slow tasks or run background work without blocking every request. It introduces timeouts, cancellation, ordering, and error-propagation concerns.", why: "It helps you ask why a request is slow or why a background task silently failed without claiming to tune production concurrency.", example: "A fictional retrieval request fans out to search and policy checks; each call needs a timeout and a defined fallback.", redFlag: "Assuming async code removes failures or makes every operation faster.", owner: "Service owner", source: sources.python },
-  { group: "Computing and systems", title: "Queues, caching, and CI/CD", competency: "architecture", explanation: "Queues defer or smooth work, caches reuse safe temporary results, and CI/CD automates tested delivery. Each changes failure modes and needs ownership, invalidation, and rollback decisions.", why: "You can recognize the right questions when a prototype needs scale, reliable background processing, or a safer release path.", example: "A fictional evaluation job enters a queue while a cache only stores non-sensitive, short-lived metadata lookups.", redFlag: "Adding a queue or cache before defining what happens when work is delayed, duplicated, stale, or unavailable.", owner: "Service and platform owners", source: sources.opentelemetry },
+  { group: "Computing and systems", title: "Queues and safe caching", competency: "architecture", explanation: "A queue holds work to run later or in parallel so a request path stays responsive. A cache stores a temporary, reusable result under an explicit key and lifetime. Both change failure modes: queues introduce delay, duplication, and poison messages; caches introduce staleness and unauthorized reuse if you cache protected answers.", why: "You can ask the right questions when a prototype needs background jobs or faster repeated lookups—without treating either as a default add-on.", example: "A fictional evaluation job is enqueued with a job id and retry budget. A separate cache stores only non-sensitive, short-lived metadata lookups with a TTL—not full procedure text.", redFlag: "Adding a queue or cache before defining delay, duplicate delivery, staleness, invalidation, and what users see when work is unavailable.", owner: "Service and platform owners", source: sources.opentelemetry },
   { group: "Application engineering", title: "API contracts", competency: "foundations", explanation: "An API contract describes allowed inputs, outputs, errors, and versioned expectations between a caller and a service.", why: "It makes an AI feature an accountable component instead of a prompt that happens to return text.", example: "A fictional triage API accepts a validated incident summary and returns a structured recommendation or a clear abstention.", redFlag: "Letting consumers depend on unvalidated prose or undocumented fields.", owner: "Service owner", source: sources.fastapi },
   { group: "Application engineering", title: "Schemas and validation", competency: "foundations", explanation: "A schema specifies the shape and constraints of structured data. Validation rejects malformed, missing, or unsafe data at a boundary.", why: "Structured outputs, APIs, tools, and evaluation records all rely on clear schemas rather than best-effort parsing.", example: "A fictional model output must include an action type, confidence state, and cited source IDs before a human can review it.", redFlag: "Passing model-generated JSON downstream because it parses without checking required fields or values.", owner: "Service owner", source: sources.fastapi },
   { group: "Application engineering", title: "Relational data", competency: "foundations", explanation: "Relational databases store connected facts such as users, roles, documents, approvals, and audit events with explicit relationships.", why: "You can decide when ordinary data modeling is more appropriate than asking an LLM to infer a deterministic answer.", example: "A fictional approval record links a requester, permitted action, reviewer, timestamp, and outcome.", redFlag: "Using an LLM to answer a query that needs exact, authoritative database state.", owner: "Data or service owner", source: sources.postgres },
   { group: "Application engineering", title: "Authentication and authorization", competency: "security", explanation: "Authentication establishes identity; authorization decides what a known identity may access or do. They are enforced by trusted systems, not user-interface controls or prompts.", why: "Permission-aware retrieval and human-approved actions depend on this boundary.", example: "A fictional engineer authenticates to the service; the service then authorizes only their permitted procedure collection before retrieval.", redFlag: "Retrieving all content and asking the model or frontend to hide restricted passages.", owner: "Identity and security owner", source: sources.owasp },
   { group: "Application engineering", title: "Secrets and least privilege", competency: "security", explanation: "Secrets authenticate systems; least privilege limits each identity or tool to only the access it needs for a defined task.", why: "This prevents a prototype from becoming a broad, unaccountable channel into protected systems.", example: "A fictional read-only assistant has no write credential and cannot choose new tool permissions during a conversation.", redFlag: "Placing credentials in browser code, prompts, repositories, or broadly shared configuration.", owner: "Security and platform owner", source: sources.owasp },
-  { group: "Application engineering", title: "Observability, incidents, and rollback", competency: "production", explanation: "Logs, metrics, and traces show what happened. Incident response contains impact, restores safe service, communicates status, and records prevention; rollback returns a change to a known-good state.", why: "You need to define operational evidence before proposing a broader AI rollout.", example: "A fictional model change raises unsupported-answer failures; the team pauses rollout, returns to the prior version, and adds the case to evaluation.", redFlag: "Declaring a pilot successful without a way to detect drift or reverse a harmful change.", owner: "Service owner and incident lead", source: sources.opentelemetry },
+  { group: "Application engineering", title: "Observability and rollback", competency: "production", explanation: "Observability means you can answer what happened using logs, metrics, and traces tied to request or change identifiers. Rollback is the paired control: when signals show harm, you return to a known-good version instead of improvising under pressure.", why: "You need detectable failure and a reversible path before proposing a broader AI rollout.", example: "A fictional model change raises unsupported-answer rate. Metrics and traces show the spike; the team pauses rollout, rolls back to the prior version, and adds the failing cases to evaluation.", redFlag: "Declaring a pilot successful without signals that would detect drift or a path to reverse a harmful change.", owner: "Service owner and incident lead", source: sources.opentelemetry },
   { group: "Applied AI", title: "Tokens and context windows", competency: "foundations", explanation: "Models process input as tokens and have finite context windows. More context can increase cost, latency, distraction, and risk; it does not guarantee better answers.", why: "It lets you discuss prompt and retrieval tradeoffs without treating context size as a quality guarantee.", example: "A fictional assistant receives only the authorized, current passages needed for a question instead of an entire procedure library.", redFlag: "Adding every available document to a prompt because more context must be safer.", owner: "Applied AI or service owner", source: sources.nist },
   { group: "Applied AI", title: "Embeddings and vector search", competency: "architecture", explanation: "Embeddings represent text in a form that supports semantic similarity search. Vector search helps find candidate content; it is not an authorization system or truth guarantee.", why: "You can explain why retrieval has multiple stages and why metadata and permission filters still matter.", example: "A fictional query finds semantically similar procedure chunks only after the requester’s allowed collections are filtered.", redFlag: "Using embedding similarity as a substitute for access control or source freshness.", owner: "Applied AI and data owner", source: sources.nist },
   { group: "Applied AI", title: "Retrieval, reranking, and citations", competency: "architecture", explanation: "RAG retrieves relevant authorized source material, may rerank it, and asks the model to answer from that evidence with citations or abstention.", why: "This is a central architecture pattern for internal knowledge assistants, but it must be evaluated rather than assumed reliable.", example: "A fictional assistant surfaces two current cited procedures and escalates when they conflict instead of silently choosing one.", redFlag: "Treating a citation as proof that the answer is supported, current, or correctly applied.", owner: "Applied AI, content, and policy owners", source: sources.nist },
   { group: "Applied AI", title: "Structured outputs", competency: "foundations", explanation: "Structured output asks a model for data that conforms to a schema. The application must still validate that schema and decide how to handle failure or uncertainty.", why: "It turns an LLM from a prose generator into a bounded participant in a workflow.", example: "A fictional triage result contains a recommended category, cited evidence IDs, uncertainty, and a no-action default when validation fails.", redFlag: "Parsing prose with brittle string logic because the model usually follows the requested format.", owner: "Service owner", source: sources.fastapi },
-  { group: "Applied AI", title: "Tools, agents, and MCP", competency: "roleJudgment", explanation: "Tools let a model request bounded capabilities. Agents select steps across tools; MCP is a protocol for providing context and tools. Deterministic workflows are often safer when the path is known.", why: "You need to choose the smallest amount of model autonomy that the evidence supports.", example: "A fictional assistant retrieves documents and prepares a recommendation, while a human approves any consequential action.", redFlag: "Using an agent loop where a predictable form, search path, or workflow would be safer and easier to test.", owner: "Service, security, and workflow owners", source: sources.owasp },
+  { group: "Applied AI", title: "Tools versus agents", competency: "roleJudgment", explanation: "A tool is a bounded capability a model may request (search, validate, draft). An agent loop lets the model choose a sequence of tool calls. Prefer an explicit deterministic workflow when the path is known; reserve open-ended agent loops for genuine uncertainty. Protocols such as MCP describe how tools and context are offered—they do not decide how much autonomy is safe.", why: "You need to choose the smallest autonomy the evidence supports.", example: "A fictional assistant may call retrieve_procedures and format_draft; a human must approve any write. There is no free-form agent loop selecting new tools mid-conversation.", redFlag: "Using an agent loop where a predictable form, search path, or workflow would be safer and easier to test.", owner: "Service, security, and workflow owners", source: sources.owasp },
   { group: "Applied AI", title: "Model gateways and hosting", competency: "architecture", explanation: "A model gateway centralizes provider access, policy, logging, quotas, and fallback behavior. Model hosting choices affect data boundaries, latency, cost, reliability, and approvals.", why: "It helps you ask the right architecture questions without claiming to operate a model platform.", example: "A fictional service calls an approved internal gateway rather than exposing a provider credential in the browser.", redFlag: "Letting each prototype call arbitrary public model endpoints with its own unmanaged key.", owner: "AI platform and security owner", source: sources.nist },
   { group: "Safe enterprise AI", title: "Data classification", competency: "security", explanation: "Data classification defines how information may be handled, stored, transmitted, and accessed. A useful AI design begins by identifying what data may enter the approved environment.", why: "A technically appealing use case can still be inappropriate if data handling, privacy, export-control, or retention requirements are unresolved.", example: "A fictional pilot uses synthetic procedures until the data owner approves a narrow, documented source boundary.", redFlag: "Assuming an air-gapped model makes every source automatically permitted for ingestion.", owner: "Data owner, privacy, legal, export-control, and security reviewers", source: sources.nist },
   { group: "Safe enterprise AI", title: "Prompt injection", competency: "security", explanation: "Prompt injection occurs when user or retrieved content tries to override instructions or manipulate tool use. It is an application security problem, not only a prompting problem.", why: "You must design isolation, tool permissions, validation, and human approval around untrusted content.", example: "A fictional document includes instructions to export records; the system treats it only as content and never grants it control over tools.", redFlag: "Relying on a stronger system prompt as the only protection against untrusted retrieved text.", owner: "Security and service owner", source: sources.owasp },
@@ -443,11 +805,13 @@ const conceptSeeds: ConceptSeed[] = [
   { group: "Architecture vocabulary", title: "Rate limits", competency: "production", explanation: "Rate limits bound how often a caller, user, or system can consume a capability. They protect reliability, cost, and downstream systems, but need clear responses and fair operational policy.", why: "An LLM integration can fail operationally through cost or overload even when each individual response is correct.", example: "A fictional gateway limits expensive evaluation calls and returns a clear retry window rather than silently dropping requests.", redFlag: "Allowing unlimited retries or high-volume tool calls because a pilot has few initial users.", owner: "Platform and service owner", source: sources.nist },
   { group: "Architecture vocabulary", title: "Deployment and Docker", competency: "architecture", explanation: "Deployment promotes a tested artifact and approved configuration into an environment. Docker is one way to package an artifact consistently; it does not replace environment review, secrets, monitoring, or rollback.", why: "You can take part in a prototype-to-production conversation without overstating operations expertise.", example: "A fictional FastAPI image is tested in staging, receives environment-specific non-secret configuration, and has a documented rollback target.", redFlag: "Treating ‘it runs in a container’ as proof that it is safe to deploy.", owner: "Platform, release, and service owners", source: sources.opentelemetry },
   { group: "Architecture vocabulary", title: "Distributed-system failures", competency: "production", explanation: "When components communicate over networks, delays, partial failure, stale state, duplicate delivery, and inconsistent results are normal possibilities. Good designs make these cases visible and recoverable.", why: "It keeps an architecture discussion grounded in real operational behavior instead of a perfect happy-path diagram.", example: "A fictional retrieval call times out after the policy check succeeded; the service returns a safe unavailable response and preserves the audit record.", redFlag: "Assuming a remote call either succeeds immediately or fails in a way that leaves all systems unchanged.", owner: "Service and platform owners", source: sources.opentelemetry },
-  { group: "Architecture vocabulary", title: "Kubernetes and Rust: recognize the role", competency: "architecture", explanation: "Kubernetes orchestrates containerized workloads; Rust is a systems language with strong ownership and error-handling guarantees. Both can be valuable, but neither is the default answer to an application-design problem.", why: "You should recognize when these topics affect a proposal and partner with specialists rather than treating vocabulary as implementation competence.", example: "A fictional high-throughput parser may justify a Rust investigation, while a small Python service remains the simpler proven path for the pilot.", redFlag: "Adding Kubernetes or Rust to a design only to sound advanced before the workflow, service boundary, and evidence justify them.", owner: "Platform or systems specialist", source: sources.python },
+  { group: "Architecture vocabulary", title: "Recognize advanced platforms without defaulting to them", competency: "architecture", explanation: "Kubernetes orchestrates containerized workloads across clusters. Rust is a systems language with strong ownership and memory-safety guarantees. Both solve specific scale and safety problems. Neither is the default answer when a small, reviewed Python service already meets the pilot’s latency, boundary, and ownership needs.", why: "You should recognize when specialists raise these options—and push for evidence before adding platform or language complexity.", example: "A fictional pilot ships a FastAPI service with clear authz and eval gates. A later proposal for Kubernetes or a Rust rewrite requires measured throughput, ops ownership, and a failure mode the current stack cannot handle.", redFlag: "Adding Kubernetes or Rust only to sound advanced before workflow, service boundary, and evidence justify them.", owner: "Platform or systems specialist", source: sources.python },
 ];
 
 function conceptModule(seed: ConceptSeed, index: number): CourseModule {
   const id = `aio-concept-${String(index + 1).padStart(2, "0")}`;
+  const firstSentence = seed.explanation.split(/(?<=\.)\s+/)[0] ?? seed.explanation;
+  const retrievalCheck = aioConceptRetrievalChecks[index];
   return {
     id,
     title: seed.title,
@@ -465,7 +829,7 @@ function conceptModule(seed: ConceptSeed, index: number): CourseModule {
     pathAvailability: ["concept-library", "full-program"],
     instructionalDesign: aioInstructionalDesign,
     outcome: `Explain ${seed.title.toLowerCase()} clearly and recognize the safe handoff boundary.`,
-    overview: seed.explanation,
+    overview: `Recognize ${seed.title}: ${firstSentence}`,
     sections: [
       { heading: "Plain-language meaning", body: seed.explanation },
       { heading: "Why it matters here", body: seed.why },
@@ -474,16 +838,7 @@ function conceptModule(seed: ConceptSeed, index: number): CourseModule {
     ],
     workedExample: seed.example,
     misconceptions: [seed.redFlag, "Recognizing a concept is the same as being authorized or prepared to operate it independently."],
-    knowledgeChecks: [check(`${id}-q1`, seed.competency, {
-      prompt: `A teammate mentions ${seed.title.toLowerCase()} during a fictional design review. What is the most credible learner response?`,
-      correct: `Explain its role in the stated workflow, name the relevant boundary, and involve the ${seed.owner} before implementation decisions are made.`,
-      distractors: [
-        `Claim that knowing the definition means you can configure ${seed.title.toLowerCase()} directly in the production environment without review.`,
-        "Ignore the dependency because terminology is less important than moving quickly to a feature demonstration and collecting user reactions.",
-        "Ask a model for a configuration snippet, apply it broadly, and treat the absence of an immediate error as sufficient verification.",
-      ],
-      misconception: "Concept recognition and accountable implementation are different levels of readiness.",
-    })],
+    knowledgeChecks: [check(`${id}-q1`, seed.competency, retrievalCheck)],
     artifact: knowEvidence,
     rules: [{ id: "concept-boundary", label: "Recognize and escalate", requiredTerms: ["specialist"], minimumMatches: 1 }],
     sources: [seed.source],

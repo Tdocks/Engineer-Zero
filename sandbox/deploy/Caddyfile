@@ -1,0 +1,4 @@
+{$SANDBOX_DOMAIN:sandbox.engineer0.com} {
+	encode gzip
+	reverse_proxy sandbox:8787
+}

@@ -1,0 +1,51 @@
+# Hosted Engineer Zero coding sandbox (Hetzner / any Docker VPS).
+# TLS terminates at Caddy; the runner binds loopback only.
+services:
+  sandbox:
+    build:
+      context: ..
+      dockerfile: Dockerfile.runner
+    image: engineer-zero-sandbox-runner:local
+    working_dir: /app
+    command: ["node", "server.mjs"]
+    volumes:
+      - ../:/app:ro
+      # Shared /tmp so docker.sock bind-mounts resolve to the same host paths.
+      - /tmp:/tmp
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      SANDBOX_PORT: "8787"
+      # Listen on all interfaces inside the compose network only.
+      # Host publish is loopback-only so Caddy (or local curl) can health-check.
+      SANDBOX_BIND: "0.0.0.0"
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN}
+      SANDBOX_PYTHON_IMAGE: engineer-zero-sandbox-python:local
+    ports:
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped
+    networks:
+      - sandbox_net
+
+  caddy:
+    image: caddy:2.9-alpine
+    depends_on:
+      - sandbox
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      SANDBOX_DOMAIN: ${SANDBOX_DOMAIN:-sandbox.engineer0.com}
+    restart: unless-stopped
+    networks:
+      - sandbox_net
+
+networks:
+  sandbox_net:
+
+volumes:
+  caddy_data:
+  caddy_config:

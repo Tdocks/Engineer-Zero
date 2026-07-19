@@ -58,3 +58,7 @@ npm run build:image && npm test
 ```
 
 Docker integration tests skip automatically when the python image is missing.
+
+## Hosted (Hetzner)
+
+Production deploy files live in [`deploy/`](deploy/). See [`deploy/README.md`](deploy/README.md).

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { codingChallenges } from "./coding-developer";
+import { allCodingChallenges } from "./coding-developer";
 
 type ChallengeEvidenceResult = {
   score: number;
@@ -57,6 +57,26 @@ const challengeEvidenceRequirements: Record<string, EvidenceRequirement[]> = {
     rubric("uncertainty", "a concrete uncertainty or missing-fact path", ["uncertainty", "missing", "unit", "ambiguous", "escalate"]),
     rubric("approval", "human approval outside the model boundary", ["human", "approve", "action", "risk", "decision"]),
   ],
+  "coding-aio-procedure-assistant": [
+    rubric("authorization", "authorization is enforced before retrieval", ["authorization", "before", "retrieval", "scope", "policy"], 3),
+    rubric("repair", "the deliberate authorization-order failure and repair", ["failure", "moved", "retrieve", "test", "repair"], 3),
+    rubric("tests", "deny, cite, conflict, and unsupported test evidence", ["deny", "citation", "conflict", "unsupported", "pytest"], 4),
+    rubric("ownership", "supplied scaffold versus personal contribution", ["supplied", "scaffold", "reviewed", "designed", "contribution"], 3),
+    rubric("limits", "a production limitation and accountable owner", ["production", "limitation", "owner", "security", "platform"], 3),
+  ],
+  "coding-aio-broken-pr-review": [
+    rubric("authz-bug", "authorization-before-retrieval defect and consequence", ["authorization", "before", "retrieval", "retrieve_all", "scope"], 3),
+    rubric("retry-bug", "blind write retries and idempotency repair", ["retry", "idempoten", "duplicate", "write", "NeedsReview"], 3),
+    rubric("json-bug", "unvalidated JSON before downstream use", ["json", "schema", "validat", "unvalidated", "reject"], 3),
+    rubric("repair", "repairs and a test you would run under pressure", ["repair", "test", "assert", "pytest", "boundary"], 3),
+  ],
+  "coding-aio-grok-draft-review": [
+    rubric("allowlist-bug", "tools without allowlist and the repair", ["allowlist", "tool", "refuse", "write", "ALL_TOOLS"], 3),
+    rubric("search-bug", "search cite treated as authorized corpus", ["search", "corpus", "authoriz", "citation", "abstain"], 3),
+    rubric("reasoning-bug", "high reasoning_effort on trivial classify and latency", ["reasoning", "low", "latency", "p95", "classify"], 3),
+    rubric("retry-bug", "blind write retries and idempotency repair", ["retry", "idempoten", "duplicate", "write", "NeedsReview"], 3),
+    rubric("repair", "repairs and a test you would run under pressure", ["repair", "test", "assert", "pytest", "boundary"], 3),
+  ],
   "coding-handoff-capstone": [
     rubric("outcome", "the user outcome and bounded scope", ["handoff", "user", "manual", "outcome", "scope"]),
     rubric("approval", "an explicit write or human-approval boundary", ["human", "approve", "review", "write", "action"]),
@@ -76,7 +96,7 @@ function words(value: string) {
  * than headings, repeated keywords, or a long unstructured response.
  */
 export function reviewCodingChallenge(challengeId: string, code: string, explanation: string): ChallengeEvidenceResult | null {
-  const challenge = codingChallenges.find((item) => item.id === challengeId);
+  const challenge = allCodingChallenges.find((item) => item.id === challengeId);
   const requirements = challengeEvidenceRequirements[challengeId];
   if (!challenge || !requirements) return null;
   const codeWithoutCommentOnlyLines = code
@@ -116,7 +136,7 @@ export function reviewCodingChallenge(challengeId: string, code: string, explana
 
 export function validateCodingChallengeRubrics() {
   const issues: string[] = [];
-  for (const challenge of codingChallenges) {
+  for (const challenge of allCodingChallenges) {
     const requirements = challengeEvidenceRequirements[challenge.id];
     if (!requirements || requirements.length < 4) issues.push(`Challenge review rubric is incomplete: ${challenge.id}`);
     if (requirements?.some((requirement) => !requirement.id || !requirement.label || requirement.anchors.length < 2)) {
@@ -124,7 +144,7 @@ export function validateCodingChallengeRubrics() {
     }
   }
   for (const challengeId of Object.keys(challengeEvidenceRequirements)) {
-    if (!codingChallenges.some((challenge) => challenge.id === challengeId)) issues.push(`Challenge review rubric points to an unknown challenge: ${challengeId}`);
+    if (!allCodingChallenges.some((challenge) => challenge.id === challengeId)) issues.push(`Challenge review rubric points to an unknown challenge: ${challengeId}`);
   }
   return issues;
 }

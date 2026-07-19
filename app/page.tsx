@@ -101,7 +101,7 @@ export default function Home() {
               <span className="path-icon sprint">48</span>
               <div>
                 <b>Interview Sprint</b>
-                <small>48-hour guided preparation</small>
+                <small>Few-day guided interview packet</small>
               </div>
               <em>→</em>
             </article>

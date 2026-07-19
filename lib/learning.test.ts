@@ -11,7 +11,7 @@ import {
 import { tracks } from "./tracks";
 import { aioContentCounts, validateAioContent, validateItSupportContent } from "./content-validation";
 import { gradeCourseAttempt } from "./aio-grade";
-import { aioInterviewPrompts, aioMissions, aioModules } from "./aio-content";
+import { aioInterviewPrompts, aioLabs, aioMissions, aioModules } from "./aio-content";
 import { aioBaseline, shuffledAioBaseline } from "./aio-baseline";
 import { itSupportBaseline, itSupportBaselineSources, shuffledItSupportBaseline } from "./it-support-baseline";
 import { itSupportInterviewPrompts, itSupportLabs, itSupportMissions, itSupportSprintModules } from "./it-support-content";
@@ -135,11 +135,134 @@ describe("Engineer Zero track engine", () => {
 
   it("uses authored, position-balanced knowledge checks in the AIO interview Sprint", () => {
     const sprint = aioModules.filter((module) => module.id.startsWith("aio-sprint-0") && module.pathAvailability?.includes("sprint-48h"));
-    expect(sprint).toHaveLength(8);
+    expect(sprint).toHaveLength(9);
     const correctPositions = sprint.flatMap((module) => module.knowledgeChecks.map((question) => question.choices.findIndex((choice) => choice.id === question.correctChoiceId)));
     expect(new Set(correctPositions)).toEqual(new Set([0, 1, 2, 3]));
     expect(sprint.every((module) => module.knowledgeChecks.length === 3)).toBe(true);
     expect(sprint.flatMap((module) => module.knowledgeChecks).every((question) => question.choices.every((choice) => choice.text.length >= 32))).toBe(true);
+  });
+
+  it("defines a Few-Day Interview Path with Coding hard gate and honest packet completion", async () => {
+    const {
+      aioInterviewEmergencyCodingLessonIds,
+      aioInterviewEmergencyCodingChallengeIds,
+      aioInterviewEmergencyEstimatedHours,
+      aioInterviewEmergencyPath,
+      aioInterviewEmergencyRequiredLabs,
+      aioInterviewEmergencyRequiredModules,
+      evaluateInterviewEmergencyProgress,
+      interviewEmergencyPathSummary,
+      reviewedAioInterviewCodingChallengeIds,
+    } = await import("./aio-interview-emergency-path");
+    const { aioMediaCatalog, mediaForModule } = await import("./aio-media");
+    expect(interviewEmergencyPathSummary).toMatch(/not independent production implementation/i);
+    expect(tracks["applied-ai-operations"].phases.find((phase) => phase.id === "crash-course")?.summary).toMatch(
+      /not independent production implementation/i,
+    );
+    expect(tracks["applied-ai-operations"].phases.find((phase) => phase.id === "foundation-bridge")?.summary).toMatch(
+      /post-offer|role accelerator/i,
+    );
+    expect(aioInterviewEmergencyPath.length).toBeGreaterThanOrEqual(10);
+    expect(aioInterviewEmergencyEstimatedHours).toBeGreaterThanOrEqual(25);
+    expect(aioInterviewEmergencyEstimatedHours).toBeLessThanOrEqual(38);
+    expect(aioInterviewEmergencyCodingLessonIds).toEqual(
+      expect.arrayContaining(["coding-day-1-04", "coding-day-1-05", "coding-day-2-03", "coding-day-2-05", "coding-day-3-03", "coding-day-3-04"]),
+    );
+    expect(
+      codingDeveloperProgram.prerequisiteFor.find((entry) => entry.trackId === "applied-ai-operations")?.lessonIds,
+    ).toEqual(expect.arrayContaining(aioInterviewEmergencyCodingLessonIds));
+    const reviewedProgress = emptyCodingProgress();
+    reviewedProgress.challengeAttempts = Object.fromEntries(
+      aioInterviewEmergencyCodingChallengeIds.map((id) => [
+        id,
+        {
+          score: 100,
+          feedback: "Reviewed",
+          status: "reviewed" as const,
+          localRunConfirmed: true,
+          testConfirmed: true,
+          updatedAt: new Date().toISOString(),
+        },
+      ]),
+    );
+    expect(reviewedAioInterviewCodingChallengeIds(reviewedProgress)).toEqual(
+      aioInterviewEmergencyCodingChallengeIds,
+    );
+    reviewedProgress.challengeAttempts[aioInterviewEmergencyCodingChallengeIds[0]].localRunConfirmed = false;
+    expect(reviewedAioInterviewCodingChallengeIds(reviewedProgress)).not.toContain(
+      aioInterviewEmergencyCodingChallengeIds[0],
+    );
+    expect(aioModules.filter((module) => module.pathAvailability?.includes("interview-emergency")).length).toBeGreaterThanOrEqual(9);
+    for (const moduleId of aioInterviewEmergencyRequiredModules) {
+      const sprintModule = aioModules.find((item) => item.id === moduleId)!;
+      expect(sprintModule.blocks?.length ?? 0).toBeGreaterThanOrEqual(4);
+      expect(sprintModule.workProduct).toBeDefined();
+      expect(sprintModule.workProduct?.requiredTerms).toEqual(expect.arrayContaining(["TEACHBACK"]));
+      expect(mediaForModule(moduleId).length).toBeGreaterThanOrEqual(1);
+    }
+    for (const labId of aioInterviewEmergencyRequiredLabs) {
+      const lab = aioLabs.find((item) => item.id === labId)!;
+      expect(lab.pathAvailability).toContain("interview-emergency");
+      expect(lab.workProduct).toBeDefined();
+    }
+    expect(aioInterviewEmergencyCodingChallengeIds).toEqual(
+      expect.arrayContaining([
+        "coding-aio-procedure-assistant",
+        "coding-aio-broken-pr-review",
+        "coding-aio-grok-draft-review",
+      ]),
+    );
+    expect(aioInterviewEmergencyRequiredModules).toEqual(
+      expect.arrayContaining([
+        "aio-sprint-10-grok-model-ops",
+        "aio-sprint-11-prompt-engineering",
+      ]),
+    );
+    expect(aioInterviewEmergencyRequiredLabs).toEqual(
+      expect.arrayContaining(["aio-lab-grok-routing", "aio-lab-grok-live"]),
+    );
+    expect(aioMediaCatalog.every((cue) => cue.resourceType === "video" && cue.url.includes("youtube.com/watch") && cue.watchFor && cue.doAfter && cue.validatedAt && cue.revalidateBy)).toBe(true);
+    const incomplete = evaluateInterviewEmergencyProgress({
+      completedCourseItemIds: [...aioInterviewEmergencyRequiredModules],
+      completedCodingLessonIds: [],
+      reviewedCodingChallengeIds: [],
+      completedTimedMockCount: 2,
+      oralProbeDryRunComplete: true,
+      spokenNarrativeAttested: true,
+      coldArchitectureRedrawComplete: true,
+    });
+    expect(incomplete.packetComplete).toBe(false);
+    expect(incomplete.codingBridge).toBe(false);
+    const missingProbes = evaluateInterviewEmergencyProgress({
+      completedCourseItemIds: [
+        ...aioInterviewEmergencyRequiredModules,
+        ...aioInterviewEmergencyRequiredLabs,
+      ],
+      completedCodingLessonIds: aioInterviewEmergencyCodingLessonIds,
+      reviewedCodingChallengeIds: aioInterviewEmergencyCodingChallengeIds,
+      completedTimedMockCount: 1,
+      oralProbeDryRunComplete: false,
+      spokenNarrativeAttested: true,
+      coldArchitectureRedrawComplete: true,
+    });
+    expect(missingProbes.packetComplete).toBe(false);
+    expect(missingProbes.oralProbeDryRun).toBe(false);
+    const complete = evaluateInterviewEmergencyProgress({
+      completedCourseItemIds: [
+        ...aioInterviewEmergencyRequiredModules,
+        ...aioInterviewEmergencyRequiredLabs,
+      ],
+      completedCodingLessonIds: aioInterviewEmergencyCodingLessonIds,
+      reviewedCodingChallengeIds: aioInterviewEmergencyCodingChallengeIds,
+      completedTimedMockCount: 1,
+      oralProbeDryRunComplete: true,
+      spokenNarrativeAttested: true,
+      coldArchitectureRedrawComplete: true,
+    });
+    expect(complete.packetComplete).toBe(true);
+    const graduation = graduationStatus(emptyLearnerState, "applied-ai-operations");
+    expect(graduation.checks.some((check) => /Few-Day Interview Packet/i.test(check.label))).toBe(true);
+    expect(graduation.checks.find((check) => /Few-Day Interview Packet/i.test(check.label))?.done).toBe(false);
   });
 
   it("keeps commercial enrollment configuration server-side and explicitly gated", () => {
@@ -484,12 +607,12 @@ describe("Engineer Zero track engine", () => {
 
   it("has a complete authored IT Support 48-hour Sprint with nontrivial learner evidence", () => {
     expect(itSupportSprintModules).toHaveLength(8);
-    expect(new Set(itSupportSprintModules.map((module) => module.id)).size).toBe(8);
-    for (const module of itSupportSprintModules) {
-      expect(module.phaseId).toBe("crash-course");
-      expect(module.blocks?.length).toBeGreaterThanOrEqual(4);
-      expect(module.knowledgeChecks).toHaveLength(3);
-      expect(module.artifact.requiredFields).toEqual([
+    expect(new Set(itSupportSprintModules.map((sprintModule) => sprintModule.id)).size).toBe(8);
+    for (const sprintModule of itSupportSprintModules) {
+      expect(sprintModule.phaseId).toBe("crash-course");
+      expect(sprintModule.blocks?.length).toBeGreaterThanOrEqual(4);
+      expect(sprintModule.knowledgeChecks).toHaveLength(3);
+      expect(sprintModule.artifact.requiredFields).toEqual([
         "scenarioFact",
         "decision",
         "boundary",
@@ -497,10 +620,10 @@ describe("Engineer Zero track engine", () => {
         "owner",
         "escalation",
       ]);
-      expect(module.rules.length).toBeGreaterThanOrEqual(3);
-      expect(module.sources.every((source) => Boolean(source.url && source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
-      expect(module.review.fictionalData).toBe("approved");
-      expect(module.review.versionApproved).toBe("pending");
+      expect(sprintModule.rules.length).toBeGreaterThanOrEqual(3);
+      expect(sprintModule.sources.every((source) => Boolean(source.url && source.version && source.locator && source.supportedClaim && source.revalidateBy))).toBe(true);
+      expect(sprintModule.review.fictionalData).toBe("approved");
+      expect(sprintModule.review.versionApproved).toBe("pending");
     }
   });
 
@@ -520,11 +643,11 @@ describe("Engineer Zero track engine", () => {
   });
 
   it("rejects short or copied IT Support evidence even with correct knowledge checks", () => {
-    const module = itSupportSprintModules[0];
-    const answers = Object.fromEntries(module.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]));
+    const sprintModule = itSupportSprintModules[0];
+    const answers = Object.fromEntries(sprintModule.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]));
     const shallow = gradeItSupportCourseAttempt({
       kind: "module",
-      itemId: module.id,
+      itemId: sprintModule.id,
       answers,
       evidence: {
         scenarioFact: "impact impact impact impact impact impact impact impact",
@@ -541,15 +664,17 @@ describe("Engineer Zero track engine", () => {
   });
 
   it("ships distinct IT Support evidence simulations across all four learning modes", () => {
-    expect(itSupportLabs).toHaveLength(4);
+    expect(itSupportLabs).toHaveLength(12);
     expect(new Set(itSupportLabs.map((lab) => lab.mode))).toEqual(
       new Set(["Solo", "Pair Programming", "AI Builder", "Production Incident"]),
     );
     expect(itSupportLabs.every((lab) => lab.assets.length >= 3 && lab.evidence.requireEvidenceReference && lab.rules.length >= 3 && Boolean(lab.debrief && lab.revisionPrompt))).toBe(true);
+    expect(new Set(itSupportLabs.map((lab) => lab.id)).size).toBe(12);
   });
 
   it("ships stateful IT Support missions with safe and unsafe operational consequences", () => {
-    expect(itSupportMissions).toHaveLength(2);
+    expect(itSupportMissions).toHaveLength(6);
+    expect(new Set(itSupportMissions.map((mission) => mission.id)).size).toBe(6);
     for (const mission of itSupportMissions) {
       const decisions = mission.steps.filter((step) => step.id !== "outcome");
       expect(decisions).toHaveLength(3);
@@ -591,8 +716,8 @@ describe("Engineer Zero track engine", () => {
 
   it("ships the applied-AI institute catalog with complete evidence definitions", () => {
     expect(aioContentCounts).toEqual({
-      lessons: 80,
-      labs: 30,
+      lessons: 83,
+      labs: 33,
       missions: 10,
       interviews: 150,
     });
@@ -664,9 +789,13 @@ describe("Engineer Zero track engine", () => {
     const complete = gradeCourseAttempt({
       kind: "module",
       itemId,
-      answers: Object.fromEntries(
-        moduleDefinition.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]),
-      ),
+      answers: {
+        ...Object.fromEntries(
+          moduleDefinition.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]),
+        ),
+        __workProduct:
+          "Q1: Which workflow step consumes the most time today?\nQ2: Which source system is authoritative for the current procedure?\nQ3: Which users and permission scopes need access?\nQ4: Which exception must always reach a qualified reviewer?\nQ5: What risk follows from a wrong or stale answer?\nQ6: Which success metric would justify continuing the pilot?\nQ7: Which owner approves rollout, and what answer would force no AI?\nMAP-1 problem: Procedure search latency during shift handoff.\nMAP-2 who hurts: On-call technicians and the shift lead waiting on the current SOP.\nMAP-3 evidence: Ticket timestamps and the approved procedure corpus revision log.\nMAP-4 automation-vs-LLM: Use deterministic search when the rule is exact; use an LLM only for ambiguous language after authorization.\nUNKNOWN-1 escalate: Conflicting authorized revisions go to the content owner.\nUNKNOWN-2 refuse: I will not claim production ownership of systems I only reviewed.\nUNKNOWN-3 handoff owner: Security lead owns data-boundary exceptions.\nTEACHBACK: A technical partner starts with discovery before architecture. The workflow, source of truth, permissions, exceptions, risk, metric, and owner decide whether AI belongs. Automation wins when rules are exact; an LLM helps only with ambiguous language after authorization. I escalate conflicts and refuse claims I cannot evidence. I would not pitch an agent until those discovery answers exist, and I would name the content and security owners before any pilot expands.",
+      },
       evidence: {
         scenarioFact: "The fictional engineering team loses time finding the current procedure during a controlled shift handoff.",
         decision: "Recommend the tradeoff of a read-only cited retrieval pilot rather than an autonomous assistant or unbounded document search.",
@@ -678,6 +807,38 @@ describe("Engineer Zero track engine", () => {
       },
     });
     expect(complete?.complete).toBe(true);
+  });
+
+  it("requires all 12 structured evaluation cases, not a prose claim", () => {
+    const itemId = "aio-sprint-05-evaluation";
+    const moduleDefinition = aioModules.find((item) => item.id === itemId)!;
+    const answers = {
+      ...Object.fromEntries(
+        moduleDefinition.knowledgeChecks.map((question) => [question.id, question.correctChoiceId]),
+      ),
+      __workProduct: Array.from(
+        { length: 11 },
+        (_, index) =>
+          `CASE-${String(index + 1).padStart(2, "0")} | supported denied stale conflict injection unsupported schema latency cost | expected behavior | observable evidence | failure category | owner`,
+      ).join("\n"),
+    };
+    const attempt = gradeCourseAttempt({
+      kind: "module",
+      itemId,
+      answers,
+      evidence: {
+        scenarioFact: "The demo produced an unsupported cooling-time answer without a source citation during the fictional pilot review.",
+        decision: "Withhold expansion until the twelve-case evaluation matrix passes its supported, denied, stale, conflict, injection, schema, latency, and cost gates.",
+        boundary: "Authorization denials retrieve no restricted evidence, conflicts abstain, and unsupported prompts never produce an operational recommendation.",
+        verification: "Run every case, compare observable output to expected behavior, classify each failure, assign an owner, and repeat the suite after repair.",
+        owner: "The evaluation owner triages failures while content, identity, security, and platform owners resolve their assigned categories.",
+        escalation: "Block release when any denial, unsupported-answer, conflict, schema, latency, or cost threshold fails and rerun regression before reconsideration.",
+        evidenceReferences: [],
+      },
+    });
+    expect(
+      attempt?.rubric.checks.find((check) => check.id === "work-product-entries")?.passed,
+    ).toBe(false);
   });
 
   it("accepts conventional automation when the mission facts make AI unnecessary", () => {

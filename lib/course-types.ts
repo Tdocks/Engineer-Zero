@@ -45,6 +45,22 @@ export type ArtifactSchema = {
   requiredFields?: EvidenceFieldKey[];
   requireEvidenceReference?: boolean;
 };
+/**
+ * A substantial learner-authored deliverable that does not fit into the six
+ * decision-record fields (for example a 12-row evaluation matrix or a spoken
+ * interview script). It is saved with the attempt and scored deterministically.
+ */
+export type WorkProductSchema = {
+  label: string;
+  prompt: string;
+  placeholder?: string;
+  minimumWords?: number;
+  /** Count non-empty lines beginning with `entryPrefix` when supplied. */
+  minimumEntries?: number;
+  entryPrefix?: string;
+  requiredTerms?: string[];
+  minimumTermMatches?: number;
+};
 export type EvidenceFieldKey =
   | "scenarioFact"
   | "decision"
@@ -88,7 +104,14 @@ export type CourseModule = {
   /** When independent action is not appropriate, identify the accountable specialist. */
   specialistEscalationGuidance?: string;
   /** An activity can appear in one or more entry paths without duplicating its content. */
-  pathAvailability?: Array<"sprint-48h" | "sprint-7-day" | "foundation-bridge" | "full-program" | "concept-library">;
+  pathAvailability?: Array<
+    | "sprint-48h"
+    | "sprint-7-day"
+    | "interview-emergency"
+    | "foundation-bridge"
+    | "full-program"
+    | "concept-library"
+  >;
   conceptGroup?: string;
   /** Research basis for the activity format, separate from sources for technical facts. */
   instructionalDesign?: {
@@ -105,6 +128,7 @@ export type CourseModule = {
   misconceptions: string[];
   knowledgeChecks: AssessmentItem[];
   artifact: ArtifactSchema;
+  workProduct?: WorkProductSchema;
   rules: DeterministicRule[];
   sources: SourceReference[];
   review: ReviewStatus;
@@ -117,6 +141,7 @@ export type LabDefinition = {
   id: string;
   title: string;
   phaseId: PhaseId;
+  pathAvailability?: CourseModule["pathAvailability"];
   mode: LearningMode;
   capabilityLevel?: CapabilityLevel;
   competencies: Partial<Record<CompetencyKey, number>>;
@@ -127,6 +152,7 @@ export type LabDefinition = {
     content: string;
   }>;
   task: string;
+  workProduct?: WorkProductSchema;
   evidence: ArtifactSchema;
   rules: DeterministicRule[];
   debrief: string;
@@ -172,6 +198,10 @@ export type InterviewPrompt = {
   commonMiss: string;
   followUp: string;
   rubric: string[];
+  /** Timed mock duration when this prompt is used as a scenario drill. */
+  timedMinutes?: 30 | 45 | 60 | 90;
+  /** Optional fictional constraint or artifact the examinee must use under time pressure. */
+  scenarioArtifact?: string;
   /** Primary-source records that support the technical claims or role practice
    * in this prompt. Examiner guidance remains server-only until an attempt is saved. */
   sources: SourceReference[];

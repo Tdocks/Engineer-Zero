@@ -207,6 +207,46 @@ export type CapstoneReview = {
   note?: string;
   updatedAt?: string;
 };
+export type InterviewMockRound = {
+  round: "fit" | "technical" | "system-design" | "defense";
+  promptId: string;
+  prompt: string;
+  firstResponse: string;
+  score: number;
+  elapsedSeconds: number;
+};
+export type InterviewMockAttempt = {
+  id: string;
+  trackId: TrackId;
+  startedAt: string;
+  completedAt: string;
+  rounds: InterviewMockRound[];
+  revisedRound: InterviewMockRound["round"];
+  revision: string;
+};
+export type OralProbeDryRunRecord = {
+  id: string;
+  trackId: TrackId;
+  completedAt: string;
+  answeredWithoutNotes: boolean;
+  answers: Array<{ probeId: number; response: string; rating?: "strong" | "partial" | "fail" }>;
+  strongOrPartialCount?: number;
+  mustPassCleared?: boolean;
+  usedColdPrompts?: boolean;
+};
+export type PacketAttestations = {
+  spokenNarrativeAttestedAt?: string;
+  coldArchitectureRedraw?: {
+    completedAt: string;
+    response: string;
+  };
+  speakAloudChecklist?: Record<string, boolean>;
+  /** Soft signal: learner ran live xAI Grok fixtures (optional for packet complete). */
+  liveGrokPracticed?: {
+    completedAt: string;
+    mode: "live" | "fallback";
+  };
+};
 export type LearnerState = {
   profile?: LearnerProfile;
   assessments: Record<TrackId, Record<string, number | string>>;
@@ -220,6 +260,12 @@ export type LearnerState = {
   accountability: Accountability;
   courseAttempts: CourseAttemptRecord[];
   courseDrafts: Record<string, CourseDraft>;
+  /** Completed four-round mocks preserve first answers and one revision. */
+  interviewMockAttempts: InterviewMockAttempt[];
+  /** Day-5 oral probe dry-run against the readiness bar (practice evidence). */
+  oralProbeDryRuns: OralProbeDryRunRecord[];
+  /** Spoken narrative + cold architecture redraw for Few-Day packet honesty. */
+  packetAttestations: PacketAttestations;
   preferences: LearnerPreferences;
   capstoneReview: CapstoneReview;
   programProgress: Partial<Record<ProgramId, import("./coding-developer").CodingProgramProgress>>;

@@ -227,7 +227,12 @@ export type SharedProgramDefinition = {
   promise: string;
   status: "active" | "draft";
   duration: string;
-  prerequisiteFor: Array<{ trackId: "applied-ai-operations" | "it-support-technician"; lessonIds: string[]; label: string }>;
+  prerequisiteFor: Array<{
+    trackId: "applied-ai-operations" | "it-support-technician";
+    lessonIds: string[];
+    challengeIds?: string[];
+    label: string;
+  }>;
 };
 
 const verified = "2026-07-18";
@@ -363,6 +368,17 @@ export const codingSources: Record<string, CodingSource> = {
     locator: "Generative AI and LLM application security resources",
     lastVerified: verified,
     supportedClaim: "GenAI application design needs explicit defenses against risks such as prompt injection and insecure tool use.",
+  },
+  xaiGrok: {
+    id: "xai-grok-4-5",
+    title: "Grok 4.5 developer documentation",
+    publisher: "xAI / SpaceXAI",
+    url: "https://docs.x.ai/developers/grok-4-5",
+    version: "Grok 4.5 current developer page",
+    locator: "OpenAI-compatible API, reasoning_effort, tools",
+    lastVerified: verified,
+    supportedClaim:
+      "Grok models are invoked through documented APIs with configurable reasoning and tools; application allowlists and validation still apply.",
   },
   dunloskyPractice: {
     id: "dunlosky-effective-learning",
@@ -599,6 +615,127 @@ export const codingChallenges: CodingChallenge[] = [
   { id: "coding-handoff-capstone", day: 4, kind: "defense", title: "Mission Operations Handoff Assistant", brief: "Scope, design, test, and defend a small handoff API with human review and degraded mode.", starter: "POST /handoffs\nInput: free-text notes\nOutput: issues, owners, urgency, review_status, uncertainties\n", requiredSignals: ["review", "test", "fallback", "validation"], expectedOutcome: "A bounded prototype design that another engineer can run, test, and challenge.", comprehensionPrompt: "Give the user outcome, the write/approval boundary, one end-to-end test, degraded behavior when AI is unavailable, and the first production concern you would escalate.", comprehensionRequirements: ["user outcome", "approval boundary", "end-to-end test", "degraded mode", "production escalation"], competencyWeights: { decomposition: 1, api: .8, aiApplications: .8, testingDebugging: .7, defense: 1, securityReliability: .7 }, sourceIds: ["fastapiBody", "pytest", "nistSsdf", "nistAiRmf"] },
 ];
 
+/** AIO-only bridge challenge. It is visible in Coding Developer but does not
+ * change the six-challenge Coding IRC graduation contract. */
+export const aioInterviewCodingBridgeChallenge: CodingChallenge = {
+  id: "coding-aio-procedure-assistant",
+  day: 3,
+  kind: "ai",
+  title: "AIO permission-aware procedure assistant",
+  brief:
+    "Run and inspect prototypes/permission-aware-knowledge-assistant, then prove authorization happens before retrieval, current evidence is cited, and unsupported or conflicting evidence abstains.",
+  starter:
+    "def ask(request):\n    principal = repository.principal(request.principal_id)\n    if principal is None:\n        return deny()\n    allowed_scopes = principal.scopes\n    retrieved = repository.retrieve(scopes=allowed_scopes, question=request.question)\n    if not retrieved:\n        return abstain()\n    return cited_answer(retrieved)\n\n# Test names to preserve:\n# test_authorization_filters_before_retrieval\n# test_current_authorized_source_is_cited\n# test_conflicting_sources_abstain_and_escalate\n# test_unsupported_answer_abstains\n",
+  requiredSignals: [
+    "allowed_scopes",
+    "repository.retrieve",
+    "test_authorization_filters_before_retrieval",
+    "test_conflicting_sources_abstain_and_escalate",
+  ],
+  antiPatterns: ["retrieve_all", "prompt_authorize", "ignore_permissions"],
+  expectedOutcome:
+    "A reviewed Coding-side scaffold plus test evidence for deny, cite, conflict, and unsupported-answer paths; never a production deployment claim.",
+  comprehensionPrompt:
+    "Explain the exact authorization-before-retrieval order, the deliberate failure you introduced and repaired, the four tests you ran, what the supplied scaffold already provided, and what remains outside production scope.",
+  comprehensionRequirements: [
+    "authorization before retrieval",
+    "deliberate failure and repair",
+    "deny/cite/conflict/unsupported tests",
+    "supplied scaffold versus personal contribution",
+    "production limitation and owner",
+  ],
+  competencyWeights: {
+    api: 0.6,
+    aiApplications: 1,
+    testingDebugging: 0.8,
+    defense: 0.8,
+    securityReliability: 1,
+  },
+  sourceIds: ["fastapiBody", "pytest", "nistAiRmf", "owaspGenAi"],
+};
+
+/** Timed AI-generated PR review for the Few-Day interview packet. */
+export const aioBrokenPrReviewChallenge: CodingChallenge = {
+  id: "coding-aio-broken-pr-review",
+  day: 3,
+  kind: "debug",
+  title: "Broken AI PR review (authz / retry / JSON)",
+  brief:
+    "An AI assistant submitted this PR. Narrate three defects before repairing: (1) retrieve before authorization, (2) blind retries on a write tool, (3) unvalidated JSON passed downstream. Keep the fix interview-defensible.",
+  starter:
+    "def ask(request):\n    docs = retrieve_all(request.question)  # BUG: no authz filter\n    answer = model.complete(docs)\n    return json.loads(answer)  # BUG: unvalidated\n\ndef submit_ticket(payload):\n    for _ in range(5):  # BUG: blind write retries\n        create_ticket(payload)\n    return {'ok': True}\n",
+  requiredSignals: [
+    "allowed_scopes",
+    "Idempotency-Key",
+    "model_validate",
+    "NeedsReview",
+  ],
+  antiPatterns: ["retrieve_all", "for _ in range(5)", "json.loads(answer)"],
+  expectedOutcome:
+    "Authorization before retrieval, bounded idempotent writes, and schema validation before downstream use.",
+  comprehensionPrompt:
+    "Name each of the three bugs, the unsafe consequence of each, the repair you made, and one test you would run under interview pressure.",
+  comprehensionRequirements: [
+    "authz-before-retrieve bug",
+    "blind retry / idempotency bug",
+    "unvalidated JSON bug",
+    "repair and test",
+  ],
+  competencyWeights: {
+    testingDebugging: 1,
+    securityReliability: 1,
+    aiApplications: 0.7,
+    defense: 0.8,
+    api: 0.5,
+  },
+  sourceIds: ["pytest", "nistAiRmf", "owaspGenAi", "fastapiBody"],
+};
+
+/** Grok-shaped agent draft review for the Few-Day interview packet. */
+export const aioGrokDraftReviewChallenge: CodingChallenge = {
+  id: "coding-aio-grok-draft-review",
+  day: 3,
+  kind: "debug",
+  title: "Grok agent draft review (tools / search / reasoning)",
+  brief:
+    "A Grok-shaped OpenAI-compatible draft landed. Narrate four defects before repairing: (1) tools enabled without an allowlist, (2) search citations treated as authorized corpus, (3) reasoning_effort=high on a trivial classify task, (4) blind write retries without idempotency.",
+  starter:
+    'from openai import OpenAI\n\nclient = OpenAI(api_key=KEY, base_url="https://api.x.ai/v1")\n\ndef ask(request):\n    # BUG: every tool exposed; no allowlist\n    tools = ALL_TOOLS  # includes create_ticket\n    response = client.chat.completions.create(\n        model="grok-4.5",\n        messages=[{"role": "user", "content": request.question}],\n        tools=tools,\n        reasoning_effort="high",  # BUG: trivial classify-and-cite\n    )\n    # BUG: treat X/web search cite as authority\n    return {"answer": response.choices[0].message.content, "cite": response.search_hit}\n\ndef create_ticket(payload):\n    for _ in range(5):  # BUG: blind write retries\n        submit(payload)\n',
+  requiredSignals: [
+    "TOOL_ALLOWLIST",
+    "authorized_corpus",
+    'reasoning_effort="low"',
+    "Idempotency-Key",
+  ],
+  antiPatterns: ["ALL_TOOLS", "response.search_hit", 'reasoning_effort="high"', "for _ in range(5)"],
+  expectedOutcome:
+    "Allowlisted read-oriented tools, search cites verified against authorized corpus, low reasoning for classify-and-cite, and idempotent writes or NeedsReview.",
+  comprehensionPrompt:
+    "Name each of the four bugs, the unsafe consequence of each, the repair you made, and one test you would run under interview pressure.",
+  comprehensionRequirements: [
+    "tool allowlist bug",
+    "search citation authority bug",
+    "reasoning_effort / latency bug",
+    "blind write retry / idempotency bug",
+    "repair and test",
+  ],
+  competencyWeights: {
+    testingDebugging: 1,
+    securityReliability: 1,
+    aiApplications: 1,
+    defense: 0.8,
+    api: 0.5,
+  },
+  sourceIds: ["pytest", "nistAiRmf", "owaspGenAi", "xaiGrok"],
+};
+
+export const allCodingChallenges: CodingChallenge[] = [
+  ...codingChallenges,
+  aioInterviewCodingBridgeChallenge,
+  aioBrokenPrReviewChallenge,
+  aioGrokDraftReviewChallenge,
+];
+
 export const codingDayPlans: CodingDayPlan[] = [
   { day: 1, title: "Terminal to useful Python", mission: "Build a fictional equipment-status CLI and defend every deterministic rule.", focusedHours: 10, localProjectPath: "prototypes/coding-developer/equipment-triage-cli", cadence: [{ label: "Cold recall", purpose: "Reconstruct yesterday’s ideas before looking at notes." }, { label: "Instruction + worked examples", purpose: "Learn only the concepts needed for today’s narrow build." }, { label: "Guided modification", purpose: "Change a working example before writing from a blank screen." }, { label: "Repair", purpose: "Read a failure, form a hypothesis, and make one safe correction." }, { label: "Independent micro-build", purpose: "Create the CLI with validation and JSON output locally." }, { label: "Defense + spaced review", purpose: "Explain the design, then return to key questions after a break." }] },
   { day: 2, title: "Script to tested API", mission: "Turn the CLI rule into a typed FastAPI endpoint with boundary tests.", focusedHours: 10, localProjectPath: "prototypes/coding-developer/equipment-triage-api", cadence: [{ label: "Cold rebuild", purpose: "Set up the Day 1 project without copying commands." }, { label: "Contract first", purpose: "Define request, response, invalid input, and service responsibilities." }, { label: "Vertical slice", purpose: "Build one request → service → response → test path." }, { label: "Test repair", purpose: "Repair a boundary defect before adding features." }, { label: "Local API run", purpose: "Run pytest and inspect the generated FastAPI documentation." }, { label: "Reviewable change", purpose: "Record the work and explain the diff to a reviewer." }] },
@@ -614,7 +751,38 @@ export const codingDeveloperProgram: SharedProgramDefinition = {
   status: "active",
   duration: "4 intensive days + 4-week continuation",
   prerequisiteFor: [
-    { trackId: "applied-ai-operations", label: "AIO Foundation Bridge imports", lessonIds: ["coding-day-1-04", "coding-day-2-03", "coding-day-2-05", "coding-day-3-03", "coding-day-3-04"] },
+    {
+      trackId: "applied-ai-operations",
+      label: "AIO Few-Day Interview Path + Foundation Bridge (hard gate)",
+      lessonIds: [
+        "coding-day-1-02",
+        "coding-day-1-03",
+        "coding-day-1-04",
+        "coding-day-1-05",
+        "coding-day-1-06",
+        "coding-day-2-01",
+        "coding-day-2-02",
+        "coding-day-2-03",
+        "coding-day-2-04",
+        "coding-day-2-05",
+        "coding-day-3-01",
+        "coding-day-3-02",
+        "coding-day-3-03",
+        "coding-day-3-04",
+        "coding-day-3-05",
+        "coding-day-3-06",
+      ],
+      challengeIds: [
+        "coding-terminal-escape",
+        "coding-triage-cli",
+        "coding-triage-api",
+        "coding-test-repair",
+        "coding-ai-extraction",
+        "coding-aio-procedure-assistant",
+        "coding-aio-broken-pr-review",
+        "coding-aio-grok-draft-review",
+      ],
+    },
     { trackId: "it-support-technician", label: "IT automation foundation imports", lessonIds: ["coding-day-1-01", "coding-day-1-02", "coding-day-1-04", "coding-day-2-06"] },
   ],
 };
@@ -760,7 +928,7 @@ export function codingSourceList(ids: string[]) {
 export function validateCodingProgram() {
   const issues: string[] = [];
   const seenLessons = new Set<string>();
-  const challengeIds = new Set(codingChallenges.map((challenge) => challenge.id));
+  const challengeIds = new Set(allCodingChallenges.map((challenge) => challenge.id));
   for (const item of codingLessons) {
     if (seenLessons.has(item.id)) issues.push(`Duplicate lesson ID: ${item.id}`);
     seenLessons.add(item.id);
@@ -787,7 +955,7 @@ export function validateCodingProgram() {
     if (!codingLessons.some((item) => item.mode === requiredMode)) issues.push(`Instructional sequence is missing ${requiredMode}.`);
   }
   const seenChallenges = new Set<string>();
-  for (const item of codingChallenges) {
+  for (const item of allCodingChallenges) {
     if (seenChallenges.has(item.id)) issues.push(`Duplicate challenge ID: ${item.id}`);
     seenChallenges.add(item.id);
     if (!item.brief || !item.starter || !item.requiredSignals.length || !item.expectedOutcome || !item.comprehensionPrompt || !item.comprehensionRequirements.length) {
@@ -824,6 +992,9 @@ export function validateCodingProgram() {
   for (const imported of codingDeveloperProgram.prerequisiteFor) {
     if (imported.lessonIds.some((id) => !seenLessons.has(id))) {
       issues.push(`Track import references an unknown lesson: ${imported.trackId}`);
+    }
+    if (imported.challengeIds?.some((id) => !challengeIds.has(id))) {
+      issues.push(`Track import references an unknown challenge: ${imported.trackId}`);
     }
   }
   return issues;

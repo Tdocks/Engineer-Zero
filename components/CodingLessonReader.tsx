@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Check, FlaskConical } from "lucide-react";
 import { codingSourceList, type CodingLesson } from "@/lib/coding-developer";
+import { mediaForModule } from "@/lib/aio-media";
 
 function paragraphs(text: string) {
   return text
@@ -10,18 +12,32 @@ function paragraphs(text: string) {
     .filter(Boolean);
 }
 
+const day3DefenseGateIds = new Set([
+  "coding-day-3-03",
+  "coding-day-3-04",
+  "coding-day-3-05",
+  "coding-day-3-06",
+]);
+
 export function CodingLessonReader({
   lesson,
   completed,
   onComplete,
   onOpenBridge,
+  showEmergencyMedia = false,
 }: {
   lesson: CodingLesson;
   completed: boolean;
   onComplete: () => void;
   onOpenBridge?: (bridge: NonNullable<CodingLesson["bridgeToLab"]>) => void;
+  showEmergencyMedia?: boolean;
 }) {
+  const [defenseAnswer, setDefenseAnswer] = useState("");
   const steps = (lesson.tryThisSteps ?? []).map((step) => step.trim()).filter(Boolean);
+  const mediaCues = showEmergencyMedia ? mediaForModule(lesson.id) : [];
+  const requiresDefenseFirst = day3DefenseGateIds.has(lesson.id);
+  const defenseWordCount = defenseAnswer.trim().split(/\s+/).filter(Boolean).length;
+  const canComplete = !requiresDefenseFirst || defenseWordCount >= 60 || completed;
 
   return (
     <article className="coding-reader coding-reader-package">
@@ -35,6 +51,22 @@ export function CodingLessonReader({
         <span>Why this matters</span>
         <p>{lesson.whyItMatters}</p>
       </section>
+
+      {mediaCues.length > 0 && (
+        <section className="coding-bridge">
+          <span>Watch → Do · Few-Day AIO path</span>
+          {mediaCues.map((cue) => (
+            <div key={cue.id}>
+              <a href={cue.url} target="_blank" rel="noreferrer">
+                <b>{cue.title}</b> · {cue.publisher} · ~{cue.durationMinutes} min
+              </a>
+              {cue.watchSegment && <p>{cue.watchSegment}</p>}
+              <p><b>Watch for:</b> {cue.watchFor}</p>
+              <p><b>Do after:</b> {cue.doAfter}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="coding-teach">
         <h3>Teach</h3>
@@ -121,8 +153,21 @@ export function CodingLessonReader({
       ) : null}
 
       <section className="coding-defense">
-        <span>Defense prompt</span>
+        <span>Defense prompt{requiresDefenseFirst ? " (required before complete)" : ""}</span>
         <p>{lesson.defensePrompt}</p>
+        {requiresDefenseFirst && (
+          <label className="write-answer">
+            <b>Explain before you mark complete</b>
+            <span>At least 60 words in your own language — then you may mark the session complete.</span>
+            <textarea
+              value={defenseAnswer}
+              onChange={(event) => setDefenseAnswer(event.target.value)}
+              placeholder="In my own words…"
+              disabled={completed}
+            />
+            <small>{defenseWordCount}/60 words</small>
+          </label>
+        )}
       </section>
 
       <section className="coding-sources">
@@ -141,8 +186,14 @@ export function CodingLessonReader({
         ))}
       </section>
 
-      <button type="button" className="coding-primary" onClick={onComplete}>
-        {completed ? "Evidence recorded" : "Mark learning session complete"} <Check size={16} aria-hidden="true" />
+      <button
+        type="button"
+        className="coding-primary"
+        disabled={!canComplete}
+        onClick={onComplete}
+      >
+        {completed ? "Evidence recorded" : "Mark learning session complete"}{" "}
+        <Check size={16} aria-hidden="true" />
       </button>
     </article>
   );

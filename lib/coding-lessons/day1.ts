@@ -401,6 +401,12 @@ If you only try 94 and 70, you have not checked the policy you claimed.`,
 
 JSON objects map cleanly to Python dicts. JSON arrays map to Python lists. That is why API prototypes and structured AI output feel related: they share the same shape discipline.
 
+Serialize means turn a Python value into a JSON string for a wire or file. Parse means turn a JSON string back into Python values. The round-trip must preserve the same shape:
+
+\`import json\`
+\`payload = json.dumps(urgent)\`  # str — what an API body often looks like
+\`again = json.loads(payload)\`    # list of dicts again
+
 Filtering is a common transformation: start with a list of readings, keep those that match a rule, produce a new list. A list comprehension is fine when the rule is tiny and deterministic:
 
 \`urgent = [reading for reading in readings if reading["temperature"] >= 90]\`
@@ -410,7 +416,9 @@ Misconception: “put everything in one big dictionary keyed by 0,1,2.” That i
 Misconception: “nest first, simplify later.” For Day 1, keep one level of objects in a list. Clever nesting without a consumer is not architecture.
 
 Before you invent a blank-slate schema, complete a known pattern and say out loud which field is the identity, which field is the measurement, and which structure is plural.`,
-    workedExample: `readings = [
+    workedExample: `import json
+
+readings = [
     {"equipment": "pump-7", "temperature": 94},
     {"equipment": "fan-2", "temperature": 81},
     {"equipment": "pump-3", "temperature": 70},
@@ -425,23 +433,33 @@ print(urgent)
 print(len(review))
 # 1
 
+wire = json.dumps(urgent)
+print(wire)
+# [{"equipment": "pump-7", "temperature": 94}]
+
+print(json.loads(wire) == urgent)
+# True
+
 Shape check:
-- one reading → dict with named fields
-- many readings → list of dicts
-- filter output → still a list of dicts (possibly empty)`,
-    tryThis: "Complete urgent and REVIEW filters on the sample readings list.",
+- one reading → dict with named fields (= JSON object)
+- many readings → list of dicts (= JSON array of objects)
+- filter output → still a list of dicts (possibly empty)
+- dumps/loads → string on the wire, same shape after parse`,
+    tryThis: "Complete urgent and REVIEW filters, then serialize urgent with json.dumps and parse it back.",
     tryThisSteps: [
       "Start from the three-sample readings list in the starter.",
       "Complete the urgent filter for temperature >= 90.",
       "Add a REVIEW filter for 80 through 89.",
+      "Import json, dump urgent to a string, load it back, and confirm the parsed value matches urgent.",
       "Print both lists (or their lengths) and write one line on why the collection is a list, not a dict.",
     ],
     tryThisStarter:
-      "readings = [\n  {\"equipment\": \"pump-7\", \"temperature\": 94},\n  {\"equipment\": \"fan-2\", \"temperature\": 81},\n  {\"equipment\": \"pump-3\", \"temperature\": 70},\n]\nurgent = []  # complete me\n",
+      "import json\nreadings = [\n  {\"equipment\": \"pump-7\", \"temperature\": 94},\n  {\"equipment\": \"fan-2\", \"temperature\": 81},\n  {\"equipment\": \"pump-3\", \"temperature\": 70},\n]\nurgent = []  # complete me\n",
     expectedOutput: `urgent → [{'equipment': 'pump-7', 'temperature': 94}]
 review length → 1
-# (fan-2 at 81)`,
-    hint: "REVIEW is 80 <= temperature < 90. Do not include 90 in REVIEW if URGENT owns >= 90.",
+# (fan-2 at 81)
+json.loads(json.dumps(urgent)) == urgent → True`,
+    hint: "REVIEW is 80 <= temperature < 90. Do not include 90 in REVIEW if URGENT owns >= 90. Use json.dumps then json.loads for the round-trip.",
     commonFailures: [
       {
         failure: "Filtering with = instead of == or using assignment in the condition.",
@@ -465,9 +483,13 @@ review length → 1
         question: "What should urgent contain for the sample data in the worked example?",
         answer: "Only the pump-7 reading with temperature 94.",
       },
+      {
+        question: "What do json.dumps and json.loads do to urgent?",
+        answer: "dumps serializes the list of dicts to a JSON string; loads parses that string back into an equivalent Python list of dicts.",
+      },
     ],
     defensePrompt:
-      "Why is one equipment reading a dictionary while the collection of readings is a list? Answer with JSON vocabulary as well as Python vocabulary.",
+      "Why is one equipment reading a dictionary while the collection of readings is a list? Answer with JSON vocabulary as well as Python vocabulary, and say when you would dumps/loads.",
   }),
 
   buildCodingLesson({

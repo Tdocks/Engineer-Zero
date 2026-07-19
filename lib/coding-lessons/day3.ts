@@ -21,7 +21,7 @@ Misconception: “AI is smarter so it should make the final call.” Final calls
 
 Misconception: “if the model is usually right, tests are optional.” Usually-right systems still need evaluation sets and rejection paths.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Keep the model on unstructured drafting. Keep thresholds, authorization, and write decisions in deterministic code you can assert in tests.`,
     workedExample: `Task split for maintenance triage:
 
 Deterministic (Python):
@@ -99,7 +99,7 @@ Misconception: “I’ll hardcode the key for the demo and remove it later.” L
 
 Misconception: “if the model call fails, invent a plausible extraction.” That trains users to trust fiction.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Treat missing credentials as a first-class state: degrade, surface unavailable, and refuse to invent structured fields. Practice that boundary in the AI extraction lab.`,
     workedExample: `import os
 
 def require_api_key() -> str:
@@ -129,6 +129,12 @@ def require_api_key() -> str:
 safe: logging.info("api_key_configured=%s", bool(api_key))
 unavailable → explicit error / degraded mode, not invented extraction`,
     hint: "Never log key material. Degraded mode must refuse to fake success.",
+    bridgeToLab: {
+      workspace: "lab",
+      challengeId: "coding-ai-extraction",
+      label: "Open AI-assisted maintenance extraction",
+      why: "Prove credential-free schemas and uncertainty handling where the model cannot own the final risk decision.",
+    },
     commonFailures: [
       {
         failure: "Printing the first/last characters of a key 'for debugging'.",
@@ -174,7 +180,9 @@ Misconception: “if the prose sounds confident, the fields are right.” Confid
 
 Misconception: “uncertainties are optional polish.” Without them, the system cannot represent missing units, ambiguous equipment identity, or contradictory statements.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Schemas without an uncertainties channel encourage false precision. Prefer null-plus-uncertainty over a guessed equipment id.
+
+Before you leave the lesson, restate the objective in one sentence and name the artifact you produced. If you cannot, re-read the worked example and run the Try this steps again.`,
     workedExample: `from pydantic import BaseModel
 
 class Extraction(BaseModel):
@@ -194,7 +202,7 @@ assert "temperature unit missing" in parsed.uncertainties
 # Reject persuasive prose as the integration interface:
 # "Pump 7 is definitely fine"  → not a schema`,
     tryThis:
-      "Add an uncertainty field (or extend one) for a maintenance extraction schema. Write one example input note that should produce a non-empty uncertainties list and the expected field values.",
+      "Add an uncertainty field (or extend one) for a maintenance extraction schema. Write one example input note that should produce a non-empty uncertainties list and the expected field values. Keep the example note and expected uncertainties list next to the schema so the lab can reuse them.",
     tryThisSteps: [
       "Add or extend an uncertainties field on the extraction schema.",
       "Write one example maintenance note that should produce a non-empty uncertainties list.",
@@ -253,7 +261,9 @@ Misconception: “a second model can approve the first model.” That is not an 
 
 Misconception: “tool use is always advanced.” Unbounded tool use is a hazard. Narrow tools with strict arguments and human gates are the point.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Untrusted text can propose; policy and humans authorize. Draw the cut before any external write tool can fire.
+
+Name the first stage where untrusted report text must lose the ability to authorize a write—and keep that cut visible in your notes.`,
     workedExample: `Workflow stages (fictional pump maintenance):
 
 1) Model extracts observations + uncertainties
@@ -310,7 +320,7 @@ Reason: untrusted text must not authorize writes`,
     order: 5,
     competency: "testingDebugging",
     title: "Evaluate model behavior",
-    mode: "build",
+    mode: "modify",
     sourceIds: ["nistAiRmf", "owaspGenAi"],
     objective: "Build a small evaluation set that includes failure and abstention cases—not only polished demos.",
     whyItMatters:
@@ -328,7 +338,9 @@ Track metrics that match your contract: schema validity, required field accuracy
 
 Misconception: “eval means asking the model if it did a good job.” Prefer external expected labels and deterministic checks on validated fields.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Evaluation cases should include the ugly edges a demo hides. Classify accept / escalate / reject in Systems Lab with the same discipline.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.`,
     workedExample: `Case: missing unit
 Input note: "Pump-7 temperature was ninety this morning"
 Expected:
@@ -354,6 +366,11 @@ Expected:
 expect: non-empty uncertainties OR rejection
 assert: uncertainties present and non-empty`,
     hint: "Happy-path demos hide the cases that matter in operations.",
+    bridgeToLab: {
+      workspace: "systems",
+      label: "Open Systems Lab · Evaluation set",
+      why: "Classify the 20 fictional cases with accept / escalate / reject using the same evaluation discipline.",
+    },
     commonFailures: [
       {
         failure: "Only storing happy-path examples in the repo.",
@@ -399,7 +416,9 @@ Misconception: “defense means sounding confident.” Defense means accurate li
 
 Practice a 90-second version and a 5-minute version. The short one is for interviews; the long one is for technical review.
 
-Practice note: do not skim this lesson as a definition card. Re-state the objective in your own words, complete the Try this prompt with a visible artifact (commands, code, or written brief), then answer the Check yourself items without looking. If you cannot explain the worked example out loud, re-run it before marking the session complete. The Code Lab or Systems Lab bridge is where you prove the same idea under a tighter contract—use it the same day while the explanation is still fresh.`,
+Your oral defense should name trusted vs untrusted components in one breath. Systems Lab and Interview Arena will pressure-test that boundary language.
+
+Do the Try this checklist before marking complete. If a lab bridge is present, open it the same day while the explanation is fresh—labs prove; this lesson teaches.`,
     workedExample: `# Oral defense rehearsal (not executable code)
 $ # time yourself for 90 seconds
 

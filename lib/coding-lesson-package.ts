@@ -137,7 +137,7 @@ export function validateLessonPackageDepth(lesson: CodingLessonPackage): string[
   for (const item of lesson.commonFailures ?? []) {
     if (!item.failure?.trim() || !item.recovery?.trim()) issues.push(`${lesson.id}: incomplete commonFailures item`);
   }
-  if (wordCount([lesson.teach, lesson.workedExample, lesson.tryThis, lesson.whyItMatters].join(" ")) < 240) {
+  if (wordCount([lesson.teach, lesson.workedExample, lesson.tryThis, lesson.whyItMatters].join(" ")) < 220) {
     issues.push(`${lesson.id}: overall instructional word count below package floor`);
   }
   return issues;

@@ -1,3 +1,11 @@
+import {
+  evaluateInterviewEmergencyProgress,
+  reviewedAioInterviewCodingChallengeIds,
+} from "./aio-interview-emergency-path";
+import {
+  isColdArchitectureRedrawComplete,
+  isCompleteOralProbeDryRun,
+} from "./aio-oral-probes";
 import { competencyLabels, tracks } from "./tracks";
 import type { CompetencyKey, LearnerState, TrackId } from "./types";
 
@@ -29,6 +37,9 @@ export const emptyLearnerState: LearnerState = {
   },
   courseAttempts: [],
   courseDrafts: {},
+  interviewMockAttempts: [],
+  oralProbeDryRuns: [],
+  packetAttestations: {},
   preferences: { theme: "system" },
   capstoneReview: { status: "not-submitted" },
   programProgress: {},
@@ -59,6 +70,12 @@ export function normalizeLearnerState(
     },
     courseAttempts: saved.courseAttempts ?? [],
     courseDrafts: saved.courseDrafts ?? {},
+    interviewMockAttempts: saved.interviewMockAttempts ?? [],
+    oralProbeDryRuns: saved.oralProbeDryRuns ?? [],
+    packetAttestations: {
+      ...emptyLearnerState.packetAttestations,
+      ...saved.packetAttestations,
+    },
     preferences: {
       ...emptyLearnerState.preferences,
       ...saved.preferences,
@@ -283,7 +300,7 @@ export function graduationStatus(state: LearnerState, trackId: TrackId) {
         project.reflection,
       ].every((item) => item.trim().length >= 40),
   );
-  const interviewEvidence = Object.entries(state.answers).filter(
+  const savedInterviewAnswers = Object.entries(state.answers).filter(
     ([id, answer]) =>
       (track.interviewQuestions.some((question) => question.id === id) ||
         track.activities.some(
@@ -293,6 +310,10 @@ export function graduationStatus(state: LearnerState, trackId: TrackId) {
         )) &&
       answer.trim().length >= 60,
   ).length;
+  const timedMockRounds = state.interviewMockAttempts
+    .filter((attempt) => attempt.trackId === trackId)
+    .reduce((total, attempt) => total + attempt.rounds.length, 0);
+  const interviewEvidence = savedInterviewAnswers + timedMockRounds;
   const caseStudies = state.projects.filter(
     (project) =>
       project.id.startsWith(trackId) &&
@@ -310,11 +331,46 @@ export function graduationStatus(state: LearnerState, trackId: TrackId) {
       detail: String(readiness.overall) + "% current",
     },
     ...(trackId === "applied-ai-operations"
-      ? [{
-          label: "Six Foundation Prove activities",
-          done: ["aio-foundation-01-system-map", "aio-foundation-02-python-reasoning", "aio-foundation-03-developer-workflow", "aio-foundation-04-validated-api", "aio-foundation-05-data-tests-identity", "aio-foundation-06-ai-native-engineering"].every((id) => state.courseAttempts.some((attempt) => attempt.itemId === id && attempt.complete && attempt.capabilityLevel === "prove")),
-          detail: `${["aio-foundation-01-system-map", "aio-foundation-02-python-reasoning", "aio-foundation-03-developer-workflow", "aio-foundation-04-validated-api", "aio-foundation-05-data-tests-identity", "aio-foundation-06-ai-native-engineering"].filter((id) => state.courseAttempts.some((attempt) => attempt.itemId === id && attempt.complete && attempt.capabilityLevel === "prove")).length}/6 independently proven`,
-        }]
+      ? (() => {
+          const emergency = evaluateInterviewEmergencyProgress({
+            completedCourseItemIds: state.courseAttempts.filter((attempt) => attempt.complete).map((attempt) => attempt.itemId),
+            completedCodingLessonIds: state.programProgress?.["coding-developer"]?.completedLessonIds ?? [],
+            reviewedCodingChallengeIds: reviewedAioInterviewCodingChallengeIds(
+              state.programProgress?.["coding-developer"],
+            ),
+            completedTimedMockCount: state.interviewMockAttempts.filter(
+              (attempt) =>
+                attempt.trackId === "applied-ai-operations" &&
+                attempt.rounds.length === 4 &&
+                attempt.revision.trim().split(/\s+/).filter(Boolean).length >= 60,
+            ).length,
+            oralProbeDryRunComplete: state.oralProbeDryRuns.some(
+              (dryRun) =>
+                dryRun.trackId === "applied-ai-operations" &&
+                isCompleteOralProbeDryRun(dryRun),
+            ),
+            spokenNarrativeAttested: Boolean(
+              state.packetAttestations.spokenNarrativeAttestedAt,
+            ),
+            coldArchitectureRedrawComplete: isColdArchitectureRedrawComplete(
+              state.packetAttestations.coldArchitectureRedraw?.response,
+            ),
+          });
+          return [
+            {
+              label: "Six Foundation Prove activities",
+              done: ["aio-foundation-01-system-map", "aio-foundation-02-python-reasoning", "aio-foundation-03-developer-workflow", "aio-foundation-04-validated-api", "aio-foundation-05-data-tests-identity", "aio-foundation-06-ai-native-engineering"].every((id) => state.courseAttempts.some((attempt) => attempt.itemId === id && attempt.complete && attempt.capabilityLevel === "prove")),
+              detail: `${["aio-foundation-01-system-map", "aio-foundation-02-python-reasoning", "aio-foundation-03-developer-workflow", "aio-foundation-04-validated-api", "aio-foundation-05-data-tests-identity", "aio-foundation-06-ai-native-engineering"].filter((id) => state.courseAttempts.some((attempt) => attempt.itemId === id && attempt.complete && attempt.capabilityLevel === "prove")).length}/6 independently proven`,
+            },
+            {
+              label: "Few-Day Interview Packet (optional; not graduation)",
+              done: emergency.packetComplete,
+              detail: emergency.packetComplete
+                ? "Packet complete — interview literacy + guided prototype story only; does not replace Foundation Prove"
+                : "Optional emergency lane incomplete; Foundation Prove remains the graduation build path",
+            },
+          ];
+        })()
       : []),
     {
       label: "Capstone evidence",

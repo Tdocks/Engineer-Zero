@@ -5,6 +5,7 @@ import type {
   ArtifactSchema,
   EvidenceFieldKey,
   StructuredEvidence,
+  WorkProductSchema,
 } from "./course-types";
 
 export type CourseItemKind = "module" | "lab" | "mission";
@@ -59,6 +60,56 @@ function lexicalDiversity(value: string) {
 function distinctEnough(values: string[]) {
   const normalized = values.map(normalize).filter(Boolean);
   return new Set(normalized).size === normalized.length;
+}
+
+function gradeWorkProduct(value: string, schema?: WorkProductSchema) {
+  if (!schema) return [];
+  const response = value.trim();
+  const responseWords = words(response).length;
+  const lines = response.split("\n").map((line) => line.trim()).filter(Boolean);
+  const entries = schema.entryPrefix
+    ? lines.filter((line) => line.toLocaleLowerCase().startsWith(schema.entryPrefix!.toLocaleLowerCase()))
+    : lines;
+  const normalized = normalize(response);
+  const matchedTerms = (schema.requiredTerms ?? []).filter((term) =>
+    normalized.includes(normalize(term)),
+  );
+  const checks = [];
+  if (schema.minimumWords) {
+    checks.push({
+      id: "work-product-depth",
+      label: `${schema.label} depth`,
+      passed: responseWords >= schema.minimumWords,
+      detail:
+        responseWords >= schema.minimumWords
+          ? `${responseWords} words recorded.`
+          : `Write at least ${schema.minimumWords} words; ${responseWords} recorded.`,
+    });
+  }
+  if (schema.minimumEntries) {
+    checks.push({
+      id: "work-product-entries",
+      label: `${schema.label} entries`,
+      passed: entries.length >= schema.minimumEntries,
+      detail:
+        entries.length >= schema.minimumEntries
+          ? `${entries.length} structured entries recorded.`
+          : `Add ${schema.minimumEntries} lines${schema.entryPrefix ? ` beginning with ${schema.entryPrefix}` : ""}; ${entries.length} recorded.`,
+    });
+  }
+  if (schema.requiredTerms?.length) {
+    const minimum = schema.minimumTermMatches ?? schema.requiredTerms.length;
+    checks.push({
+      id: "work-product-specificity",
+      label: `${schema.label} required coverage`,
+      passed: matchedTerms.length >= minimum,
+      detail:
+        matchedTerms.length >= minimum
+          ? `${matchedTerms.length} required concepts addressed.`
+          : `Address at least ${minimum}: ${schema.requiredTerms.join(", ")}.`,
+    });
+  }
+  return checks;
 }
 
 function artifactText(evidence: StructuredEvidence) {
@@ -250,9 +301,17 @@ export function gradeCourseAttempt(input: {
   }
 
   const baseRubric = gradeEvidence(input.evidence, schema, validEvidenceReferences);
+  const workProduct = input.answers.__workProduct ?? "";
+  const workProductSchema = "workProduct" in item ? item.workProduct : undefined;
+  const workProductChecks = gradeWorkProduct(workProduct, workProductSchema);
   const rubric = {
     ...baseRubric,
-    checks: [...baseRubric.checks, ...gradeActivityRules(input.evidence, activityRules)],
+    wordCount: baseRubric.wordCount + words(workProduct).length,
+    checks: [
+      ...baseRubric.checks,
+      ...gradeActivityRules(input.evidence, activityRules),
+      ...workProductChecks,
+    ],
   };
   const checkScore = checkTotal ? (checkCorrect / checkTotal) * 40 : 40;
   const evidenceScore =
@@ -268,6 +327,11 @@ export function gradeCourseAttempt(input: {
     feedback: complete
       ? "Evidence saved. Your decision, boundary, verification, ownership, and recovery path are all explicit. Use the debrief to improve precision."
       : `Revision required. ${completionFeedback}`,
-    artifact: artifactText(input.evidence),
+    artifact: [
+      artifactText(input.evidence),
+      workProductSchema && workProduct.trim()
+        ? `${workProductSchema.label}:\n${workProduct.trim()}`
+        : "",
+    ].filter(Boolean).join("\n\n"),
   };
 }

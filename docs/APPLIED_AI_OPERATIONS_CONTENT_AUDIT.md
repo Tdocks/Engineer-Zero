@@ -8,9 +8,15 @@
 
 The track has the right product thesis: AI-native engineering, safe enterprise judgment, applied LLM systems, production thinking, and technical leadership. Its topic inventory is substantially better than a generic “prompt engineering course.”
 
-It is not yet a complete course. The current implementation is a polished **course catalog and evidence UI** with a small number of real prompts. Most listed lessons, labs, missions, and interview questions are generated from shared generic templates. A learner cannot currently acquire, practice, receive targeted feedback on, and prove the majority of the claimed skills.
+**2026-07-19 instructional re-score (teach modules only):** see [`docs/lesson-reviews/SYNTHESIS.md`](lesson-reviews/SYNTHESIS.md). Waves 1–6 remediated the 112 teach modules. **2026-07-19 simulation remediation:** AIO labs (`lib/aio-labs.ts`, 33 authored packages with ≥3 artifacts) and missions (`lib/aio-missions.ts`, 10 branched missions) replaced factory shells; interview banks kept at 150/150 with per-prompt rubrics/coaching and ≥30 timed scenario packs on AIO and IT. Stripe/credentials remain out of scope. Remaining commercial-release gaps (human `draftReview`, deeper per-prompt examiner essays) are **not** closed by this pass. IT Support’s 4 labs / 2 missions remain the cross-product quality bar.
 
-Do not market this track as complete until the following release gate is met:
+**2026-07-19 Few-Day fail-safe pass:** Product copy targets interview-ready partner/judgment screen (not implementer). Few-Day packet adds scored oral probes, spoken Lab 01 + cold Lab 06 redraw, Sprint TEACHBACK/UNKNOWN cards, `aio-sprint-09` prompt/agency, labs `aio-lab-12` + `aio-lab-partner-pressure`, Coding `coding-aio-broken-pr-review`, and Interview Studio anti-pattern scoring. Foundation is framed as the **post-offer role accelerator**. Judgment claim stays **Medium until pilots** ([`AIO_FEW_DAY_PILOT_PROTOCOL.md`](AIO_FEW_DAY_PILOT_PROTOCOL.md)); independent-implementer-in-3–5-days stays **rejected**. See [`docs/AIO_EMERGENCY_PATH_RESCORE.md`](AIO_EMERGENCY_PATH_RESCORE.md).
+
+**2026-07-19 Grok + Strong-category pass:** Adds `aio-sprint-10-grok-model-ops`, `aio-lab-grok-routing`, `coding-aio-grok-draft-review`, Grok-flavored Lab 05 cases, oral probes 11–12 (gate ≥10/12, must-pass 4/5/6/10/11), and Studio anti-patterns for Grok-brand overclaim. Role-fit categories Discover/Design/Evaluate/Defend/Build(scaffold) marked **Strong (curriculum)**; overall judgment still **Medium until pilots**.
+
+**2026-07-19 PE + live Grok pass:** Adds `aio-sprint-11-prompt-engineering`, `aio-lab-grok-live`, server `/api/course/grok-practice` (`XAI_API_KEY`, optional), and local `grok-procedure-prompt-lab`. Few-Day seat budget **≤38h**. Live key is not required for `packetComplete`.
+
+It is not yet a complete commercial course. Do not market this track as complete until the following release gate is met:
 
 1. Every required module has a real lesson body, worked example, misconception check, scored practice, and remediation path.
 2. Every lab includes supplied fictional artifacts and an explicit expected decision—not only a title and a free-text box.
@@ -18,30 +24,34 @@ Do not market this track as complete until the following release gate is met:
 4. Readiness scoring uses the actual competencies practiced by an activity.
 5. Graduation requires reviewed evidence, not merely a long answer containing selected keywords.
 
-## What exists today
+## What exists today (refreshed 2026-07-19)
 
 | Area | Current state | Release judgment |
 |---|---|---|
-| Role framing | Strong and aligned with technical-partner work | Keep |
-| Reality Check | 24 distinct questions with good high-level coverage | Rewrite assessment mechanics |
-| 48-hour path | Eight named blocks, but only three attached activities | Incomplete |
-| Lessons | 25 listed lesson titles; no MDX lesson bodies exist | Not course-ready |
-| Labs | 20 listed labs; 17 are generic title-only templates | Not lab-ready |
-| Missions | 10 listed missions; most are generic title-only templates | Not mission-ready |
-| Projects | Two good starter templates | Expand and grade |
-| Interview practice | 150 records generated from six base prompts | Not interview-ready |
-| Feedback | Generic keyword/length scoring | Unsafe as an instructional authority |
-| Readiness | Visually useful, but competency mappings are overly broad | Rework before credentialing |
+| Role framing | Strong technical-partner thesis; few-day vs Foundation honesty in `lib/tracks.ts` | Keep; watch marketing drift |
+| Reality Check | 24 distinct questions with good high-level coverage | Rewrite assessment mechanics before credentialing |
+| Few-Day Interview Path | Fail-safe playlist ≤38h; 16 Coding lessons + 8 reviewed challenges; Sprint 01–11 TEACHBACK; labs 01/05/06/12/partner-pressure/grok-routing/grok-live; scored oral probes (≥10/12) + spoken/cold gates; optional live Grok | Medium fail-resistant; categories Strong (curriculum); **High pending** pilots; **not** implementer job-ready |
+| Sprint teach modules | 11 authored sprint packages with blocks, checks, capabilityLevel (incl. Grok ops + PE) | Remediated for judgment; build fluency still via Coding + video + optional live Grok |
+| Foundation | 6-week Prove path from zero (Python/API/systems) | Real zero-to-build claim lives here |
+| Core Fast/Master lessons | 25 authored core modules + extensions | Off commercial “job ready” until human `draftReview` |
+| Labs | 33 authored AIO labs with ≥3 artifacts each | Teach/labs remediated; deeper SME walkthrough later |
+| Missions | 10 authored branched missions | Remediated vs prior factory shells |
+| Projects | Two starter templates; mini-capstone = permission-aware procedure assistant | Expand grading; keep ownership honesty |
+| Interview practice | 150 prompts with per-prompt rubrics/coaching; persisted four-round mock with timer lock; Day-5 oral probe dry-run gate | Usable for pressure reps; High blocked on pilot + human calibration evidence |
+| Feedback / readiness | Deterministic course rules + Interview Studio | Still not a commercial credential authority |
+| Media | `lib/aio-media.ts` validated free videos with assigned segments and Watch→Do | Emergency-context only; revalidate by date |
 
-### Important implementation findings
+### Overclaims explicitly rejected
 
-- The `content/` directory contains only an MDX convention README. There are no authored lesson bodies.
-- All 20 generated Fast Track lessons share generic objectives and are mapped to `foundations`, even when the lesson is about security, architecture, evaluation, or leadership.
-- All generated labs are mapped to `production`; all generated missions are mapped to `leadership`. This makes the readiness matrix misleading.
-- The 150-question interview bank cycles through six authored prompts and adds a suffix such as “variation 7.” It is not a 150-question bank.
-- The diagnostic and multiple-choice activities put the correct choice in position A. This creates a test-taking pattern, not a valid assessment.
-- Activity feedback is generic. For text responses, it is calculated from length and the presence of words such as “risk,” “verify,” or “audit.”
-- A learner can satisfy some graduation requirements with generic prose because the system does not evaluate factual correctness, evidence specificity, or the actual artifact.
+- **Rejected:** “48 hours from true zero → interview-ready implementer” from AIO text alone.
+- **Accepted claim for few days (Medium; High pending pilots):** partner/judgment screen readiness *if* Coding bridge + videos + sprint + labs + timed mock + oral probe dry-run are completed against [`AIO_INTERVIEW_READINESS_BAR.md`](AIO_INTERVIEW_READINESS_BAR.md), then pilot/calibration bars in [`AIO_EMERGENCY_PATH_RESCORE.md`](AIO_EMERGENCY_PATH_RESCORE.md) clear.
+- Fast/Master completeness and commercial job-ready marketing remain blocked pending human `draftReview`.
+
+### Important historical findings (pre-remediation; verify before citing as current)
+
+- Earlier factory Fast Track lessons shared generic objectives; core modules have since been authored — re-check competency tags before credentialing.
+- Interview bank previously cycled six prompts with “variation N”; current bank uses authored prompts with rubrics (still not SME-essay depth).
+- Keyword/length feedback was unsafe as instructional authority; course grading is now rule-based but still not a credential.
 
 ## Content quality standard for every required learning item
 
@@ -97,22 +107,22 @@ Python should be the primary implementation language. Rust is valuable as an adv
 3. High-trust enterprise boundaries: synthetic data, authorization, data classification awareness, auditability, controlled rollout.
 4. Baseline assessment: 24 questions, randomized order, explanation after submission, and a competency-specific study prescription.
 
-### 48-Hour Interview Sprint — eight complete blocks
+### Few-Day Interview Packet — eight sprint blocks + gates
 
-Every block needs a short lesson, drill, saved artifact, and review criterion.
+Every block needs a short lesson, scored work product, and review criterion. The emergency path also requires selected Coding Day 1–3 lessons and reviewed challenges, Watch→Do video, packet labs 01/05/06, and the dedicated four-round Interview Studio mock.
 
 | Block | Deliverable | Required practice |
 |---|---|---|
-| 1. Role narrative | 90-second answer to “Why this role?” | Rewrite against a credibility rubric |
-| 2. LLM fundamentals | Model-selection recommendation | Tokens, context, sampling, structured output, tool calling |
-| 3. RAG | Explain a grounded assistant plus retrieval flow diagram | Chunking, metadata, citations, permissions, failures |
-| 4. Secure enterprise AI | Data-flow boundary recommendation | Prompt injection, PII/controlled-data awareness, least privilege, audit |
-| 5. Evaluation | Mini evaluation plan and failure taxonomy | Golden set, groundedness, latency, safety, regression |
-| 6. System design | One-page architecture and rollout answer | Identity, retrieval, model gateway, tools, observability, fallback |
-| 7. Project defense | Two completed case-study cards | Personal contribution, tradeoffs, results, limitations, next iteration |
-| 8. Full mock loop | Scored recruiter, technical, system-design, and behavioral session | Retake weak answers after feedback |
+| 1. Role narrative | 90-second answer to “Why this role?” | Lab aio-lab-01 |
+| 2. LLM fundamentals | Token/context budget + model-selection recommendation | Worksheet + media cue |
+| 3. RAG | Authz-before-retrieve trace | Six-step scored work product |
+| 4. Secure enterprise AI | Pilot boundary recommendation | Scored boundary statement |
+| 5. Evaluation | 12-case mini evaluation pack | Lab aio-lab-05 (mandatory) |
+| 6. System design | One-page architecture and rollout answer | Lab aio-lab-06 (mandatory) |
+| 7. Project defense | Mini-capstone ownership card | Coding scaffold + ai-procedure story |
+| 8. Full mock loop | Timed four-round session | Interview Studio (hard gate) |
 
-The current path names all eight blocks but only attaches activities to role narrative, RAG, and secure boundary. The other five must be authored before the “48-hour” claim is credible.
+**Do not** market this packet as true-zero → independent implementer. That claim belongs only to Foundation Prove (6 weeks) after Coding intensive.
 
 ### Fast Track — 10 job-ready modules
 
@@ -287,8 +297,9 @@ The Applied AI Operations Engineer track is content-complete only when:
 - Each competency has at least three independent evidence-producing activities.
 - All readiness mappings are activity-specific rather than type-wide defaults.
 - At least one knowledgeable reviewer can complete the capstone and identify no material role-accuracy gaps.
-- A new learner can complete the 48-hour path and produce a credible, reviewable interview packet.
+- A motivated learner can complete the **Few-Day Interview Path** (Coding + media + sprint + labs + timed mock) and pass the oral probes in [`AIO_INTERVIEW_READINESS_BAR.md`](AIO_INTERVIEW_READINESS_BAR.md) in a dry-run — without claiming implementer job-readiness.
+- Product copy does not imply 48h creates an implementer from zero.
 
 ## Recommended immediate next work
 
-Do not expand additional platform features. First author the full **48-Hour Interview Sprint**, because it provides immediate value and establishes the lesson, quiz, lab, artifact, and scoring standards the rest of the track will reuse.
+Human SME walkthrough of the Few-Day path against the readiness bar; then deepen Foundation Prove practice. Keep Fast/Master off commercial “job ready” until human `draftReview`.

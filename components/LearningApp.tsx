@@ -31,7 +31,7 @@ import { AioCourseSurface } from "@/components/AioCourseSurface";
 import { AioInterviewStudio } from "@/components/AioInterviewStudio";
 import { AccountControls } from "@/components/AccountControls";
 
-type View =
+export type View =
   | "today"
   | "tracks"
   | "academy"
@@ -83,11 +83,15 @@ function interviewWindow(date?: string) {
 
 export function LearningApp({
   initialTrack = "applied-ai-operations",
+  initialView = "today",
+  initialStudioMode,
 }: {
   initialTrack?: TrackId;
+  initialView?: View;
+  initialStudioMode?: "guided" | "rapid" | "defense" | "mock" | "probes";
 }) {
   const { state, setState, hydrated } = useLearnerState(initialTrack);
-  const [view, setView] = useState<View>("today");
+  const [view, setView] = useState<View>(initialView);
   const [onboarding, setOnboarding] = useState(true);
   const [kyra, setKyra] = useState(false);
   const [mobileMore, setMobileMore] = useState(false);
@@ -295,6 +299,7 @@ export function LearningApp({
             state={state}
             setState={setState}
             trackId={state.activeTrack}
+            initialPracticeMode={initialStudioMode}
           />
         )}
         {view === "launchpad" && (
@@ -757,8 +762,18 @@ function Today({
   const aioNextActions = trackId === "applied-ai-operations"
     ? [
         { level: "know" as const, title: "Role Concepts Library", description: "Build the vocabulary to recognize a system boundary and know when to involve a specialist." },
-        { level: "practice" as const, title: "48-Hour Interview Sprint", description: "Rehearse role-relevant explanations, decisions, and project stories with targeted feedback." },
-        { level: "prove" as const, title: "Zero-to-Role Foundation", description: "Create independent Python and system evidence before claiming implementation capability." },
+        {
+          level: "practice" as const,
+          title: "Few-Day Interview Packet",
+          description:
+            "Interview-ready partner/judgment screen: explain concepts, defend design choices, and walk a guided LLM PoC — not independent production implementation. Requires Coding bridge + timed mock + scored oral probes.",
+        },
+        {
+          level: "prove" as const,
+          title: "Zero-to-Role Foundation",
+          description:
+            "Post-offer / role accelerator: read AI-generated code, find bugs, direct the model precisely, then deepen build confidence through Foundation Prove.",
+        },
       ]
     : [];
   const checkIn = () =>
@@ -1152,6 +1167,7 @@ function Activities({
             <AioCourseSurface
               kind={type === "lesson" ? "module" : type}
               state={state}
+              setState={setState}
               trackId={trackId}
             />
     );
@@ -2031,7 +2047,7 @@ function Interview({
               setReview("");
             }}
           >
-            48-hour crash
+            Few-day path
           </button>
           <button
             className={mode === "rapid" ? "on" : ""}
@@ -2048,12 +2064,14 @@ function Interview({
       {mode === "crash" && (
         <section className="crash-plan">
           <div>
-            <span className="eyebrow amber">SEQUENCED EMERGENCY PATH</span>
-            <h3>Study the right things in the right order.</h3>
+            <span className="eyebrow amber">FEW-DAY INTERVIEW PATH</span>
+            <h3>Interview-ready partner screen + guided PoC defense — not implementer job-ready.</h3>
             <p>
-              Save the highlighted artifacts as you go. Use the full mock loop
-              after you have a role narrative, technical explanations, and
-              project evidence.
+              Coding bridge is a hard gate for true zero. Save packet artifacts
+              (spoken narrative, architecture redraw, eval), complete mandatory labs,
+              run a timed Interview Studio mock, then clear the scored oral probes.
+              Reading a sprint lesson is not packet complete. Foundation is the
+              post-offer role accelerator.
             </p>
           </div>
           <div className="crash-plan-grid">

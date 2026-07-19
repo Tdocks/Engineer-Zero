@@ -410,8 +410,8 @@ const labArtifact = (required: string[]) => ({
   requireEvidenceReference: true,
 });
 
-/** The first authored simulation set. Every asset is fictional and crafted to
- * exercise a different support decision rather than another free-text prompt. */
+/** Authored IT Support simulation set (launch target: 12 labs). Every asset is
+ * fictional and crafted to exercise a different support decision. */
 export const itSupportLabs: LabDefinition[] = [
   {
     id: "it-lab-01-windows-boot-evidence",
@@ -511,6 +511,374 @@ export const itSupportLabs: LabDefinition[] = [
     debrief: "A printer that is online can still fail at media, calibration, template, queue, driver, port, or device. The best recovery avoids uncontrolled reprints, protects the required label format, verifies the scan path, and leaves a prevention owner.",
     revisionPrompt: "Make the recovery specific to the known media change and line impact. Add the approved fallback constraint, an observable scan test, and a named follow-up owner.",
     sources: source("printing", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-05-duplicate-account-containment",
+    title: "Contain a duplicate account and device action",
+    phaseId: "fast-track",
+    mode: "Production Incident",
+    capabilityLevel: "prove",
+    competencies: { security: 1, production: 0.9, communication: 0.6 },
+    scenario: "Fictional identity ticket ID-992 reports that contractor Jules Park suddenly has two Entra accounts and a second Intune device object after a ‘quick rehire’ request. Access to Metrology Share started failing mid-shift. Kyra is unavailable. You must contain impact before correcting directory state.",
+    assets: [
+      {
+        name: "identity-events.txt",
+        kind: "log",
+        content:
+          "09:12 AccountCreated: jpark-ext@training.example (guest)\n09:13 AccountEnabled: jules.park@training.example (member) still Enabled=true\n09:14 DeviceRegistered: CREST-JP-02 joined as Jules Park\n09:18 GroupAdd: Metrology-Readers applied to jpark-ext only\n09:22 SignInFail: jules.park@training.example AADSTS50126 invalid credentials after password reset on wrong object\n09:25 UserImpact: cannot open Metrology Share; badge access unchanged",
+      },
+      {
+        name: "rehire-request.txt",
+        kind: "document",
+        content:
+          "Requester: Bay lead Dana Ortiz\nAsk: ‘Make Jules active again before 10:00. Recreate the account if needed.’\nHR note: Jules is returning as contractor; previous member account should remain the authoritative identity after reactivation.\nConstraint: do not delete accounts during the incident window; do not invent MFA bypasses.",
+      },
+      {
+        name: "containment-checklist.md",
+        kind: "document",
+        content:
+          "1. Freeze additional provisioning until ownership of the authoritative account is confirmed.\n2. Compare UPN, employee/contractor type, group membership, and Intune device ownership.\n3. Restore the required workflow with the correct identity only.\n4. Preserve both account objects for audit until the identity owner approves cleanup.\n5. Communicate a checkpoint and prevention owner (identity + Intune).",
+      },
+    ],
+    task: "Contain the duplicate-identity impact, choose which account and device path is authoritative, restore Metrology Share access safely, and document prevention. Do not delete directory objects during the incident.",
+    evidence: labArtifact([
+      "State which account/device objects conflict and the user-visible impact",
+      "Choose containment that freezes further provisioning",
+      "Name the authoritative identity and required group path",
+      "Define verification for Metrology Share access",
+      "Assign identity/Intune prevention owners",
+    ]),
+    rules: [
+      { id: "freeze-provision", label: "Contain by stopping further duplicate provisioning", requiredTerms: ["contain", "freeze", "duplicate", "provision"], minimumMatches: 2 },
+      { id: "authoritative-identity", label: "Choose the authoritative member identity path", requiredTerms: ["jules.park", "authoritative", "member", "contractor"], minimumMatches: 2 },
+      { id: "share-verify", label: "Verify Metrology Share with the correct identity", requiredTerms: ["metrology", "share", "verify", "group"], minimumMatches: 2 },
+    ],
+    debrief: "A rehire request is not permission to create a second living identity. Contain first, identify the authoritative account, restore the workflow through correct group membership, and leave cleanup to the identity owner with an audit trail.",
+    revisionPrompt: "Name the conflicting objects, the freeze action, the authoritative UPN, the share verification, and who owns prevention.",
+    sources: source("entra", "intune", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-06-dock-display-isolation",
+    title: "Isolate a dock and display failure",
+    phaseId: "fast-track",
+    mode: "Solo",
+    capabilityLevel: "practice",
+    competencies: { foundations: 1, production: 0.7, communication: 0.4 },
+    scenario: "Fictional design engineer Remy Cole reports that laptop CR-331 works with its built-in screen but shows no image on either external display when attached to Dock-17 in Studio B. A client review starts in 40 minutes. Remy can use a conference room temporarily if needed.",
+    assets: [
+      {
+        name: "user-report.txt",
+        kind: "document",
+        content:
+          "Laptop: CR-331 (USB-C)\nDock: Dock-17 (firmware 1.18)\nDisplays: Del-U2720 left HDMI via dock; Del-U2720 right DisplayPort via dock\nWorks: laptop lid display alone; same displays work with CR-290 on Dock-12\nFails: both externals blank when CR-331 is on Dock-17; laptop stays awake\nRecent change: Dock-17 firmware updated yesterday for USB stability",
+      },
+      {
+        name: "isolation-tests.txt",
+        kind: "log",
+        content:
+          "Test A: CR-331 + HDMI cable direct to left display -> image OK\nTest B: CR-331 + Dock-12 -> both externals OK\nTest C: CR-290 + Dock-17 -> both externals OK\nTest D: CR-331 + Dock-17 + only DisplayPort -> blank\nTest E: Device Manager on CR-331 shows dock USB device connected; no code 43\nPower: dock AC adapter seated; laptop charging through Dock-17",
+      },
+      {
+        name: "approved-fallbacks.md",
+        kind: "document",
+        content:
+          "Approved options before the review:\n1. Move Remy to a known-good dock/station after verifying displays.\n2. Use direct cable to one display if the review needs only a single external.\n3. Use Studio C conference room if multi-display is required and docks remain inconclusive.\nNot approved: random GPU driver rollback on a production design laptop without a restore point and owner consent; opening Dock-17 firmware channels without platform ownership.",
+      },
+    ],
+    task: "Use the isolation evidence to name the most likely failure layer, choose a reversible continuity path for the review, and define what follow-up evidence the dock owner still needs.",
+    evidence: labArtifact([
+      "Cite cross-tests that isolate dock vs laptop vs cable",
+      "State the most likely failure layer",
+      "Choose an approved continuity path for the review",
+      "Define user-visible verification on the fallback",
+      "Assign dock/firmware follow-up ownership",
+    ]),
+    rules: [
+      { id: "cross-test", label: "Use cross-tests across laptop, dock, and cable", requiredTerms: ["dock-17", "dock-12", "direct", "cr-331"], minimumMatches: 2 },
+      { id: "layer-call", label: "Name dock/firmware as the leading hypothesis when evidence supports it", requiredTerms: ["dock", "firmware", "display", "isolate"], minimumMatches: 2 },
+      { id: "continuity", label: "Choose an approved fallback without unsafe driver experiments", requiredTerms: ["known-good", "fallback", "review", "conference"], minimumMatches: 2 },
+    ],
+    debrief: "The cross-tests implicate Dock-17 with CR-331 rather than Remy’s laptop alone or the displays alone. Continuity uses a known-good path; firmware and dock ownership remain a follow-up, not a mid-meeting experiment.",
+    revisionPrompt: "Quote the decisive cross-test, name the likely layer, and state the exact fallback plus verification Remy will use before the review.",
+    sources: source("windowsTroubleshooting", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-07-bitlocker-recovery-communication",
+    title: "Run BitLocker recovery with safe communication",
+    phaseId: "fast-track",
+    mode: "Pair Programming",
+    capabilityLevel: "practice",
+    competencies: { security: 1, communication: 0.9, foundations: 0.6 },
+    scenario: "Fictional lab tech Priya Nair is stuck on a BitLocker recovery screen on endpoint LAB-55 after a board replacement. She is on a shared phone line with you and can see the 48-digit key ID. A peer is available to help verify identity policy. Recovery material must never be pasted into chat or email.",
+    assets: [
+      {
+        name: "key-id-visible.txt",
+        kind: "document",
+        content:
+          "BitLocker recovery screen shows Key ID: 1A2B-3C4D-XXXX\nDevice name sticker: LAB-55\nUser states last successful unlock was yesterday before hardware service\nService note: system board replaced 08:05; TPM clear expected",
+      },
+      {
+        name: "identity-policy.md",
+        kind: "document",
+        content:
+          "Training recovery policy:\n1. Verify caller identity against HR/badge photo and registered mobile callback—not against knowledge of the key ID alone.\n2. Retrieve the recovery key only from the approved escrow portal after identity passes.\n3. Read recovery digits in controlled chunks; never send full key by SMS, ticket comment, or Teams.\n4. After unlock, confirm BitLocker protection is restored and assign hardware-follow-up.\n5. If identity cannot be verified, do not release the key; offer a supervised known-good loaner path.",
+      },
+      {
+        name: "peer-prompt.md",
+        kind: "document",
+        content:
+          "Pair Programming prompt for Kyra/peer: ask clarifying questions about identity proof, escrow source, and how to communicate digits safely. Do not ask Kyra to invent a key or bypass identity. Record which hint level you used.",
+      },
+    ],
+    task: "With peer support, write the recovery conversation plan: identity proof, escrow retrieval, safe key communication, unlock verification, and follow-up. Do not invent a recovery key.",
+    evidence: labArtifact([
+      "State identity verification steps before key release",
+      "Name the approved escrow source and Key ID use",
+      "Describe chunked/safe key communication (no ticket paste)",
+      "Define post-unlock BitLocker protection check",
+      "Assign hardware follow-up owner",
+    ]),
+    rules: [
+      { id: "identity-first", label: "Verify identity before releasing recovery material", requiredTerms: ["identity", "badge", "callback", "verify"], minimumMatches: 2 },
+      { id: "no-paste-key", label: "Keep recovery keys out of tickets and chat", requiredTerms: ["key", "ticket", "chat", "escrow"], minimumMatches: 2 },
+      { id: "protect-after", label: "Confirm protection restored after unlock", requiredTerms: ["bitlocker", "protect", "unlock", "follow-up"], minimumMatches: 2 },
+    ],
+    debrief: "Knowing a Key ID is not identity. Safe recovery verifies the person, uses escrow, communicates digits carefully, confirms protection afterward, and preserves a hardware owner for the board/TPM change.",
+    revisionPrompt: "Rewrite any step that would paste a key into a ticket. Add the exact identity proof and the post-unlock protection check.",
+    sources: source("bitLocker", "entra"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-08-ai-vlan-onboarding-review",
+    title: "Reject unsafe AI VLAN onboarding advice",
+    phaseId: "fast-track",
+    mode: "AI Builder",
+    capabilityLevel: "practice",
+    competencies: { aiCollaboration: 1, architecture: 0.9, security: 0.8 },
+    scenario: "A fictional AI assistant drafted steps to ‘onboard’ a new barcode scanner onto METROLOGY-RESTRICTED by changing switchport VLAN and disabling 802.1X. The bay lead wants it done before the afternoon run. Your job is review and a safe alternative—not execution.",
+    assets: [
+      {
+        name: "ai-onboarding-plan.md",
+        kind: "document",
+        content:
+          "AI proposal:\n1. SSH to access-switch-04 with the shared enable password from the wiki.\n2. Set interface Gi1/0/22 switchport access vlan 42.\n3. Disable 802.1X on that port ‘temporarily’.\n4. Hardcode scanner IP 10.42.18.200/24.\n5. Skip change ticket because it is only one device.\nAssumes: wiki password is current; VLAN 42 is correct; scanner MAC is trusted.",
+      },
+      {
+        name: "network-policy.md",
+        kind: "document",
+        content:
+          "Training policy: VLAN, port security, and 802.1X changes require the network owner, a change record, and least privilege. Endpoint technicians may gather MAC, desired network name, jack/port label, and impact; they may not apply switch configuration. Static addressing on restricted segments requires IPAM approval.",
+      },
+      {
+        name: "scanner-facts.txt",
+        kind: "log",
+        content:
+          "Device: Honeywell-XE-19\nMAC: 00:1B:44:11:3A:B7\nWall jack: Bay4-J12 labeled METROLOGY-RESTRICTED\nCurrent behavior: link lights on; no DHCP lease; captive portal for guest VLAN shown if forced\nNearby scanner on Bay4-J11 works on METROLOGY-RESTRICTED with 802.1X machine auth",
+      },
+    ],
+    task: "Identify the unsafe assumptions in the AI plan, write a bounded escalation packet for the network owner, and state what an endpoint technician may safely do meanwhile.",
+    evidence: labArtifact([
+      "Cite specific unsafe AI steps (shared secret, disable 802.1X, unapproved VLAN)",
+      "State endpoint-safe evidence to gather",
+      "Name network-owner decisions required",
+      "Propose interim continuity that does not weaken port security",
+      "Define verification after authorized change",
+    ]),
+    rules: [
+      { id: "reject-switch-diy", label: "Reject unauthorized switch/VLAN changes", requiredTerms: ["vlan", "802.1x", "network owner", "change"], minimumMatches: 2 },
+      { id: "endpoint-evidence", label: "Supply MAC, jack, and desired network evidence", requiredTerms: ["mac", "jack", "metrology", "restricted"], minimumMatches: 2 },
+      { id: "no-shared-secret", label: "Reject shared enable passwords and skipped tickets", requiredTerms: ["password", "wiki", "ticket", "least privilege"], minimumMatches: 2 },
+    ],
+    debrief: "AI can outline network steps, but it cannot grant authority. Disabling 802.1X and using shared secrets are unsafe. The technician’s value is a precise escalation packet and a safe interim that preserves segmentation.",
+    revisionPrompt: "Replace any self-serve switch instructions with the exact owner decision, evidence fields, and interim continuity that keep 802.1X intact.",
+    sources: source("vlan", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-09-conference-room-fallback",
+    title: "Recover a conference room before a critical meeting",
+    phaseId: "fast-track",
+    mode: "Production Incident",
+    capabilityLevel: "prove",
+    competencies: { production: 1, communication: 0.8, foundations: 0.6 },
+    scenario: "Fictional Boardroom East must host a 10:00 customer design review. At 09:41 the Teams Rooms console shows ‘Disconnected’ and the room camera is dark. Facilities reports the display has power. Kyra is unavailable. An approved backup room (Boardroom West) is free until 10:30.",
+    assets: [
+      {
+        name: "room-status.txt",
+        kind: "log",
+        content:
+          "09:41 Console: Disconnected from Microsoft Teams\n09:41 Camera: no USB enumerate\n09:42 Display HDMI input: signal from room PC\n09:43 Ping teams-room-east.training.example -> request timed out\n09:44 Nearby Boardroom West console: Connected; camera OK\n09:45 Calendar: customer review 10:00–10:45; 12 attendees on-site + remote",
+      },
+      {
+        name: "room-runbook.md",
+        kind: "document",
+        content:
+          "Contain: move critical meeting to approved backup if primary cannot be verified in time.\nGather: console state, network reachability, camera USB, display path, timestamps.\nRecover: power-cycle room peripherals only if runbook allows; do not factory-reset the console mid-incident.\nVerify: join a test Teams meeting, confirm camera/mic/share.\nCommunicate: impact, fallback room, next update time.\nPrevent: open platform ticket with logs for Teams Rooms owner.",
+      },
+      {
+        name: "attendee-message-draft.txt",
+        kind: "document",
+        content:
+          "Draft (incomplete): ‘Having AV issues, maybe start late.’\nMissing: fallback location, whether remote join link changes, checkpoint time, who to contact.",
+      },
+    ],
+    task: "Contain meeting impact, choose primary recovery vs approved fallback, write the attendee checkpoint, and preserve evidence for the Rooms owner. Do not factory-reset the console.",
+    evidence: labArtifact([
+      "State console/network/camera facts and time pressure",
+      "Choose fallback or limited recovery with reason",
+      "Write a clear attendee checkpoint (place, link, time)",
+      "Define verification before declaring the room ready",
+      "Assign Teams Rooms follow-up owner",
+    ]),
+    rules: [
+      { id: "time-box", label: "Respect meeting start time with an approved fallback", requiredTerms: ["10:00", "fallback", "west", "checkpoint"], minimumMatches: 2 },
+      { id: "no-factory-reset", label: "Avoid destructive console reset during the incident", requiredTerms: ["factory", "reset", "preserve", "log"], minimumMatches: 2 },
+      { id: "av-verify", label: "Verify camera/mic/share on the chosen path", requiredTerms: ["camera", "teams", "verify", "meeting"], minimumMatches: 2 },
+    ],
+    debrief: "With nineteen minutes left, continuity beats deep repair. Move to Boardroom West if East cannot be verified quickly, communicate clearly, and leave East’s disconnected/camera evidence for the Rooms owner—without a factory reset.",
+    revisionPrompt: "Replace vague ‘start late’ messaging with the fallback room, join expectations, and a verification statement for whichever path you chose.",
+    sources: source("teamsRooms", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-10-asset-recovery-audit",
+    title: "Reconcile an asset recovery audit",
+    phaseId: "fast-track",
+    mode: "Solo",
+    capabilityLevel: "practice",
+    competencies: { foundations: 0.8, security: 0.9, leadership: 0.5 },
+    scenario: "Fictional asset audit finds three laptops marked Returned that do not reconcile. Finance wants a clean report today. You may recommend hold, wipe, or investigate—but only with evidence.",
+    assets: [
+      {
+        name: "asset-register.csv",
+        kind: "dataset",
+        content:
+          "AssetTag,Serial,AssignedUser,Status,LastCheckIn\nEZ-880,SN880A,kai.nguyen,Returned,2026-07-01\nEZ-881,SN881B,(blank),Returned,2026-07-10\nEZ-882,SN882C,sam.ortiz,Assigned,2026-07-12",
+      },
+      {
+        name: "custody-notes.txt",
+        kind: "document",
+        content:
+          "EZ-880: locker B2 has device; intake form missing signature; Intune shows corporate wipe not started\nEZ-881: serial on chassis matches register; AssignedUser blank after contractor exit; BitLocker escrow present\nEZ-882: status Assigned but desk empty; user on leave; last check-in was remote; no return ticket",
+      },
+      {
+        name: "disposition-policy.md",
+        kind: "document",
+        content:
+          "Returned devices require: verified tag+serial, signed custody, identity offboarding check, approved wipe/retention disposition, and status update by the asset owner.\nDo not mark Finance-complete if custody or wipe evidence is missing.\nDo not wipe when ownership is disputed.",
+      },
+    ],
+    task: "For each asset, choose hold/investigate/wipe-ready disposition with evidence, and write the audit note Finance can trust.",
+    evidence: labArtifact([
+      "Reconcile tag/serial/user/status conflicts per asset",
+      "Choose disposition for EZ-880, EZ-881, and EZ-882",
+      "Cite custody or wipe evidence gaps",
+      "Name asset/identity owners for unresolved rows",
+      "State what ‘complete’ means for Finance",
+    ]),
+    rules: [
+      { id: "three-assets", label: "Address all three assets explicitly", requiredTerms: ["ez-880", "ez-881", "ez-882"], minimumMatches: 3 },
+      { id: "no-blind-wipe", label: "Do not wipe disputed or incomplete custody devices", requiredTerms: ["custody", "wipe", "hold", "investigate"], minimumMatches: 2 },
+      { id: "finance-truth", label: "Keep Finance status honest about gaps", requiredTerms: ["finance", "complete", "missing", "owner"], minimumMatches: 2 },
+    ],
+    debrief: "Returned is a claim, not a completed control. EZ-880 needs custody signature and wipe tracking; EZ-881 needs user linkage before disposition; EZ-882 is not returned at all. Finance gets truth, not a forced green status.",
+    revisionPrompt: "Give a one-line disposition for each asset tag and the exact missing evidence that blocks ‘complete.’",
+    sources: source("intune", "entra"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-11-linux-log-triage",
+    title: "Triage a Linux service failure with logs",
+    phaseId: "fast-track",
+    mode: "Pair Programming",
+    capabilityLevel: "practice",
+    competencies: { foundations: 1, production: 0.8, communication: 0.5 },
+    scenario: "Fictional lab gateway lgw-04 stopped publishing temperature samples at 14:02. The instruments team can still ping the host. A peer can help you read journal excerpts. You are support, not the platform owner who may restart production services without a window.",
+    assets: [
+      {
+        name: "systemctl-status.txt",
+        kind: "log",
+        content:
+          "● sample-publisher.service - Lab sample publisher\n   Loaded: loaded\n   Active: failed (Result: exit-code) since Sat 2026-07-18 14:02:11 UTC\n  Process: ExecStart=/usr/local/bin/sample-publisher (code=exited, status=1/FAILURE)\n   Docs: asks for MQTT_BROKER and TLS client cert paths",
+      },
+      {
+        name: "journal-excerpt.txt",
+        kind: "log",
+        content:
+          "14:01:58 sample-publisher[2201]: connecting to mqtts://broker.lab.training.example:8883\n14:02:01 sample-publisher[2201]: TLS handshake failed: certificate has expired\n14:02:01 sample-publisher[2201]: retry exhausted\n14:02:11 systemd[1]: sample-publisher.service: Failed with result 'exit-code'\n14:05:00 operator: ‘just restart it’ requested in chat",
+      },
+      {
+        name: "peer-questions.md",
+        kind: "document",
+        content:
+          "Pair Programming: ask Kyra/peer to help interpret exit-code vs TLS expiry without leaping to reboot. Safe support actions: capture logs, confirm blast radius, propose cert renewal owner, and a verified publish test. Unsafe: deleting certs, disabling TLS, or restarting unrelated hosts.",
+      },
+    ],
+    task: "Form a hypothesis from the logs, choose a safe next support action, and write the escalation for the service/cert owner. Do not disable TLS.",
+    evidence: labArtifact([
+      "Cite the TLS expiry evidence from the journal",
+      "Separate host reachability from service failure",
+      "State safe support actions vs owner-only actions",
+      "Define verification that samples publish again",
+      "Name certificate/service owner for renewal",
+    ]),
+    rules: [
+      { id: "tls-evidence", label: "Use certificate expiry as the leading cause", requiredTerms: ["tls", "certificate", "expired", "mqtt"], minimumMatches: 2 },
+      { id: "no-disable-tls", label: "Reject disabling TLS or blind restarts as the fix", requiredTerms: ["tls", "restart", "renew", "owner"], minimumMatches: 2 },
+      { id: "publish-verify", label: "Define a publish verification after renewal", requiredTerms: ["publish", "verify", "sample", "broker"], minimumMatches: 2 },
+    ],
+    debrief: "The host answers ping while the publisher fails on an expired TLS client certificate. Support captures evidence and escalates renewal; restart-alone or TLS-off ‘fixes’ are unsafe.",
+    revisionPrompt: "Quote the journal line that proves expiry and replace any reboot-only plan with owner, renewal, and publish verification.",
+    sources: source("incidentResponse", "windowsTroubleshooting"),
+    review: draftReview,
+  },
+  {
+    id: "it-lab-12-plain-language-outage",
+    title: "Explain a network identity outage without jargon",
+    phaseId: "fast-track",
+    mode: "Solo",
+    capabilityLevel: "practice",
+    competencies: { communication: 1, foundations: 0.6, leadership: 0.5 },
+    scenario: "Fictional warehouse supervisor Lee Morales needs to tell twenty associates why handheld scanners cannot sign in and what happens next. Engineers diagnosed an Entra conditional-access outage affecting the scanner app; network paths are healthy. Lee asks you for words they can read aloud—no acronym soup.",
+    assets: [
+      {
+        name: "engineer-notes.txt",
+        kind: "document",
+        content:
+          "Symptom: scanner app auth fails with AADSTS500022\nNetwork: DHCP/DNS/HTTPS to known endpoints OK\nIdentity: Conditional Access policy ‘Warehouse-Scanners’ misconfigured at 11:10; rollback ticket CA-441 in progress\nETA: identity owner estimates 25 minutes\nWorkaround: supervised backup scanners in Cage 2 already signed in yesterday remain usable for pick tasks\nDo not: ask users to disable MFA or join personal hotspots",
+      },
+      {
+        name: "audience.txt",
+        kind: "document",
+        content:
+          "Audience: warehouse associates + supervisor Lee\nNeeds: what is broken in plain terms; what still works; what to do now; when they will hear an update; who to ask\nTone: calm, specific, no blame",
+      },
+      {
+        name: "bad-draft.txt",
+        kind: "document",
+        content:
+          "Bad draft: ‘CA policy blew up IdP tokens so SAML/OIDC to the MDM-wrapped APK is 500022 until we revert the CA blade.’\nProblems: jargon, no workaround, no update time, no owner.",
+      },
+    ],
+    task: "Rewrite the update Lee will read aloud. Include impact, workaround, next update time, and who owns the fix—without requiring associates to understand Entra or conditional access.",
+    evidence: labArtifact([
+      "Explain the outage in plain language",
+      "Name what still works (Cage 2 workaround)",
+      "Give a concrete next update time",
+      "Name the identity owner without dumping jargon",
+      "Forbid unsafe workarounds (MFA off / personal hotspots)",
+    ]),
+    rules: [
+      { id: "plain-words", label: "Avoid unexplained acronyms in the user-facing message", requiredTerms: ["sign in", "scanner", "update", "minutes"], minimumMatches: 2 },
+      { id: "workaround", label: "Include the approved Cage 2 workaround", requiredTerms: ["cage 2", "workaround", "backup", "pick"], minimumMatches: 2 },
+      { id: "no-unsafe-bypass", label: "Reject MFA-off or personal hotspot guidance", requiredTerms: ["mfa", "hotspot", "not", "approved"], minimumMatches: 2 },
+    ],
+    debrief: "Associates need calm clarity: sign-in is broken, picking can continue on Cage 2 backups, identity is fixing it, next update in 25 minutes. Jargon and unsafe bypasses fail the audience test.",
+    revisionPrompt: "Read your message aloud. Remove any term Lee would have to define, and add the workaround plus update time.",
+    sources: source("entra", "incidentResponse"),
     review: draftReview,
   },
 ];
@@ -629,6 +997,546 @@ export const itSupportMissions: MissionDefinition[] = [
     ],
     debrief: "The correct outcome may be a controlled conventional recovery, not a flashy automation. Compliance depends on the correct physical media, configuration, template, scan result, and operator workflow. A backup path must prove those conditions before it is used at scale.",
     sources: source("printing", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-mission-03-critical-workstation-recovery",
+    title: "Mission: recover a critical workstation before a timed test",
+    phaseId: "master-track",
+    competencies: { foundations: 1, production: 0.9, communication: 0.8, security: 0.5 },
+    briefing:
+      "Fictional propulsion engineer Ava Ruiz loses primary workstation PW-119 twenty-five minutes before a timed hot-fire data review. The laptop powers on to BitLocker after overnight firmware work. A known-good spare PW-204 is in the cage; enrollment is unverified. You coordinate recovery—you do not weaken encryption or invent credentials.",
+    startStepId: "step-triage",
+    steps: [
+      {
+        id: "step-triage",
+        title: "Triage impact and evidence",
+        prompt:
+          "Ava needs the approved analysis toolchain within 25 minutes. PW-119 shows BitLocker recovery after firmware; the spare is tagged but enrollment is unknown. What do you do first?",
+        requiredChoiceId: "impact-and-preserve",
+        options: [
+          {
+            id: "disable-encryption",
+            text: "Disable BitLocker on PW-119 so Ava can boot immediately and catch up later.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Weakening encryption under time pressure creates a lasting security debt and may violate policy.",
+          },
+          {
+            id: "impact-and-preserve",
+            text: "Confirm the timed review impact, preserve PW-119 state for follow-up, and open a dual path: approved recovery identity check plus spare readiness verification.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "You protect continuity options without destroying evidence or encryption controls.",
+            nextStepId: "step-continuity",
+          },
+          {
+            id: "silent-reimage",
+            text: "Start a full reimage of PW-119 immediately because firmware issues always require a clean OS before any spare is considered.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "A reimage consumes the window and may erase diagnostics Ava’s team still needs.",
+          },
+        ],
+      },
+      {
+        id: "step-continuity",
+        title: "Choose the continuity path",
+        prompt:
+          "Identity for BitLocker recovery will take longer than the review start. PW-204 powers on; Intune shows Pending for Ava’s profile apps. What is the safest continuity decision?",
+        requiredChoiceId: "verified-spare",
+        options: [
+          {
+            id: "verified-spare",
+            text: "Issue PW-204 only after verifying enrollment/app path for the review toolchain, keep PW-119 sealed for post-event recovery, and set a checkpoint update time for Ava.",
+            safe: true,
+            disposition: "human-approved",
+            consequence: "Continuity is real only when the spare can run the required work.",
+            nextStepId: "step-closeout",
+          },
+          {
+            id: "hand-off-raw",
+            text: "Hand Ava the spare immediately without checking enrollment because any laptop is better than waiting.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "An unready spare can fail at the same moment as the review starts.",
+          },
+          {
+            id: "paste-key-chat",
+            text: "Paste the BitLocker recovery key into Teams so Ava can unlock PW-119 herself while you prepare the spare.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Recovery material in chat creates an uncontrolled secret exposure.",
+          },
+        ],
+      },
+      {
+        id: "step-closeout",
+        title: "Verify and hand off",
+        prompt:
+          "Ava opens the analysis tool on PW-204. What closes your support portion before the review begins?",
+        requiredChoiceId: "workflow-and-followup",
+        options: [
+          {
+            id: "workflow-and-followup",
+            text: "Verify the required review workflow with Ava, communicate status to the test lead, assign BitLocker/firmware follow-up on PW-119, and record asset custody for the spare.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "The operation is restored with accountable follow-up on the original device.",
+            nextStepId: "outcome",
+          },
+          {
+            id: "boot-only",
+            text: "Close when the spare reaches the desktop; application verification can wait until after the review.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Desktop presence is not proof the timed review toolchain works.",
+          },
+          {
+            id: "no-comms",
+            text: "Skip the test-lead update because Ava already knows she has a laptop.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Mission-critical work needs an explicit operational checkpoint, not an assumed one.",
+          },
+        ],
+      },
+      {
+        id: "outcome",
+        title: "Timed recovery complete",
+        prompt:
+          "Save a decision record covering impact, continuity choice, verification, encryption boundary, and follow-up ownership.",
+        requiredChoiceId: "record",
+        options: [
+          {
+            id: "record",
+            text: "Prepare the evidence-backed workstation recovery record.",
+            safe: true,
+            consequence: "Your recovery decision is ready for review.",
+          },
+        ],
+      },
+    ],
+    artifact: missionArtifact([
+      "State timed review impact and device facts",
+      "Describe continuity without weakening encryption",
+      "Verify the required analysis workflow on the spare",
+      "Preserve PW-119 for post-event follow-up",
+      "Assign custody and firmware/BitLocker owners",
+    ]),
+    rules: [
+      { id: "no-weaken-bitlocker", label: "Protect BitLocker and recovery material", requiredTerms: ["bitlocker", "recovery", "key", "chat"], minimumMatches: 2 },
+      { id: "spare-ready", label: "Verify spare enrollment and toolchain before relying on it", requiredTerms: ["spare", "enroll", "workflow", "verify"], minimumMatches: 2 },
+      { id: "timed-comms", label: "Communicate a checkpoint for the timed review", requiredTerms: ["review", "checkpoint", "follow-up", "custody"], minimumMatches: 2 },
+    ],
+    debrief:
+      "Under a timed review, continuity means a verified known-good path—not disabled encryption or an untested spare. Preserve the original device, prove the toolchain, and leave clear owners for BitLocker/firmware follow-up.",
+    sources: source("bitLocker", "windowsTroubleshooting", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-mission-04-conference-room-preflight",
+    title: "Mission: recover a review room five minutes before start",
+    phaseId: "master-track",
+    competencies: { production: 1, communication: 1, roleJudgment: 0.8, foundations: 0.5 },
+    briefing:
+      "Fictional Boardroom North fails five minutes before a customer engineering review. The Teams Rooms console is disconnected, the camera is dark, and remote executives are already in the lobby. Boardroom South is approved and free for 40 minutes. You must restore a usable meeting path without a factory reset.",
+    startStepId: "step-decide-path",
+    steps: [
+      {
+        id: "step-decide-path",
+        title: "Choose recovery vs fallback under time pressure",
+        prompt:
+          "It is 09:55 for a 10:00 start. Console disconnected; camera missing; South is ready. What is your first decision?",
+        requiredChoiceId: "fallback-first",
+        options: [
+          {
+            id: "factory-reset-now",
+            text: "Factory-reset the North console immediately so the preferred room can be saved.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "A reset burns the remaining minutes and destroys useful failure evidence.",
+          },
+          {
+            id: "fallback-first",
+            text: "Move the review to Boardroom South now, preserve North’s console/camera evidence, and set a one-minute attendee checkpoint.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "Continuity beats deep repair when the clock has already expired.",
+            nextStepId: "step-communicate",
+          },
+          {
+            id: "start-late-hope",
+            text: "Ask everyone to wait while you troubleshoot North without offering a fallback room.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "An open-ended delay without a fallback is not a controlled recovery.",
+          },
+        ],
+      },
+      {
+        id: "step-communicate",
+        title: "Communicate the checkpoint",
+        prompt:
+          "Attendees need to know where to go. Remote join link is unchanged. What do you broadcast?",
+        requiredChoiceId: "clear-checkpoint",
+        options: [
+          {
+            id: "clear-checkpoint",
+            text: "Announce Boardroom South, unchanged remote link, start time now, and that North remains under investigation with a named Rooms owner after the meeting.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "Everyone can act without guessing.",
+            nextStepId: "step-verify-south",
+          },
+          {
+            id: "jargon-blast",
+            text: "Tell attendees the ‘MTR console lost AAD join and USB enumerate failed’ so they understand the technical root cause.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Jargon without place/time guidance fails the audience under pressure.",
+          },
+          {
+            id: "no-update",
+            text: "Skip the announcement; people will figure out South when they see an empty North.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Remote attendees and late arrivals need an explicit checkpoint.",
+          },
+        ],
+      },
+      {
+        id: "step-verify-south",
+        title: "Verify the fallback before declaring ready",
+        prompt:
+          "People are entering South. What proves the meeting path works?",
+        requiredChoiceId: "av-verify",
+        options: [
+          {
+            id: "av-verify",
+            text: "Join a quick test meeting, confirm camera/mic/content share, then hand the room to the host and open a Rooms ticket for North with preserved logs.",
+            safe: true,
+            disposition: "human-approved",
+            consequence: "Verification prevents a second failure in front of the customer.",
+            nextStepId: "outcome",
+          },
+          {
+            id: "display-only",
+            text: "Confirm the display has power and declare South ready without testing camera or share.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Power on a display does not prove Teams AV works.",
+          },
+          {
+            id: "skip-ticket",
+            text: "Skip the North ticket because the meeting is saved and nobody needs post-incident work.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Without a ticket, North’s failure repeats for the next review.",
+          },
+        ],
+      },
+      {
+        id: "outcome",
+        title: "Meeting path restored",
+        prompt:
+          "Save a decision record covering time pressure, fallback, communication, AV verification, and Rooms follow-up.",
+        requiredChoiceId: "record",
+        options: [
+          {
+            id: "record",
+            text: "Prepare the evidence-backed room recovery record.",
+            safe: true,
+            consequence: "Your meeting continuity decision is ready for review.",
+          },
+        ],
+      },
+    ],
+    artifact: missionArtifact([
+      "State five-minute time pressure and North failure facts",
+      "Choose approved South fallback without factory reset",
+      "Write a clear attendee checkpoint",
+      "Verify camera/mic/share on the fallback",
+      "Assign Teams Rooms follow-up for North",
+    ]),
+    rules: [
+      { id: "time-fallback", label: "Use the approved fallback under time pressure", requiredTerms: ["south", "fallback", "10:00", "checkpoint"], minimumMatches: 2 },
+      { id: "no-reset", label: "Avoid destructive console reset during the window", requiredTerms: ["factory", "reset", "preserve", "log"], minimumMatches: 2 },
+      { id: "av-proof", label: "Verify Teams AV on the chosen path", requiredTerms: ["camera", "mic", "share", "verify"], minimumMatches: 2 },
+    ],
+    debrief:
+      "Five minutes left is a continuity problem. Move to the approved room, communicate clearly, verify AV, and leave North’s evidence for the Rooms owner—without a factory reset.",
+    sources: source("teamsRooms", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-mission-05-asset-custody-gap",
+    title: "Mission: resolve an asset custody discrepancy",
+    phaseId: "master-track",
+    competencies: { security: 1, leadership: 0.8, foundations: 0.7, communication: 0.6 },
+    briefing:
+      "Fictional finance audit flags laptop EZ-772 as Returned with no signed custody record, blank assigned user, and Intune wipe status NotStarted. The device is in locker C3. A manager wants it wiped and closed today for the audit score. You must reconstruct safe next actions.",
+    startStepId: "step-reconcile",
+    steps: [
+      {
+        id: "step-reconcile",
+        title: "Reconcile the record before acting",
+        prompt:
+          "Register says Returned; locker has EZ-772; no signature; wipe not started. Finance wants ‘complete’ today. What first?",
+        requiredChoiceId: "hold-and-evidence",
+        options: [
+          {
+            id: "wipe-now",
+            text: "Start a corporate wipe immediately so Finance can mark the row complete.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Wiping without custody and ownership clarity can destroy evidence and the wrong person’s data path.",
+          },
+          {
+            id: "hold-and-evidence",
+            text: "Hold disposition, photograph/tag-verify the locker device, pull last assignee and offboarding tickets, and freeze status changes until custody is reconstructed.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "You make the audit honest before any destructive step.",
+            nextStepId: "step-disposition",
+          },
+          {
+            id: "mark-complete",
+            text: "Mark Finance complete based on locker presence alone and fix paperwork next week.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Presence in a locker is not a completed return control.",
+          },
+        ],
+      },
+      {
+        id: "step-disposition",
+        title: "Choose a safe disposition",
+        prompt:
+          "Last assignee was contractor Mira Chen, exited 12 days ago; offboarding closed; no one else claims the device. Custody form is still missing a signature. What next?",
+        requiredChoiceId: "signed-then-wipe",
+        options: [
+          {
+            id: "signed-then-wipe",
+            text: "Obtain asset-owner signed custody for EZ-772, then run the approved wipe with logging, and only then update Finance status with evidence links.",
+            safe: true,
+            disposition: "human-approved",
+            consequence: "Disposition follows custody and an attributable wipe.",
+            nextStepId: "step-process",
+          },
+          {
+            id: "skip-signature",
+            text: "Skip the signature because Mira already exited and wipe the device under your own name.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Unsigned custody leaves an accountability gap the audit will reject later.",
+          },
+          {
+            id: "reassign-quietly",
+            text: "Quietly reassign EZ-772 to a new hire to clear the Returned backlog without wipe or custody.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Reassignment without wipe/custody can leak prior-user data and falsify the register.",
+          },
+        ],
+      },
+      {
+        id: "step-process",
+        title: "Capture the process improvement",
+        prompt:
+          "Wipe completed with ticket AW-220. What prevention belongs in the decision record?",
+        requiredChoiceId: "gate-return",
+        options: [
+          {
+            id: "gate-return",
+            text: "Require signed custody + identity offboarding check before Returned status, and block Finance-complete until wipe evidence exists; name asset and identity owners.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "The process gap that caused the discrepancy is closed.",
+            nextStepId: "outcome",
+          },
+          {
+            id: "trust-locker",
+            text: "Treat locker drop-off as sufficient proof of return going forward to speed audits.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Locker presence without custody repeats the same failure.",
+          },
+          {
+            id: "no-change",
+            text: "Close without process notes because this was a one-off paperwork miss.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Without a gate, the next audit finds the same class of gap.",
+          },
+        ],
+      },
+      {
+        id: "outcome",
+        title: "Audit-ready disposition",
+        prompt:
+          "Save a decision record covering reconciliation, custody, wipe evidence, Finance truthfulness, and prevention owners.",
+        requiredChoiceId: "record",
+        options: [
+          {
+            id: "record",
+            text: "Prepare the evidence-backed asset discrepancy record.",
+            safe: true,
+            consequence: "Your asset decision is ready for review.",
+          },
+        ],
+      },
+    ],
+    artifact: missionArtifact([
+      "Reconcile tag, locker, user, and wipe status",
+      "Hold destructive action until custody is signed",
+      "Document approved wipe evidence before Finance-complete",
+      "Name asset and identity prevention owners",
+      "State the process gate that was missing",
+    ]),
+    rules: [
+      { id: "no-blind-wipe", label: "Do not wipe before custody and ownership clarity", requiredTerms: ["custody", "wipe", "hold", "signature"], minimumMatches: 2 },
+      { id: "finance-truth", label: "Keep Finance status tied to evidence", requiredTerms: ["finance", "complete", "evidence", "wipe"], minimumMatches: 2 },
+      { id: "process-gate", label: "Define a return gate that prevents recurrence", requiredTerms: ["returned", "custody", "offboarding", "owner"], minimumMatches: 2 },
+    ],
+    debrief:
+      "Returned is a claim until custody and wipe evidence exist. Hold, reconstruct, sign, wipe with logging, then tell Finance the truth—and install a gate so locker drop-off alone cannot close the row.",
+    sources: source("intune", "entra", "incidentResponse"),
+    review: draftReview,
+  },
+  {
+    id: "it-mission-06-skeptical-engineer",
+    title: "Mission: support a skeptical engineer under pressure",
+    phaseId: "master-track",
+    competencies: { communication: 1, roleJudgment: 0.9, production: 0.7, foundations: 0.5 },
+    briefing:
+      "Fictional senior engineer Dominic Hale rejects troubleshooting questions about laptop DL-440 that ‘just worked yesterday’ and now cannot reach the internal package mirror before a release cut. He wants a reimage in ten minutes and calls discovery a waste. You must stay calm, keep boundaries, and restore the required workflow.",
+    startStepId: "step-deescalate",
+    steps: [
+      {
+        id: "step-deescalate",
+        title: "Open discovery without a fight",
+        prompt:
+          "Dominic: ‘Stop asking questions and reimage it.’ The mirror fails only on DL-440; other laptops on the same dock work. What do you do?",
+        requiredChoiceId: "acknowledge-and-narrow",
+        options: [
+          {
+            id: "argue-rank",
+            text: "Argue that he is wrong and refuse to help until he fills a long form.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Escalating the conflict delays recovery and burns trust.",
+          },
+          {
+            id: "acknowledge-and-narrow",
+            text: "Acknowledge the release pressure, state a two-minute discovery that protects a reimage option, and ask only for last change, error text, and whether the dock path differs.",
+            safe: true,
+            disposition: "conventional",
+            consequence: "You show ownership of time while collecting the minimum decisive facts.",
+            nextStepId: "step-boundary",
+          },
+          {
+            id: "blind-reimage",
+            text: "Start the reimage immediately to prove you take him seriously.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "A blind reimage can destroy evidence and miss a simple path/DNS issue.",
+          },
+        ],
+      },
+      {
+        id: "step-boundary",
+        title: "Keep the safe boundary",
+        prompt:
+          "Error shows DNS timeout to packages.training.example; dock Ethernet; same dock works for a peer laptop. Dominic demands a static IP from an old runbook. What next?",
+        requiredChoiceId: "compare-and-escalate",
+        options: [
+          {
+            id: "static-from-runbook",
+            text: "Apply the old static IP because Dominic insists and the runbook once worked.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Unapproved static addressing can violate IPAM and hide the real DNS/path issue.",
+          },
+          {
+            id: "compare-and-escalate",
+            text: "Document peer-laptop success on the same dock, capture DNS failure evidence, refuse the unapproved static workaround, and escalate to network/DNS with a clear packet while offering a known-good spare if the cut cannot wait.",
+            safe: true,
+            disposition: "human-approved",
+            consequence: "You protect segmentation rules and still offer continuity.",
+            nextStepId: "step-status",
+          },
+          {
+            id: "blame-user",
+            text: "Tell Dominic the failure is his configuration and walk away until he calms down.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Abandoning the incident fails service ownership under pressure.",
+          },
+        ],
+      },
+      {
+        id: "step-status",
+        title: "Communicate status and next update",
+        prompt:
+          "Network accepts the escalation. A spare is enrolling apps. Dominic asks ‘are we fixed?’ What do you say?",
+        requiredChoiceId: "honest-checkpoint",
+        options: [
+          {
+            id: "honest-checkpoint",
+            text: "State what is known (DNS path under investigation), what is in progress (spare enrollment), the next update time, and what success looks like (mirror reachability + package pull).",
+            safe: true,
+            disposition: "conventional",
+            consequence: "Honest checkpoints reduce repeat interruptions and set a verifyable done state.",
+            nextStepId: "outcome",
+          },
+          {
+            id: "overpromise",
+            text: "Promise it will be fixed in five minutes without evidence.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Overpromising destroys credibility when the clock slips.",
+          },
+          {
+            id: "hide-escalation",
+            text: "Hide that network is involved because Dominic distrusts other teams.",
+            safe: false,
+            disposition: "unsafe",
+            consequence: "Hiding ownership boundaries creates false expectations.",
+          },
+        ],
+      },
+      {
+        id: "outcome",
+        title: "Pressure-handled recovery",
+        prompt:
+          "Save a decision record covering de-escalation, evidence, refused unsafe workaround, continuity option, and status communication.",
+        requiredChoiceId: "record",
+        options: [
+          {
+            id: "record",
+            text: "Prepare the evidence-backed skeptical-engineer support record.",
+            safe: true,
+            consequence: "Your pressure-handling decision is ready for review.",
+          },
+        ],
+      },
+    ],
+    artifact: missionArtifact([
+      "Acknowledge pressure and keep a short discovery window",
+      "Use comparative evidence (peer laptop / dock)",
+      "Refuse unapproved static IP workaround",
+      "Offer verified continuity if the cut cannot wait",
+      "Give an honest checkpoint with success criteria",
+    ]),
+    rules: [
+      { id: "calm-discovery", label: "Keep discovery short and purposeful under pressure", requiredTerms: ["pressure", "discover", "reimage", "evidence"], minimumMatches: 2 },
+      { id: "no-static-bypass", label: "Reject unapproved static addressing", requiredTerms: ["static", "dns", "network", "approved"], minimumMatches: 2 },
+      { id: "honest-status", label: "Communicate a verifiable checkpoint", requiredTerms: ["update", "spare", "mirror", "success"], minimumMatches: 2 },
+    ],
+    debrief:
+      "Skeptical urgency is still a service problem. Acknowledge the cut, gather comparative evidence fast, refuse unsafe shortcuts, offer real continuity, and speak in checkpoints—not arguments or overpromises.",
+    sources: source("windowsTroubleshooting", "vlan", "incidentResponse"),
     review: draftReview,
   },
 ];
@@ -872,17 +1780,37 @@ const itInterviewThemes: readonly InterviewTheme[] = [
 ];
 
 export const itSupportInterviewPrompts: InterviewPrompt[] = itInterviewThemes.flatMap((theme, themeIndex) =>
-  theme.prompts.map((prompt, promptIndex) => ({
-    id: `it-interview-${String(themeIndex + 1).padStart(2, "0")}-${String(promptIndex + 1).padStart(2, "0")}`,
-    category: theme.category,
-    prompt,
-    why: theme.why,
-    strongAnswer: theme.strongAnswer,
-    commonMiss: theme.commonMiss,
-    followUp: theme.followUp,
-    rubric: theme.rubric,
-    sources: theme.sources,
-  })),
+  theme.prompts.map((prompt, promptIndex) => {
+    const focus = prompt.replace(/\s+/g, " ").trim();
+    const shortFocus = focus.length > 90 ? `${focus.slice(0, 87)}…` : focus;
+    return {
+      id: `it-interview-${String(themeIndex + 1).padStart(2, "0")}-${String(promptIndex + 1).padStart(2, "0")}`,
+      category: theme.category,
+      prompt,
+      why: `${theme.why} Scenario focus: ${shortFocus}`,
+      strongAnswer: `${theme.strongAnswer} Apply that sequence explicitly to this case: ${shortFocus}`,
+      commonMiss: `${theme.commonMiss} In this scenario, do not invent facts that are not implied by the prompt.`,
+      followUp:
+        promptIndex % 3 === 0
+          ? theme.followUp
+          : promptIndex % 3 === 1
+            ? `If the first fix fails for “${shortFocus}”, what evidence changes your next layer?`
+            : `Who owns the boundary if “${shortFocus}” requires a change outside your authority?`,
+      rubric: [
+        theme.rubric[0],
+        theme.rubric[1],
+        `${theme.rubric[2]} Answer specifically for: ${shortFocus}`,
+      ],
+      ...(promptIndex % 2 === 0
+        ? {
+            timedMinutes: (promptIndex % 4 === 0 ? 45 : 30) as 30 | 45,
+            scenarioArtifact:
+              "Fictional ticket excerpt with timestamps, device identity, last-known-good state, and an approved fallback option. Do not invent production credentials or network changes.",
+          }
+        : {}),
+      sources: theme.sources,
+    };
+  }),
 );
 
 if (itSupportInterviewPrompts.length !== 150) {
