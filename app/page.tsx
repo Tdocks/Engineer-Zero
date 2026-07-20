@@ -43,96 +43,82 @@ export default function Home() {
 
       <section className="market-hero">
         <div className="hero-copy">
+          <p className="hero-brand">Engineer Zero</p>
           <div className="hero-kicker">
-            <span className="pulse-dot" /> CAREER TRAINING FOR HIGH-TRUST
-            TECHNICAL ROLES
+            Career training for high-trust technical roles
           </div>
           <h1>
-            Train for the work
-            <br />
+            Train for the work{" "}
             <span>before the interview.</span>
           </h1>
           <p>
-            Engineer Zero turns career preparation into a practice environment
-            for real technical judgment: investigate, decide, build evidence,
-            and explain your reasoning under pressure.
+            Practice real technical judgment: investigate, decide, build
+            evidence, and explain your reasoning under pressure.
           </p>
           <div className="hero-actions">
             <Link href="/learn" className="primary hero-primary">
               Build my readiness map <span>→</span>
             </Link>
-            <a href="#experience" className="hero-text-link">
-              See the learning loop <span>↓</span>
+            <a href="#paths" className="hero-text-link">
+              Choose a path <span>↓</span>
             </a>
           </div>
-          <div className="proof">
-            <span>
-              <i>✓</i> Scenario-led practice
-            </span>
-            <span>
-              <i>✓</i> Evidence, not completion clicks
-            </span>
-            <span>
-              <i>✓</i> AI-native without dependency
-            </span>
-          </div>
+          <ul className="proof">
+            <li>
+              <i aria-hidden="true">✓</i> Scenario-led practice
+            </li>
+            <li>
+              <i aria-hidden="true">✓</i> Evidence, not completion clicks
+            </li>
+            <li>
+              <i aria-hidden="true">✓</i> AI-native without dependency
+            </li>
+          </ul>
         </div>
+      </section>
 
-        <aside className="mission-console">
-          <div className="console-topline">
-            <span>YOUR NEXT MOVE</span>
-            <b>READY WHEN YOU ARE</b>
-          </div>
-          <div className="console-orbit" aria-hidden="true">
-            <span />
-            <span />
-            <i>01</i>
-          </div>
-          <div className="console-title">
-            <span>ENGINEER ZERO</span>
-            <h2>
-              Choose a path.
-              <br />
-              Make it yours.
-            </h2>
-          </div>
-          <div className="console-paths">
-            <article>
-              <span className="path-icon sprint">48</span>
-              <div>
-                <b>Interview Sprint</b>
-                <small>Few-day guided interview packet</small>
-              </div>
-              <em>→</em>
-            </article>
-            <article>
-              <span className="path-icon track">16</span>
-              <div>
-                <b>Role Program</b>
-                <small>Foundations to capstone</small>
-              </div>
-              <em>→</em>
-            </article>
-            <article>
-              <span className="path-icon studio">◎</span>
-              <div>
-                <b>Interview Studio</b>
-                <small>Practice your explanation</small>
-              </div>
-              <em>→</em>
-            </article>
-          </div>
-          <div className="console-footer">
-            <span>READINESS MODEL</span>
+      <section
+        id="paths"
+        className="market-section path-picker"
+        aria-label="Choose a path"
+      >
+        <header className="path-picker-intro">
+          <span className="eyebrow teal">Your next move</span>
+          <h2>Choose a path. Make it yours.</h2>
+          <p>
+            Start with a short interview sprint, a full role program, or
+            explanation practice in Interview Studio.
+          </p>
+        </header>
+        <div className="path-picker-grid">
+          <Link href="/learn" className="path-card">
+            <span className="path-icon sprint">01</span>
             <div>
-              <i />
-              <i />
-              <i />
-              <i />
+              <b>Interview Sprint</b>
+              <small>Few-day guided interview packet</small>
             </div>
-            <b>Understand · Build · Troubleshoot · Explain</b>
-          </div>
-        </aside>
+            <em aria-hidden="true">→</em>
+          </Link>
+          <Link href="/learn#tracks" className="path-card">
+            <span className="path-icon track">02</span>
+            <div>
+              <b>Role Program</b>
+              <small>Foundations to capstone</small>
+            </div>
+            <em aria-hidden="true">→</em>
+          </Link>
+          <Link href="/learn" className="path-card">
+            <span className="path-icon studio">◎</span>
+            <div>
+              <b>Interview Studio</b>
+              <small>Practice your explanation</small>
+            </div>
+            <em aria-hidden="true">→</em>
+          </Link>
+        </div>
+        <p className="path-picker-model">
+          Readiness model: Understand · Build · Troubleshoot · Explain
+        </p>
       </section>
 
       <section id="experience" className="market-section experience-section">

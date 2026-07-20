@@ -9,6 +9,7 @@ __pycache__/
 coverage
 test-results
 playwright-report
+.tmp/
 *.tsbuildinfo
 
 # Local Codex/Impeccable working material and screenshots
