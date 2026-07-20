@@ -17,20 +17,32 @@ const allowedViews = new Set<View>([
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ track?: string; view?: string; studio?: string }>;
+  searchParams: Promise<{
+    track?: string;
+    view?: string;
+    studio?: string;
+    skipBaseline?: string;
+    start?: string;
+  }>;
 }) {
-  const { track, view, studio } = await searchParams;
+  const { track, view, studio, skipBaseline, start } = await searchParams;
   const initialTrack: TrackId = track === "it-support-technician" ? "it-support-technician" : "applied-ai-operations";
   const initialView = allowedViews.has(view as View) ? (view as View) : "today";
   const initialStudioMode =
     studio === "probes" || studio === "mock" || studio === "guided" || studio === "rapid" || studio === "defense"
       ? studio
       : undefined;
+  const shouldSkipBaseline =
+    skipBaseline === "1" ||
+    skipBaseline === "true" ||
+    start === "0" ||
+    start === "zero";
   return (
     <LearningApp
       initialTrack={initialTrack}
       initialView={initialView}
       initialStudioMode={initialStudioMode}
+      skipBaseline={shouldSkipBaseline}
     />
   );
 }

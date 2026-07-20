@@ -25,4 +25,20 @@ test.describe("learner core flows", () => {
     await expect(page.getByText(/continue to knowledge check/i)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
+
+  test("a visitor can skip the baseline and start at zero", async ({ page }) => {
+    await page.goto("/learn");
+    await expect(page.getByRole("heading", { name: /build the judgment/i })).toBeVisible();
+    await page.getByLabel("Name").fill("Zero Starter");
+    await page.getByRole("button", { name: /skip baseline — start at zero/i }).click();
+    await expect(page.getByRole("heading", { name: /start at zero/i })).toBeVisible();
+    await page.getByRole("button", { name: /open today.?s work/i }).click();
+    await expect(page.getByText(/personal pilot/i)).toBeVisible();
+  });
+
+  test("skipBaseline query opens the start-at-zero plan", async ({ page }) => {
+    await page.goto("/learn?skipBaseline=1");
+    await expect(page.getByRole("heading", { name: /start at zero/i })).toBeVisible();
+    await expect(page.getByText(/no baseline yet/i)).toBeVisible();
+  });
 });

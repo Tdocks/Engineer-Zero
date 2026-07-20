@@ -85,10 +85,12 @@ export function LearningApp({
   initialTrack = "applied-ai-operations",
   initialView = "today",
   initialStudioMode,
+  skipBaseline = false,
 }: {
   initialTrack?: TrackId;
   initialView?: View;
   initialStudioMode?: "guided" | "rapid" | "defense" | "mock" | "probes";
+  skipBaseline?: boolean;
 }) {
   const { state, setState, hydrated } = useLearnerState(initialTrack);
   const [view, setView] = useState<View>(initialView);
@@ -125,6 +127,7 @@ export function LearningApp({
     return (
       <Onboarding
         initialTrack={initialTrack}
+        skipBaseline={skipBaseline}
         onComplete={(profile, assessment, summary) => {
           setState((current) => ({
             ...current,
@@ -391,9 +394,11 @@ export function LearningApp({
 
 function Onboarding({
   initialTrack,
+  skipBaseline = false,
   onComplete,
 }: {
   initialTrack: TrackId;
+  skipBaseline?: boolean;
   onComplete: (
     profile: NonNullable<LearnerState["profile"]>,
     assessment: Record<string, number | string>,
@@ -410,10 +415,12 @@ function Onboarding({
   const [targetTrack, setTrack] = useState<TrackId>(initialTrack);
   const [experience, setExperience] = useState<
     "new" | "builder" | "experienced"
-  >("builder");
+  >(skipBaseline ? "new" : "builder");
   const [goal, setGoal] = useState<"interview" | "career" | "both">("both");
   const [interviewDate, setInterviewDate] = useState("");
-  const [stage, setStage] = useState<"profile" | "assessment" | "plan">("profile");
+  const [stage, setStage] = useState<"profile" | "assessment" | "plan">(
+    skipBaseline ? "plan" : "profile",
+  );
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [baselineQuestions, setBaselineQuestions] = useState<PublicBaselineQuestion[]>([]);
   const [assessmentError, setAssessmentError] = useState("");
@@ -422,6 +429,7 @@ function Onboarding({
   const [page, setPage] = useState(0);
   const [baselineAttempt, setBaselineAttempt] = useState(0);
   const [assessmentSummary, setAssessmentSummary] = useState<AssessmentSummary>();
+  const [skippedBaseline, setSkippedBaseline] = useState(skipBaseline);
   const track = tracks[targetTrack];
   const questions: PublicBaselineQuestion[] = baselineQuestions;
   const answeredCount = Object.keys(answers).length;
@@ -429,13 +437,29 @@ function Onboarding({
   const pageCount = Math.max(1, Math.ceil(questions.length / pageSize));
   const visibleQuestions = questions.slice(page * pageSize, (page + 1) * pageSize);
   const pageComplete = visibleQuestions.every((question) => answers[question.id] !== undefined);
+  const profileDraft = (): NonNullable<LearnerState["profile"]> => ({
+    name: name.trim() || "Learner",
+    targetTrack,
+    experience: skippedBaseline ? "new" : experience,
+    goal,
+    interviewDate,
+  });
   const beginAssessment = () => {
+    setSkippedBaseline(false);
     setAnswers({});
     setAssessmentError("");
     setPage(0);
     setLoadingAssessment(true);
     setBaselineAttempt((current) => current + 1);
     setStage("assessment");
+  };
+  const skipBaselineAndStartAtZero = () => {
+    setExperience("new");
+    setSkippedBaseline(true);
+    setAnswers({});
+    setAssessmentSummary(undefined);
+    setAssessmentError("");
+    setStage("plan");
   };
   useEffect(() => {
     if (stage !== "assessment") return;
@@ -496,20 +520,74 @@ function Onboarding({
       <div className="onboard">
         <section className="welcome-card onboarding-plan">
           <div className="brand"><span className="brand-mark">E0</span><span>ENGINEER<br />ZERO</span></div>
-          <div className="onboard-steps" aria-label="Onboarding progress"><span className="complete">01 · Role</span><span className="complete">02 · Starting point</span><span className="complete">03 · Reality check</span><span className="current">04 · Your plan</span></div>
+          <div className="onboard-steps" aria-label="Onboarding progress">
+            <span className="complete">01 · Role</span>
+            <span className="complete">02 · Starting point</span>
+            <span className="complete">03 · Reality check</span>
+            <span className="current">04 · Your plan</span>
+          </div>
           <span className="eyebrow teal">PERSONAL LEARNING PLAN</span>
-          <h1>Your next step is clear.</h1>
+          <h1>{skippedBaseline ? "Start at zero." : "Your next step is clear."}</h1>
           <p>
-            Start with a focused activity, then build toward evidence you can explain in an interview. Your plan remains adjustable as your confidence changes.
+            {skippedBaseline
+              ? "You skipped the baseline. Week 1 foundation work is ready — take the reality check later if you want a sharper placement."
+              : "Start with a focused activity, then build toward evidence you can explain in an interview. Your plan remains adjustable as your confidence changes."}
           </p>
           <div className="onboarding-plan-grid">
             <div><b>{track.title}</b><span>Selected role</span></div>
-            <div><b>{assessmentSummary ? `${assessmentSummary.score}%` : "Starting point set"}</b><span>{assessmentSummary ? "baseline signal" : "baseline ready"}</span></div>
-            <div><b>{goal === "interview" ? "Interview Sprint" : "Foundation path"}</b><span>recommended beginning</span></div>
+            <div>
+              <b>{assessmentSummary ? `${assessmentSummary.score}%` : "Week 1 · start"}</b>
+              <span>{assessmentSummary ? "baseline signal" : "no baseline yet"}</span>
+            </div>
+            <div>
+              <b>{skippedBaseline || goal !== "interview" ? "Foundation path" : "Interview Sprint"}</b>
+              <span>recommended beginning</span>
+            </div>
           </div>
-          <button className="primary wide" onClick={() => onComplete({ name, targetTrack, experience, goal, interviewDate }, answers, assessmentSummary)}>
+          {skippedBaseline ? (
+            <>
+              <label>
+                Name
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+              <div className="track-choice">
+                {trackList.map((item) => (
+                  <button
+                    key={item.id}
+                    className={targetTrack === item.id ? "chosen" : ""}
+                    onClick={() => setTrack(item.id)}
+                  >
+                    <span>{item.id === "applied-ai-operations" ? "AIO" : "IT"}</span>
+                    <div>
+                      <b>{item.title}</b>
+                      <small>{item.subtitle}</small>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+          <button
+            className="primary wide"
+            disabled={!name.trim()}
+            onClick={() =>
+              onComplete(
+                profileDraft(),
+                skippedBaseline ? {} : answers,
+                assessmentSummary,
+              )
+            }
+          >
             Open today’s work →
           </button>
+          {skippedBaseline ? (
+            <button className="link" type="button" onClick={beginAssessment}>
+              Take the baseline instead →
+            </button>
+          ) : null}
         </section>
       </div>
     );
@@ -599,6 +677,16 @@ function Onboarding({
               {answeredCount < questions.length && page === pageCount - 1 && (
                 <button className="link" onClick={() => setPage(Math.floor(questions.findIndex((question) => answers[question.id] === undefined) / pageSize))}>Review unanswered</button>
               )}
+              <button className="link" type="button" onClick={skipBaselineAndStartAtZero}>
+                Skip baseline — start at zero
+              </button>
+            </div>
+          )}
+          {(loadingAssessment || assessmentError) && (
+            <div className="assessment-actions">
+              <button className="link" type="button" onClick={skipBaselineAndStartAtZero}>
+                Skip baseline — start at zero
+              </button>
             </div>
           )}
         </section>
@@ -696,6 +784,17 @@ function Onboarding({
         >
           Build my starting plan →
         </button>
+        <button
+          className="secondary wide"
+          type="button"
+          disabled={!name.trim()}
+          onClick={skipBaselineAndStartAtZero}
+        >
+          Skip baseline — start at zero
+        </button>
+        <p className="field-note">
+          Starting at zero opens Week 1 with no placement score. You can take the reality check later.
+        </p>
       </section>
     </div>
   );
